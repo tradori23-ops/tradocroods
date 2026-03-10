@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v2';
+  var BUILD = '20260311-v3';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -2748,6 +2748,17 @@ body.light .rata-card { background: #fdfcf7; }
             <button onclick="testNotification()" style="background:rgba(74,232,122,0.12);border:1px solid rgba(74,232,122,0.3);color:#4ae87a;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;">🧪 Test notifica</button>
             <button onclick="Notification.requestPermission().then(checkNotifPermission)" style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;">🔔 Richiedi permesso</button>
           </div>
+        </div>
+
+        <!-- Pulizia automatica dati vecchi -->
+        <div style="background:rgba(224,92,92,0.06);border:1px solid rgba(224,92,92,0.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">🗑️ Pulizia automatica dati vecchi</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Imposta un promemoria annuale — quando scatta ti chiede conferma e cancella i dati più vecchi di 2 anni (localStorage + Firebase).</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <input type="date" id="cleanupDate" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text);font-family:inherit;">
+            <button onclick="pianificaCleanup()" style="background:rgba(224,92,92,0.15);border:1px solid rgba(224,92,92,0.35);color:#e05c5c;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600;">📅 Pianifica pulizia</button>
+          </div>
+          <div id="cleanupStatus" style="font-size:11px;color:var(--text-muted);margin-top:8px;"></div>
         </div>
 
         <!-- Info box -->
@@ -14272,9 +14283,8 @@ function checkRemindersMain() {
     syncRemindersToFirebase();
   }
   updateReminderBadge();
+  checkCleanupReminders();
 }
-
-function updateReminderBadge() {
   const list = getReminders();
   const now = Date.now();
   const pending = list.filter(r => !r.completed && r.ts > now).length;
@@ -14304,6 +14314,90 @@ function snoozeReminder(id, minutes) {
     saveReminders(list);
     showToast('⏰ Promemoria posticipato di ' + minutes + ' min');
   }
+}
+
+function pianificaCleanup() {
+  const dateInput = document.getElementById('cleanupDate');
+  const statusEl  = document.getElementById('cleanupStatus');
+  const dateStr   = dateInput?.value;
+  if(!dateStr) { if(statusEl) statusEl.textContent = '⚠️ Scegli una data prima.'; return; }
+  const d = new Date(dateStr);
+  if(d <= new Date()) { if(statusEl) statusEl.textContent = '⚠️ Scegli una data futura.'; return; }
+  const r = {
+    id: 'cleanup_' + Date.now().toString(36),
+    desc: '🗑️ Pulizia dati vecchi (>2 anni)',
+    amount: '',
+    note: 'Rimozione dati più vecchi di 2 anni da localStorage e Firebase',
+    ts: d.getTime(),
+    created: Date.now(),
+    notified: false,
+    completed: false,
+    type: 'cleanup'
+  };
+  const list = getReminders();
+  const filtered = list.filter(x => x.type !== 'cleanup');
+  filtered.push(r);
+  filtered.sort((a,b) => a.ts - b.ts);
+  saveReminders(filtered);
+  updateReminderBadge();
+  renderReminderList();
+  if(statusEl) statusEl.innerHTML = `✅ Pianificata per il <strong>${d.toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})}</strong>`;
+  if(dateInput) dateInput.value = '';
+}
+
+function eseguiCleanupDati() {
+  if(!currentUser) return;
+  const cutoffYear = new Date().getFullYear() - 2;
+  const email = currentUser.email;
+  const prefix = `tc_${email}_`;
+  let rimossi = 0;
+  const keysToDelete = [];
+  for(let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if(!k || !k.startsWith(prefix)) continue;
+    const short = k.replace(prefix, '');
+    const match = short.match(/_(\d{4})(?:_\d+)?$/);
+    if(match && parseInt(match[1]) <= cutoffYear) keysToDelete.push(k);
+  }
+  keysToDelete.forEach(k => { localStorage.removeItem(k); rimossi++; });
+  if(fbReady && db) {
+    const safeEmail = email.replace(/[.#$\[\]]/g, '_');
+    db.ref(`users/${safeEmail}`).once('value').then(snap => {
+      const data = snap.val();
+      if(!data) return;
+      const updates = {};
+      Object.keys(data).forEach(k => {
+        const m = k.match(/_(\d{4})(?:_\d+)?$/);
+        if(m && parseInt(m[1]) <= cutoffYear) updates[k] = null;
+      });
+      if(Object.keys(updates).length) db.ref(`users/${safeEmail}`).update(updates);
+    });
+  }
+  const list = getReminders();
+  const cl = list.find(r => r.type === 'cleanup');
+  if(cl) { cl.completed = true; saveReminders(list); }
+  showToast(`🗑️ Pulizia completata — rimossi dati fino al ${cutoffYear} (${rimossi} blocchi)`);
+  renderReminderList();
+  updateReminderBadge();
+  const modal = document.getElementById('cleanupConfirmModal');
+  if(modal) modal.style.display = 'none';
+}
+
+function apriConfermaCleanup() {
+  const cutoffYear = new Date().getFullYear() - 2;
+  const modal = document.getElementById('cleanupConfirmModal');
+  if(modal) {
+    const el = document.getElementById('cleanupCutoffYear');
+    if(el) el.textContent = cutoffYear;
+    modal.style.display = 'flex';
+  }
+}
+
+function checkCleanupReminders() {
+  const list = getReminders();
+  const now = Date.now();
+  const cl = list.find(r => r.type === 'cleanup' && !r.completed && r.ts <= now);
+  if(cl) apriConfermaCleanup();
 }
 
 function addReminder(desc, amount, note, dateStr, timeStr) {
@@ -14681,6 +14775,25 @@ async function initPushNotifications() {
 <!-- Lock overlay created dynamically by lockScreen() -->
 
     <!-- MODAL AGGIUNGI PROMEMORIA -->
+    <!-- Modale conferma pulizia dati -->
+    <div id="cleanupConfirmModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.82);z-index:9999;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:var(--dark2);border:1px solid rgba(224,92,92,0.5);border-radius:20px;padding:28px;max-width:400px;width:100%;text-align:center;">
+        <div style="font-size:48px;margin-bottom:12px;">🗑️</div>
+        <div style="font-size:18px;font-weight:700;color:#e05c5c;margin-bottom:8px;">Pulizia dati vecchi</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px;line-height:1.6;">
+          Stai per eliminare definitivamente tutti i dati fino al <strong style="color:var(--text);" id="cleanupCutoffYear">2023</strong> incluso,<br>
+          sia da questo dispositivo che da Firebase.
+        </div>
+        <div style="background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.2);border-radius:10px;padding:10px 14px;margin:14px 0;font-size:12px;color:#e05c5c;">
+          ⚠️ Questa operazione è <strong>irreversibile</strong>.<br>I dati eliminati non potranno essere recuperati.
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;margin-top:18px;">
+          <button onclick="document.getElementById('cleanupConfirmModal').style.display='none'" style="flex:1;background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:12px;font-size:14px;cursor:pointer;">✕ Annulla</button>
+          <button onclick="eseguiCleanupDati()" style="flex:1;background:rgba(224,92,92,0.2);border:1px solid rgba(224,92,92,0.5);color:#e05c5c;border-radius:10px;padding:12px;font-size:14px;font-weight:700;cursor:pointer;">🗑️ Elimina</button>
+        </div>
+      </div>
+    </div>
+
     <div id="addReminderModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.75);z-index:9999;align-items:center;justify-content:center;padding:20px;">
       <div style="background:var(--dark2);border:1px solid rgba(201,168,76,0.4);border-radius:20px;padding:24px;max-width:420px;width:100%;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;">
