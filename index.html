@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v1';
+  var BUILD = '20260311-v2';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -1601,30 +1601,21 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
     opacity: 1;
     pointer-events: all;
   }
-
-  /* iPad: griglia 7 giorni → 4 colonne (lun-gio) + (ven-dom) */
-  .week-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
-
-  /* Topbar bottoni — nasconde testo, mostra solo icona su tablet */
-  .topbar-actions .btn { min-width: 0; }
+  /* iPad landscape: 4 colonne */
+  .week-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; }
 }
 
-/* iPad portrait / tablet medio */
+/* iPad portrait */
 @media(max-width:768px) {
   .main-content { padding: 12px; }
-  .week-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .week-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
   .topbar { padding: 8px 12px; gap: 6px; }
-  /* Nasconde il testo dei bottoni topbar, lascia solo l'emoji */
   .topbar-actions .btn-txt,
   .theme-toggle .btn-txt { display: none; }
   .topbar-actions .btn { padding: 7px 10px; }
   .theme-toggle { padding: 7px 10px; }
-
-  /* VS page header stats in griglia 2x2 */
   .vs-stats-row { flex-wrap: wrap; }
   .vs-stats-row > div { flex: 1 1 45%; }
-
-  /* Day card più compatte */
   .day-card { min-height: 90px; }
   .day-header { padding: 8px 10px; font-size: 11px; }
   .day-items { padding: 4px 6px; }
@@ -1632,7 +1623,7 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 }
 
 @media(max-width:480px) {
-  .week-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
+  .week-grid { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
   .summary-cards { grid-template-columns: 1fr 1fr; }
   .dashboard-grid { grid-template-columns: 1fr; }
   .card { padding: 14px; }
@@ -1642,7 +1633,6 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   .topbar-actions .btn-txt,
   .theme-toggle .btn-txt { display: none; }
   .topbar-actions .btn { padding: 6px 8px; }
-
   [style*="grid-template-columns: 1fr 1fr 2fr 1fr"],
   [style*="grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr"] {
     grid-template-columns: 1fr 1fr !important;
