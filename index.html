@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v7';
+  var BUILD = '20260311-v8';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -363,7 +363,7 @@ body.light .footer-copy .copy-line.version {
   .fixed-item .amount { color: #8a6500 !important; }
 
   /* Griglia settimanale */
-  .week-grid { display: grid !important; grid-template-columns: repeat(7,1fr) !important; }
+  .week-grid { display: grid !important; grid-template-columns: repeat(auto-fill, minmax(120px,1fr)) !important; }
   .day-card { background: #f9f9f9 !important; border: 1px solid #ddd !important; min-height: 80px; }
   .day-header { color: #8a6500 !important; }
 
@@ -1288,7 +1288,7 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 /* ===== WEEKLY SECTION ===== */
 .week-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
   gap: 10px;
 }
 
@@ -1601,14 +1601,13 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
     opacity: 1;
     pointer-events: all;
   }
-  /* iPad landscape: 4 colonne */
-  .week-grid { grid-template-columns: repeat(4, 1fr) !important; gap: 8px !important; }
+  /* iPad landscape: auto-fill gestisce già le colonne */
 }
 
 /* iPad portrait */
 @media(max-width:768px) {
   .main-content { padding: 12px; }
-  .week-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px !important; }
+  .week-grid { gap: 8px !important; }
   .topbar { padding: 8px 12px; gap: 6px; }
   .topbar-actions .btn-txt,
   .theme-toggle .btn-txt { display: none; }
@@ -1623,7 +1622,7 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 }
 
 @media(max-width:480px) {
-  .week-grid { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+  .week-grid { gap: 6px !important; }
   .summary-cards { grid-template-columns: 1fr 1fr; }
   .dashboard-grid { grid-template-columns: 1fr; }
   .card { padding: 14px; }
