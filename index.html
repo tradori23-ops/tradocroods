@@ -1583,17 +1583,14 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
     transform: translateX(0);
     box-shadow: 4px 0 30px rgba(0,0,0,0.5);
   }
-  .main-content { margin-left: 0; }
-  .week-grid { grid-template-columns: repeat(2,1fr); }
+  .main-content { margin-left: 0; padding: 16px; }
   .charts-row { grid-template-columns: 1fr; }
   .grid-2 { grid-template-columns: 1fr; }
-  .topbar { padding: 10px 16px; gap: 8px; flex-wrap: wrap; }
-  .topbar-actions { gap: 6px; flex-wrap: wrap; }
-  .topbar-actions .btn { font-size: 11px; padding: 6px 10px; }
+  .topbar { padding: 10px 16px; gap: 6px; }
+  .topbar-actions { gap: 5px; flex-wrap: wrap; }
+  .topbar-actions .btn { font-size: 11px; padding: 5px 9px; }
   .month-selector { padding: 10px 16px; }
-  .hamburger-btn {
-    display: flex !important;
-  }
+  .hamburger-btn { display: flex !important; }
   .sidebar-overlay {
     display: block !important;
     opacity: 0;
@@ -1604,17 +1601,48 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
     opacity: 1;
     pointer-events: all;
   }
+
+  /* iPad: griglia 7 giorni → 4 colonne (lun-gio) + (ven-dom) */
+  .week-grid { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+
+  /* Topbar bottoni — nasconde testo, mostra solo icona su tablet */
+  .topbar-actions .btn { min-width: 0; }
+}
+
+/* iPad portrait / tablet medio */
+@media(max-width:768px) {
+  .main-content { padding: 12px; }
+  .week-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .topbar { padding: 8px 12px; gap: 6px; }
+  /* Nasconde il testo dei bottoni topbar, lascia solo l'emoji */
+  .topbar-actions .btn-txt,
+  .theme-toggle .btn-txt { display: none; }
+  .topbar-actions .btn { padding: 7px 10px; }
+  .theme-toggle { padding: 7px 10px; }
+
+  /* VS page header stats in griglia 2x2 */
+  .vs-stats-row { flex-wrap: wrap; }
+  .vs-stats-row > div { flex: 1 1 45%; }
+
+  /* Day card più compatte */
+  .day-card { min-height: 90px; }
+  .day-header { padding: 8px 10px; font-size: 11px; }
+  .day-items { padding: 4px 6px; }
+  .day-item { font-size: 11px; padding: 2px 0; }
 }
 
 @media(max-width:480px) {
-  .week-grid { grid-template-columns: 1fr 1fr; }
+  .week-grid { grid-template-columns: 1fr 1fr; gap: 6px; }
   .summary-cards { grid-template-columns: 1fr 1fr; }
   .dashboard-grid { grid-template-columns: 1fr; }
-  .topbar-actions .btn span { display: none; }
-  .card { padding: 16px; }
-  .card-title { font-size: 16px; }
+  .card { padding: 14px; }
+  .card-title { font-size: 15px; }
   .fld { margin-bottom: 10px; }
-  /* Form entrate/spese in colonna su mobile */
+  .main-content { padding: 10px; }
+  .topbar-actions .btn-txt,
+  .theme-toggle .btn-txt { display: none; }
+  .topbar-actions .btn { padding: 6px 8px; }
+
   [style*="grid-template-columns: 1fr 1fr 2fr 1fr"],
   [style*="grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr"] {
     grid-template-columns: 1fr 1fr !important;
@@ -2203,14 +2231,14 @@ body.light .rata-card { background: #fdfcf7; }
       <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
       <h1 class="page-title" id="pageTitle">Dashboard</h1>
       <div class="topbar-actions">
-        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">🌙 Notte</button>
-        <button class="btn btn-outline" onclick="printPage()">🖨️ Stampa</button>
-        <button class="btn btn-green" onclick="lockScreen()">🔒 Blocca</button>
-        <button class="btn btn-outline" onclick="sincronizzaOra()">🔄 Sincronizza</button>
-        <button class="btn btn-danger" onclick="resetMonth()">♻️ Reset Mese</button>
-        <button class="btn btn-danger" onclick="resetYear()" style="background:linear-gradient(135deg,#7b2d2d,#5a1a1a);border-color:#8b3a3a;">🗑️ Reset Anno</button>
-        <button class="btn btn-outline" onclick="cambiaUtente()">👤 Cambia Utente</button>
-        <button class="btn btn-danger" onclick="esci()">🚪 Esci</button>
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"><span class="btn-emoji">🌙</span><span class="btn-txt"> Notte</span></button>
+        <button class="btn btn-outline" onclick="printPage()"><span class="btn-emoji">🖨️</span><span class="btn-txt"> Stampa</span></button>
+        <button class="btn btn-green" onclick="lockScreen()"><span class="btn-emoji">🔒</span><span class="btn-txt"> Blocca</span></button>
+        <button class="btn btn-outline" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sincronizza</span></button>
+        <button class="btn btn-danger" onclick="resetMonth()"><span class="btn-emoji">♻️</span><span class="btn-txt"> Reset Mese</span></button>
+        <button class="btn btn-danger" onclick="resetYear()" style="background:linear-gradient(135deg,#7b2d2d,#5a1a1a);border-color:#8b3a3a;"><span class="btn-emoji">🗑️</span><span class="btn-txt"> Reset Anno</span></button>
+        <button class="btn btn-outline" onclick="cambiaUtente()"><span class="btn-emoji">👤</span><span class="btn-txt"> Cambia Utente</span></button>
+        <button class="btn btn-danger" onclick="esci()"><span class="btn-emoji">🚪</span><span class="btn-txt"> Esci</span></button>
       </div>
     </div>
 
