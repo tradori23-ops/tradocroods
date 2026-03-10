@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v3';
+  var BUILD = '20260311-v5';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5389,25 +5389,26 @@ function cambiaUtente() {
 }
 
 function aggiornaApp() {
-  // Svuota cache Service Worker e ricarica la pagina
+  showToast('🔄 Pulizia cache in corso…');
+  // Rimuove il build salvato così lo script anti-cache forza il refresh
+  try { localStorage.removeItem('tc_build'); } catch(e) {}
+
+  const doReload = () => {
+    // Aggiunge timestamp all'URL per bypassare cache HTTP
+    const url = window.location.href.split('?')[0] + '?v=' + Date.now();
+    window.location.replace(url);
+  };
+
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(regs => {
-      const promises = regs.map(r => r.unregister());
-      Promise.all(promises).then(() => {
-        // Svuota anche la cache API del browser
-        if('caches' in window) {
-          caches.keys().then(keys => {
-            Promise.all(keys.map(k => caches.delete(k))).then(() => {
-              window.location.reload(true);
-            });
-          });
-        } else {
-          window.location.reload(true);
-        }
-      });
-    });
+      const p1 = Promise.all(regs.map(r => r.unregister()));
+      const p2 = ('caches' in window)
+        ? caches.keys().then(keys => Promise.all(keys.map(k => caches.delete(k))))
+        : Promise.resolve();
+      Promise.all([p1, p2]).then(doReload).catch(doReload);
+    }).catch(doReload);
   } else {
-    window.location.reload(true);
+    doReload();
   }
 }
 
@@ -14285,7 +14286,8 @@ function checkRemindersMain() {
   updateReminderBadge();
   checkCleanupReminders();
 }
-  const list = getReminders();
+
+function updateReminderBadge() {
   const now = Date.now();
   const pending = list.filter(r => !r.completed && r.ts > now).length;
   const overdue = list.filter(r => !r.completed && r.ts <= now && r.notified).length;
