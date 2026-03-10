@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v6';
+  var BUILD = '20260311-v7';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -1574,7 +1574,7 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 .negative { color: var(--red); }
 
 /* ===== RESPONSIVE ===== */
-@media(max-width:900px) {
+@media(max-width:1200px) {
   .sidebar {
     transform: translateX(-260px);
     z-index: 150;
