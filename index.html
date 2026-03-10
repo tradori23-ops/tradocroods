@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v5';
+  var BUILD = '20260311-v6';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -14623,18 +14623,55 @@ function checkIOSInstallPrompt() {
   }
 }
 
-// Register real service worker
+// Register inline service worker (no sw.js file needed)
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
-  // Non registrare su claude preview o localhost senza sw.js
   const host = window.location.hostname;
   if (host.includes('claudeusercontent.com') || host === 'localhost' || host === '127.0.0.1') return;
+
+  // SW inline come blob — intercetta fetch e serve HTML sempre fresh dalla rete
+  const swCode = `
+const CACHE = 'tradocroods-v20260311';
+self.addEventListener('install', e => { self.skipWaiting(); });
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    ).then(() => self.clients.claim())
+  );
+});
+self.addEventListener('fetch', e => {
+  const url = new URL(e.request.url);
+  // HTML principale — sempre dalla rete, fallback cache
+  if(e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
+    e.respondWith(
+      fetch(e.request, { cache: 'no-store' })
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return res;
+        })
+        .catch(() => caches.match(e.request))
+    );
+    return;
+  }
+  // Tutto il resto — cache first
+  e.respondWith(
+    caches.match(e.request).then(cached => cached || fetch(e.request))
+  );
+});
+self.addEventListener('message', e => {
+  if(e.data?.type === 'SKIP_WAITING') self.skipWaiting();
+});
+`;
+
   try {
-    const reg = await navigator.serviceWorker.register('/sw.js', { scope: '/', updateViaCache: 'none' });
-    console.log('✅ SW registrato, scope:', reg.scope);
-    // Forza subito il check di aggiornamenti (importante su iPad/mobile con cache aggressiva)
+    const blob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl = URL.createObjectURL(blob);
+    const scope = window.location.pathname.replace(/\/[^/]*$/, '/') || '/';
+    const reg = await navigator.serviceWorker.register(swUrl, { scope, updateViaCache: 'none' });
+    console.log('✅ SW inline registrato, scope:', reg.scope);
     reg.update().catch(()=>{});
-    // Se c'è già un SW in attesa, attivalo subito
     if(reg.waiting) {
       reg.waiting.postMessage({ type: 'SKIP_WAITING' });
       navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
@@ -14642,18 +14679,14 @@ async function registerSW() {
     reg.addEventListener('updatefound', () => {
       const nw = reg.installing;
       nw?.addEventListener('statechange', () => {
-        if(nw.state === 'installed') {
-          if(navigator.serviceWorker.controller) {
-            // Nuovo SW pronto — attivalo e ricarica automaticamente
-            nw.postMessage({ type: 'SKIP_WAITING' });
-            navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
-          }
+        if(nw.state === 'installed' && navigator.serviceWorker.controller) {
+          nw.postMessage({ type: 'SKIP_WAITING' });
+          navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
         }
       });
     });
     return reg;
   } catch(e) {
-    // Su iOS Safari (non installata) è normale — funzionerà dopo installazione dalla schermata Home
     if (!e.message?.includes('app-bound')) console.warn('SW registration failed:', e);
   }
 }
@@ -14663,7 +14696,6 @@ window.addEventListener('load', () => {
   const host = window.location.hostname;
   const isPreview = host.includes('claudeusercontent.com') || host === 'localhost' || host === '127.0.0.1';
   if (isPreview) {
-    // Rimuovi eventuali SW rimasti da sessioni precedenti
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(regs => {
         regs.forEach(r => r.unregister());
@@ -14676,7 +14708,6 @@ window.addEventListener('load', () => {
   });
   checkIOSInstallPrompt();
 });
-
 
 function testNotification() {
   if (Notification.permission !== 'granted') {
