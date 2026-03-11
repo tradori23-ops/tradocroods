@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v12';
+  var BUILD = '20260311-v13';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -8127,6 +8127,126 @@ function renderCatChart(cat) {
 }
 
 
+
+
+
+// ── MODALE DETTAGLIO CATEGORIA ──
+let _catDetailCat = null;
+let _catDetailPeriod = 'month';
+
+function openCatDetail(cat) {
+  _catDetailCat = cat;
+  _catDetailPeriod = 'month';
+  document.querySelectorAll('.cat-detail-period').forEach((b,i) => {
+    b.style.background = i===0 ? 'var(--gold-dim)' : 'transparent';
+    b.style.color      = i===0 ? 'var(--gold)' : 'var(--text-muted)';
+  });
+  renderCatDetail();
+  document.getElementById('catDetailModal').style.display = 'flex';
+}
+
+function setCatDetailPeriod(period, btn) {
+  _catDetailPeriod = period;
+  document.querySelectorAll('.cat-detail-period').forEach(b => {
+    b.style.background = 'transparent';
+    b.style.color = 'var(--text-muted)';
+  });
+  btn.style.background = 'var(--gold-dim)';
+  btn.style.color = 'var(--gold)';
+  renderCatDetail();
+}
+
+function renderCatDetail() {
+  const cat   = _catDetailCat;
+  const icon  = CAT_ICONS[cat] || '💳';
+  const color = CAT_COLORS[cat]?.line || 'var(--gold)';
+
+  let expenses = [];
+  if(_catDetailPeriod === 'month') {
+    expenses = getExpenses().filter(e => e.cat === cat);
+  } else if(_catDetailPeriod === 'year') {
+    const yr = document.getElementById('globalYear').value;
+    for(let m=1; m<=12; m++) {
+      const key = `${yr}_${String(m).padStart(2,'0')}`;
+      (load(`expenses_${key}`,[]) || []).filter(e=>e.cat===cat).forEach(e=>expenses.push(e));
+    }
+  } else {
+    expenses = getAllExpensesAllTime().filter(e => e.cat === cat);
+  }
+
+  const total = expenses.reduce((s,e)=>s+e.amount,0);
+  const avg   = expenses.length ? total/expenses.length : 0;
+  const paySet = [...new Set(expenses.map(e=>e.pay||e.source||''))];
+  const periodLabel = _catDetailPeriod==='month' ? 'Questo mese' : _catDetailPeriod==='year' ? "Quest'anno" : 'Sempre';
+
+  document.getElementById('catDetailTitle').textContent = `${icon} ${cat.charAt(0).toUpperCase()+cat.slice(1)}`;
+  document.getElementById('catDetailSubtitle').textContent = `${periodLabel} · ${expenses.length} operazioni`;
+
+  document.getElementById('catDetailStats').innerHTML = [
+    { label:'Totale',      value:'€'+total.toFixed(2).replace('.',',') },
+    { label:'N° visite',   value: expenses.length },
+    { label:'Media spesa', value:'€'+avg.toFixed(2).replace('.',',') },
+    { label:'Metodi usati',value: paySet.length }
+  ].map(s=>`<div style="padding:12px 16px;border-right:1px solid var(--border);text-align:center;">
+    <div style="font-size:18px;font-weight:700;color:${color};">${s.value}</div>
+    <div style="font-size:10px;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.8px;">${s.label}</div>
+  </div>`).join('');
+
+  if(!expenses.length) {
+    document.getElementById('catDetailList').innerHTML='<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">Nessuna spesa trovata per questo periodo.</div>';
+    return;
+  }
+
+  // Raggruppa per descrizione
+  const grouped = {};
+  expenses.forEach(e => {
+    const key  = (e.desc && e.desc!=='—' && e.desc.trim()) ? e.desc.trim() : cat;
+    const pKey = e.pay || e.source || 'altro';
+    if(!grouped[key]) grouped[key]={desc:key,total:0,count:0,pays:{},dates:[]};
+    grouped[key].total += e.amount;
+    grouped[key].count++;
+    grouped[key].pays[pKey] = (grouped[key].pays[pKey]||0)+1;
+    grouped[key].dates.push(e.date);
+  });
+
+  const sorted = Object.values(grouped).sort((a,b)=>b.total-a.total);
+  const PAY_ICONS  = {satispay:'💜',revolut:'🔄',sella:'🏦',contanti:'💵',bonifico:'📋',carta:'💳',bancomat:'💳'};
+  const PAY_COLORS = {satispay:'#8b5cf6',revolut:'#7c3aed',sella:'#3b82f6',contanti:'#10b981',bonifico:'#f59e0b',carta:'#ec4899',bancomat:'#64748b'};
+
+  document.getElementById('catDetailList').innerHTML = `
+    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">
+      📍 ${sorted.length} posti/voci — ordinati per importo
+    </div>
+    ${sorted.map((g,i) => {
+      const paysHtml = Object.entries(g.pays).sort((a,b)=>b[1]-a[1])
+        .map(([pay,cnt])=>`<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:2px 8px;font-size:10px;color:${PAY_COLORS[pay]||'var(--text-muted)'};">${PAY_ICONS[pay]||'💳'} ${pay} ×${cnt}</span>`).join(' ');
+      const lastDate = g.dates.sort().reverse()[0];
+      const pct = total>0 ? (g.total/total*100).toFixed(0) : 0;
+      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:8px;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+            <div style="width:22px;height:22px;border-radius:50%;background:${color};color:#000;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;">${i+1}</div>
+            <div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.desc}</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0;margin-left:10px;">
+            <div style="font-size:15px;font-weight:700;color:var(--red);">€${g.total.toFixed(2).replace('.',',')}</div>
+            <div style="font-size:10px;color:var(--text-muted);">${pct}% del totale</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
+          <div style="display:flex;gap:5px;flex-wrap:wrap;">${paysHtml}</div>
+          <div style="display:flex;gap:10px;font-size:11px;color:var(--text-muted);">
+            <span>🔁 ${g.count} volt${g.count===1?'a':'e'}</span>
+            <span>📅 ${lastDate}</span>
+            <span>⌀ €${(g.total/g.count).toFixed(2).replace('.',',')}</span>
+          </div>
+        </div>
+        <div style="margin-top:8px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;"></div>
+        </div>
+      </div>`;
+    }).join('')}`;
+}
 
 
 function openPayDetail(key, label, color) {
