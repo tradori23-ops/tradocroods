@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v10';
+  var BUILD = '20260311-v11';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -12737,7 +12737,7 @@ function renderVSCatChart() {
   const totByCat=cats.map(c=>weekKeys.reduce((s,k)=>s+(weekExpMap[k]?.[c]||[]).reduce((s2,e)=>s2+e.amount,0),0));
   const grandTotal=totByCat.reduce((s,v)=>s+v,0);
   document.getElementById('vsCatStats').innerHTML=cats.map((c,i)=>({c,v:totByCat[i]})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v)
-    .map(x=>`<div class="stat-mini"><div class="s-label">${CAT_ICONS[x.c]||''} ${x.c}</div><div class="s-value" style="color:var(--gold);">€${x.v.toFixed(2).replace('.',',')} <span style="color:var(--text-muted);font-size:11px;">(${(grandTotal>0 ? (x.v/grandTotal*100) : 0).toFixed(0)}%)</span></div></div>`).join('');
+    .map(x=>`<div class="stat-mini" onclick="openCatDetail('${x.c}')" title="Clicca per dettaglio ${x.c}" style="cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--gold)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='';this.style.transform=''"><div class="s-label">${CAT_ICONS[x.c]||''} ${x.c}</div><div class="s-value" style="color:var(--gold);">€${x.v.toFixed(2).replace('.',',')} <span style="color:var(--text-muted);font-size:11px;">(${(grandTotal>0 ? (x.v/grandTotal*100) : 0).toFixed(0)}%)</span></div><div style="font-size:9px;color:var(--text-muted);margin-top:3px;">🔍 clicca per dettaglio</div></div>`).join('');
 }
 
 // ── Graf. Per Metodo Pagamento ──
