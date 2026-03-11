@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v15';
+  var BUILD = '20260311-v16';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -4130,17 +4130,20 @@ body.light .rata-card { background: #fdfcf7; }
               <div style="font-size:9px;color:#4ae87a;font-weight:700;text-transform:uppercase;">Spese</div>
               <div style="font-size:17px;font-weight:700;color:#4ae87a;" id="vs-weekTotal">€0,00</div>
             </div>
-            <div style="background:rgba(255,92,92,0.08);border:1.5px solid rgba(255,92,92,0.2);border-radius:10px;padding:6px 14px;text-align:center;">
+            <div class="detail-pay-trigger" data-key="satispay" data-color="#ff6b6b" style="background:rgba(255,92,92,0.08);border:1.5px solid rgba(255,92,92,0.2);border-radius:10px;padding:6px 14px;text-align:center;cursor:pointer;transition:all 0.2s;" title="Clicca per dettaglio Satispay">
               <div style="font-size:9px;color:#ff6b6b;font-weight:700;text-transform:uppercase;">📱 Satispay</div>
               <div style="font-size:17px;font-weight:700;color:#ff6b6b;" id="vs-weekSatispay">€0,00</div>
+              <div style="font-size:8px;color:rgba(255,107,107,0.6);margin-top:1px;">🔍 dettaglio</div>
             </div>
-            <div style="background:rgba(74,144,232,0.08);border:1.5px solid rgba(74,144,232,0.2);border-radius:10px;padding:6px 14px;text-align:center;">
+            <div class="detail-pay-trigger" data-key="sella" data-color="#4a90e8" style="background:rgba(74,144,232,0.08);border:1.5px solid rgba(74,144,232,0.2);border-radius:10px;padding:6px 14px;text-align:center;cursor:pointer;transition:all 0.2s;" title="Clicca per dettaglio Sella">
               <div style="font-size:9px;color:#4a90e8;font-weight:700;text-transform:uppercase;">🏦 Sella</div>
               <div style="font-size:17px;font-weight:700;color:#4a90e8;" id="vs-weekSella">€0,00</div>
+              <div style="font-size:8px;color:rgba(74,144,232,0.6);margin-top:1px;">🔍 dettaglio</div>
             </div>
-            <div style="background:rgba(138,92,246,0.08);border:1.5px solid rgba(138,92,246,0.2);border-radius:10px;padding:6px 14px;text-align:center;">
+            <div class="detail-pay-trigger" data-key="revolut" data-color="#a78bfa" style="background:rgba(138,92,246,0.08);border:1.5px solid rgba(138,92,246,0.2);border-radius:10px;padding:6px 14px;text-align:center;cursor:pointer;transition:all 0.2s;" title="Clicca per dettaglio Revolut">
               <div style="font-size:9px;color:#a78bfa;font-weight:700;text-transform:uppercase;">💜 Revolut</div>
               <div style="font-size:17px;font-weight:700;color:#a78bfa;" id="vs-weekRevolut">€0,00</div>
+              <div style="font-size:8px;color:rgba(167,139,250,0.6);margin-top:1px;">🔍 dettaglio</div>
             </div>
           </div>
         </div>
@@ -5486,6 +5489,8 @@ function refreshAll() {
   // Sync rataYear with globalYear selector
   const gy = document.getElementById('globalYear');
   if(gy) rataYear = parseInt(gy.value) || new Date().getFullYear();
+  // Reset settimana all'inizio del mese quando cambia il periodo globale
+  vsWeekOffset = 0;
   showYearWarning();
   caricaRimanenzaPrecedente();
   renderFixed();
