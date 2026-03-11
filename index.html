@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v18';
+  var BUILD = '20260311-v20';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -326,18 +326,43 @@ body.light .footer-copy .copy-line.version {
 
 
 /* ===== PRINT STYLES ===== */
+/* ── Print frame (always hidden on screen, visible only when printing) ── */
+#tc-print-frame { display: none; }
+
 @media print {
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 
-  body { background: #fff !important; color: #111 !important; font-size: 12px; }
+  /* When print frame exists: hide everything else, show only the frame */
+  body.tc-printing #app,
+  body.tc-printing .sidebar,
+  body.tc-printing > *:not(#tc-print-frame) { display: none !important; }
+  body.tc-printing #tc-print-frame { display: block !important; }
 
-  /* Nascondi elementi non necessari */
+  /* Normal print: hide app chrome */
+  body { background: #fff !important; color: #111 !important; font-size: 12px; }
   .sidebar, .topbar, .month-selector, .topbar-actions,
   #loginPage, .lock-overlay, .modal-overlay,
   .btn, .btn-gold, .btn-outline, .btn-danger, .btn-green,
   .theme-toggle, .calendar-nav, .cat-btn,
   .footer-copy, nav, .btn-del,
   #weekNotePanel, #editExpModal { display: none !important; }
+
+  /* Print frame styles */
+  #tc-print-frame { display:block !important; font-family:'Helvetica Neue',Arial,sans-serif; color:#1a1a2e; padding:0; }
+  .tc-print-header { margin-bottom:16px; padding-bottom:10px; border-bottom:2px solid #c9a84c; }
+  .tc-print-title  { font-size:22px; font-weight:800; color:#1a1a2e; }
+  .tc-print-sub    { font-size:12px; color:#666; margin-top:3px; }
+  .tc-print-stats  { display:grid; grid-template-columns:repeat(4,1fr); border:1.5px solid #ddd; border-radius:8px; overflow:hidden; margin-bottom:18px; }
+  .tc-print-stats > div { padding:10px; text-align:center; border-right:1px solid #ddd; }
+  .tc-print-stats > div:last-child { border-right:none; }
+  .tc-print-stats > div > div:first-child { font-size:17px; font-weight:800; }
+  .tc-print-stats > div > div:last-child  { font-size:9px; color:#888; text-transform:uppercase; margin-top:2px; }
+  .tc-print-list * { color:#1a1a2e !important; background:transparent !important; border-color:#ddd !important; box-shadow:none !important; }
+  .tc-print-list [style*="color:#4ae87a"]  { color:#1a9952 !important; }
+  .tc-print-list [style*="color:#ff6b6b"], .tc-print-list [style*="color:var(--red)"] { color:#c0392b !important; }
+  .tc-print-list [style*="color:#ffb400"]  { color:#b07800 !important; }
+  .tc-print-list [style*="color:#a78bfa"], .tc-print-list [style*="color:#4a90e8"] { color:#4a4aaa !important; }
+  .tc-print-foot   { font-size:10px; color:#aaa; text-align:right; margin-top:20px; padding-top:8px; border-top:1px solid #eee; }
 
   /* Layout stampa */
   .main-content { margin-left: 0 !important; padding: 16px !important; }
@@ -15172,64 +15197,86 @@ function printDetailModal(modalId) {
   const modal = document.getElementById(modalId);
   if(!modal) return;
 
-  // Gather content
   const titleEl    = modal.querySelector('[id$="Title"]');
   const subtitleEl = modal.querySelector('[id$="Subtitle"]');
   const statsEl    = modal.querySelector('[id$="Stats"]');
   const listEl     = modal.querySelector('[id$="List"]');
+  // also grab period filter row if present
+  const periodRow  = modal.querySelector('.cat-detail-period, .pay-detail-period')
+                     ? modal.querySelector('[style*="padding:12px 22px"]') : null;
 
-  const title    = titleEl    ? titleEl.textContent    : 'Dettaglio';
-  const subtitle = subtitleEl ? subtitleEl.textContent : '';
-  const statsHtml = statsEl   ? statsEl.innerHTML      : '';
-  const listHtml  = listEl    ? listEl.innerHTML       : '';
+  const title      = titleEl    ? titleEl.textContent.trim()    : 'Dettaglio';
+  const subtitle   = subtitleEl ? subtitleEl.textContent.trim() : '';
+  const statsHtml  = statsEl    ? statsEl.innerHTML : '';
+  const listHtml   = listEl     ? listEl.innerHTML  : '';
+  const printDate  = new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
 
-  // Build a clean, light-mode print page
-  const html = `<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <title>${title}</title>
-  <style>
-    * { box-sizing:border-box; margin:0; padding:0; }
-    body { font-family: 'Helvetica Neue', Arial, sans-serif; color:#1a1a2e; background:#fff; padding:28px 32px; font-size:13px; }
-    h1  { font-size:22px; font-weight:800; color:#1a1a2e; margin-bottom:4px; }
-    .sub { font-size:12px; color:#666; margin-bottom:18px; }
-    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:0; border:1.5px solid #e0e0e0; border-radius:10px; overflow:hidden; margin-bottom:20px; }
-    .stats > div { padding:12px 10px; text-align:center; border-right:1px solid #e0e0e0; }
-    .stats > div:last-child { border-right:none; }
-    .stats > div > div:first-child { font-size:18px; font-weight:800; color:#1a1a2e; }
-    .stats > div > div:last-child  { font-size:9px; color:#888; text-transform:uppercase; letter-spacing:0.7px; margin-top:3px; }
-    /* neutralise dark-mode colours inside list */
-    #print-list * { color:#1a1a2e !important; background:transparent !important; border-color:#e0e0e0 !important; box-shadow:none !important; }
-    #print-list [style*="color:#4ae87a"], #print-list [style*="color: #4ae87a"] { color:#1a9952 !important; }
-    #print-list [style*="color:#ff"], #print-list [style*="color: #ff"]         { color:#c0392b !important; }
-    #print-list [style*="color:#ffb400"]                                        { color:#b07800 !important; }
-    #print-list [style*="color:#a78bfa"], #print-list [style*="color:#4a90e8"]  { color:#5b5b9e !important; }
-    #print-list > div { margin-bottom:10px; }
-    .logo { font-size:10px; color:#bbb; text-align:right; margin-top:24px; border-top:1px solid #eee; padding-top:10px; }
-    @media print {
-      body { padding:15mm 18mm; }
-      button { display:none !important; }
-    }
-  </style>
-</head>
-<body>
-  <h1>${title.replace(/</g,'&lt;')}</h1>
-  <div class="sub">${subtitle.replace(/</g,'&lt;')}</div>
-  <div class="stats">${statsHtml}</div>
-  <div id="print-list">${listHtml}</div>
-  <div class="logo">TradoCroods · stampato il ${new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'})}</div>
-  <script>window.onload = function(){ window.print(); window.onafterprint = function(){ window.close(); }; }<\/script>
-</body>
-</html>`;
+  const w = window.open('', '_blank', 'width=850,height=900,toolbar=0,scrollbars=1');
+  if(!w) { showToast('⚠️ Abilita i popup nel browser per stampare'); return; }
 
-  const w = window.open('', '_blank', 'width=800,height=700');
-  if(w) {
-    w.document.write(html);
-    w.document.close();
-  } else {
-    showToast('⚠️ Abilita i popup per stampare');
+  w.document.write(`<!DOCTYPE html>
+<html lang="it"><head>
+<meta charset="UTF-8">
+<title>${title.replace(/[<>]/g,'')}</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;
+       color:#111;background:#fff;font-size:11px;padding:14mm 16mm}
+  /* HEADER */
+  .ph{display:flex;justify-content:space-between;align-items:flex-end;
+      border-bottom:2.5px solid #c9a84c;padding-bottom:8px;margin-bottom:10px}
+  .ph-left h1{font-size:18px;font-weight:800;color:#111;line-height:1.1}
+  .ph-left p {font-size:10px;color:#666;margin-top:2px}
+  .ph-right   {font-size:9px;color:#999;text-align:right;white-space:nowrap}
+  /* STATS */
+  .ps{display:grid;grid-template-columns:repeat(4,1fr);
+      border:1px solid #ddd;border-radius:6px;overflow:hidden;margin-bottom:10px}
+  .ps>div{padding:7px 6px;text-align:center;border-right:1px solid #ddd}
+  .ps>div:last-child{border-right:none}
+  .ps>div>div:first-child{font-size:14px;font-weight:800;color:#111}
+  .ps>div>div:last-child {font-size:8px;color:#888;text-transform:uppercase;letter-spacing:.5px;margin-top:1px}
+  /* LIST — strip all dark-mode inline styles */
+  .pl{columns:1}
+  .pl *{color:#111!important;background:transparent!important;
+        border-color:#ddd!important;box-shadow:none!important;font-size:10px!important}
+  /* keep green for income, muted red for expenses */
+  .pl [style*="color:#4ae87a"],[style*="color: #4ae87a"]{color:#1a8c4e!important}
+  .pl [style*="color:var(--red)"],[style*="color:#e05c5c"],[style*="color:#ff"]{color:#c0392b!important}
+  .pl [style*="color:#ffb400"]{color:#9a6500!important}
+  .pl [style*="color:#a78bfa"],[style*="color:#4a90e8"]{color:#4040a0!important}
+  /* tighten every card/row in the list */
+  .pl>div{margin-bottom:5px!important;padding:5px 7px!important;
+          border:1px solid #e0e0e0!important;border-radius:5px!important;
+          page-break-inside:avoid}
+  .pl>div>div{margin-bottom:3px!important;padding:3px 5px!important}
+  /* progress bars: keep small */
+  [style*="height:3px"],[style*="height:4px"]{height:2px!important}
+  /* hide interactive / decorative elements */
+  button,input,textarea,select,.calendar-nav{display:none!important}
+  [style*="cursor:pointer"]{cursor:default!important}
+  /* FOOTER */
+  .pf{margin-top:12px;padding-top:6px;border-top:1px solid #eee;
+      font-size:8px;color:#bbb;text-align:right}
+  @page{margin:0;size:A4 portrait}
+  @media print{
+    body{padding:10mm 12mm}
+    button{display:none!important}
   }
+</style>
+</head><body>
+<div class="ph">
+  <div class="ph-left">
+    <h1>${title.replace(/[<>]/g,'')}</h1>
+    <p>${subtitle.replace(/[<>]/g,'')}</p>
+  </div>
+  <div class="ph-right">TradoCroods<br>${printDate}</div>
+</div>
+<div class="ps">${statsHtml}</div>
+<div class="pl">${listHtml}</div>
+<div class="pf">Stampato da TradoCroods · ${printDate}</div>
+<script>window.onload=function(){window.print();window.onafterprint=function(){window.close()}}<\/script>
+</body></html>`);
+  w.document.close();
 }
 
 // ── CLICK DELEGATION: dettaglio categoria e metodo pagamento ──
