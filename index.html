@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v11';
+  var BUILD = '20260311-v12';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -8126,142 +8126,145 @@ function renderCatChart(cat) {
   ].map(s=>`<div class="stat-mini"><div class="s-label">${s.label}</div><div class="s-value">${s.value}</div></div>`).join('');
 }
 
-// ── MODALE DETTAGLIO CATEGORIA ──
-let _catDetailCat = null;
-let _catDetailPeriod = 'month';
 
-function openCatDetail(cat) {
-  _catDetailCat = cat;
-  _catDetailPeriod = 'month';
-  // Reset period buttons
-  document.querySelectorAll('.cat-detail-period').forEach((b,i) => {
-    const isActive = i === 0;
-    b.style.background = isActive ? 'var(--gold-dim)' : 'transparent';
-    b.style.color = isActive ? 'var(--gold)' : 'var(--text-muted)';
+
+
+function openPayDetail(key, label, color) {
+  _payDetailKey = key;
+  _payDetailLabel = label;
+  _payDetailColor = color || 'var(--gold)';
+  _payDetailPeriod = 'month';
+  document.querySelectorAll('.pay-detail-period').forEach((b,i) => {
+    b.style.background = i===0 ? 'rgba(255,255,255,0.08)' : 'transparent';
+    b.style.color = i===0 ? 'var(--text)' : 'var(--text-muted)';
+    b.style.borderColor = i===0 ? color : 'var(--border)';
   });
-  renderCatDetail();
-  document.getElementById('catDetailModal').style.display = 'flex';
+  renderPayDetail();
+  document.getElementById('payDetailModal').style.display = 'flex';
 }
 
-function setCatDetailPeriod(period, btn) {
-  _catDetailPeriod = period;
-  document.querySelectorAll('.cat-detail-period').forEach(b => {
+function setPayDetailPeriod(period, btn) {
+  _payDetailPeriod = period;
+  document.querySelectorAll('.pay-detail-period').forEach(b => {
     b.style.background = 'transparent';
     b.style.color = 'var(--text-muted)';
+    b.style.borderColor = 'var(--border)';
   });
-  btn.style.background = 'var(--gold-dim)';
-  btn.style.color = 'var(--gold)';
-  renderCatDetail();
+  btn.style.background = 'rgba(255,255,255,0.08)';
+  btn.style.color = 'var(--text)';
+  btn.style.borderColor = _payDetailColor;
+  renderPayDetail();
 }
 
-function renderCatDetail() {
-  const cat = _catDetailCat;
-  const icon = CAT_ICONS[cat] || '💳';
-  const color = CAT_COLORS[cat]?.line || 'var(--gold)';
+function renderPayDetail() {
+  const key = _payDetailKey;
+  const color = _payDetailColor;
 
-  // Carica spese
+  // Carica spese per metodo
   let expenses = [];
-  if(_catDetailPeriod === 'month') {
-    expenses = getExpenses().filter(e => e.cat === cat);
-  } else if(_catDetailPeriod === 'year') {
+  if(_payDetailPeriod === 'month') {
+    const all = getExpenses();
+    expenses = all.filter(e => {
+      const src = e.source || e.pay || '';
+      if(key === 'satispay') return src === 'satispay';
+      if(key === 'revolut')  return src === 'revolut';
+      return src !== 'satispay' && src !== 'revolut'; // sella = resto
+    });
+  } else if(_payDetailPeriod === 'year') {
     const yr = document.getElementById('globalYear').value;
     for(let m = 1; m <= 12; m++) {
-      const key = `${yr}_${String(m).padStart(2,'0')}`;
-      const arr = load(`expenses_${key}`, []);
-      arr.filter(e => e.cat === cat).forEach(e => expenses.push(e));
+      const arr = load(`expenses_${yr}_${String(m).padStart(2,'0')}`, []);
+      arr.forEach(e => {
+        const src = e.source || e.pay || '';
+        if(key === 'satispay' && src === 'satispay') expenses.push(e);
+        else if(key === 'revolut' && src === 'revolut') expenses.push(e);
+        else if(key === 'sella' && src !== 'satispay' && src !== 'revolut') expenses.push(e);
+      });
     }
   } else {
-    expenses = getAllExpensesAllTime().filter(e => e.cat === cat);
+    const all = getAllExpensesAllTime();
+    all.forEach(e => {
+      const src = e.source || e.pay || '';
+      if(key === 'satispay' && src === 'satispay') expenses.push(e);
+      else if(key === 'revolut' && src === 'revolut') expenses.push(e);
+      else if(key === 'sella' && src !== 'satispay' && src !== 'revolut') expenses.push(e);
+    });
   }
 
   const total = expenses.reduce((s,e) => s+e.amount, 0);
   const avg   = expenses.length ? total/expenses.length : 0;
-  const paySet = [...new Set(expenses.map(e => e.pay))];
+  const catSet = [...new Set(expenses.map(e => e.cat))];
+  const periodLabel = _payDetailPeriod === 'month' ? 'Questo mese' : _payDetailPeriod === 'year' ? "Quest'anno" : 'Sempre';
 
-  // Titolo
-  document.getElementById('catDetailTitle').textContent = `${icon} ${cat.charAt(0).toUpperCase()+cat.slice(1)}`;
-  const periodLabel = _catDetailPeriod === 'month' ? 'Questo mese' : _catDetailPeriod === 'year' ? "Quest'anno" : 'Sempre';
-  document.getElementById('catDetailSubtitle').textContent = `${periodLabel} · ${expenses.length} operazioni`;
+  document.getElementById('payDetailTitle').textContent = _payDetailLabel;
+  document.getElementById('payDetailSubtitle').textContent = `${periodLabel} · ${expenses.length} operazioni`;
 
   // Stats
-  document.getElementById('catDetailStats').innerHTML = [
+  document.getElementById('payDetailStats').innerHTML = [
     { label:'Totale', value:'€'+total.toFixed(2).replace('.',',') },
-    { label:'N° visite', value: expenses.length },
-    { label:'Media spesa', value:'€'+avg.toFixed(2).replace('.',',') },
-    { label:'Metodi usati', value: paySet.length }
+    { label:'N° operazioni', value: expenses.length },
+    { label:'Media', value:'€'+avg.toFixed(2).replace('.',',') },
+    { label:'Categorie', value: catSet.length }
   ].map(s => `<div style="padding:12px 16px;border-right:1px solid var(--border);text-align:center;">
     <div style="font-size:18px;font-weight:700;color:${color};">${s.value}</div>
     <div style="font-size:10px;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.8px;">${s.label}</div>
   </div>`).join('');
 
-  // Raggruppa per descrizione
-  const grouped = {};
-  expenses.forEach(e => {
-    const key = (e.desc && e.desc !== '—' && e.desc.trim()) ? e.desc.trim() : cat;
-    if(!grouped[key]) grouped[key] = { desc: key, total: 0, count: 0, pays: {}, dates: [] };
-    grouped[key].total += e.amount;
-    grouped[key].count++;
-    grouped[key].pays[e.pay] = (grouped[key].pays[e.pay] || 0) + 1;
-    grouped[key].dates.push(e.date);
-  });
-
-  const sorted = Object.values(grouped).sort((a,b) => b.total - a.total);
-
-  const PAY_ICONS = { satispay:'💜', revolut:'💜🔄', sella:'🏦', contanti:'💵', bonifico:'📋', carta:'💳' };
-  const PAY_COLORS = { satispay:'#8b5cf6', revolut:'#7c3aed', sella:'#3b82f6', contanti:'#10b981', bonifico:'#f59e0b', carta:'#ec4899' };
-
-  if(!sorted.length) {
-    document.getElementById('catDetailList').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">Nessuna spesa trovata per questo periodo.</div>';
+  if(!expenses.length) {
+    document.getElementById('payDetailList').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Nessuna spesa trovata.</div>';
     return;
   }
 
-  document.getElementById('catDetailList').innerHTML = `
-    <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">
-      📍 ${sorted.length} posti/voci — ordinati per importo
-    </div>
-    ${sorted.map((g,i) => {
-      const paysHtml = Object.entries(g.pays)
-        .sort((a,b) => b[1]-a[1])
-        .map(([pay, cnt]) => `<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:20px;padding:2px 8px;font-size:10px;color:${PAY_COLORS[pay]||'var(--text-muted)'};">${PAY_ICONS[pay]||'💳'} ${pay} ×${cnt}</span>`).join(' ');
-      const lastDate = g.dates.sort().reverse()[0];
-      const pct = total > 0 ? (g.total/total*100).toFixed(0) : 0;
-      return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:13px 16px;margin-bottom:8px;transition:border-color 0.2s;" onmouseover="this.style.borderColor='var(--gold)'" onmouseout="this.style.borderColor='var(--border)'">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
-          <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
-            <div style="width:22px;height:22px;border-radius:50%;background:${color};color:#000;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0;">${i+1}</div>
-            <div style="font-size:14px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${g.desc}</div>
-          </div>
-          <div style="text-align:right;flex-shrink:0;margin-left:10px;">
-            <div style="font-size:15px;font-weight:700;color:var(--red);">€${g.total.toFixed(2).replace('.',',')}</div>
-            <div style="font-size:10px;color:var(--text-muted);">${pct}% del totale</div>
-          </div>
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px;">
-          <div style="display:flex;gap:5px;flex-wrap:wrap;">${paysHtml}</div>
-          <div style="display:flex;gap:10px;font-size:11px;color:var(--text-muted);">
-            <span>🔁 ${g.count} volt${g.count===1?'a':'e'}</span>
-            <span>📅 Ultima: ${lastDate}</span>
-            <span>⌀ €${(g.total/g.count).toFixed(2).replace('.',',')}</span>
-          </div>
-        </div>
-        <!-- Barra percentuale -->
-        <div style="margin-top:8px;height:3px;background:rgba(255,255,255,0.06);border-radius:2px;overflow:hidden;">
-          <div style="height:100%;width:${pct}%;background:${color};border-radius:2px;transition:width 0.4s;"></div>
-        </div>
+  // Raggruppa per categoria prima, poi per descrizione
+  const byCat = {};
+  expenses.forEach(e => {
+    const cat = e.cat || 'altro';
+    if(!byCat[cat]) byCat[cat] = { total:0, count:0, items:{} };
+    byCat[cat].total += e.amount;
+    byCat[cat].count++;
+    const desc = (e.desc && e.desc !== '—') ? e.desc.trim() : cat;
+    if(!byCat[cat].items[desc]) byCat[cat].items[desc] = { total:0, count:0, dates:[] };
+    byCat[cat].items[desc].total += e.amount;
+    byCat[cat].items[desc].count++;
+    byCat[cat].items[desc].dates.push(e.date);
+  });
+
+  const sortedCats = Object.entries(byCat).sort((a,b) => b[1].total - a[1].total);
+
+  document.getElementById('payDetailList').innerHTML = sortedCats.map(([cat, data]) => {
+    const catPct = total > 0 ? (data.total/total*100).toFixed(0) : 0;
+    const sortedItems = Object.entries(data.items).sort((a,b) => b[1].total - a[1].total);
+    const itemsHtml = sortedItems.map(([desc, d]) => {
+      const lastDate = d.dates.sort().reverse()[0];
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 10px;border-radius:8px;font-size:12px;margin-bottom:3px;background:rgba(255,255,255,0.02);">
+        <span style="color:var(--text-muted);">↳ ${desc}</span>
+        <span style="display:flex;align-items:center;gap:8px;flex-shrink:0;color:var(--text-muted);">
+          <span>×${d.count}</span>
+          <span>${lastDate}</span>
+          <span style="color:var(--red);font-weight:600;">€${d.total.toFixed(2).replace('.',',')}</span>
+        </span>
       </div>`;
-    }).join('')}
-  `;
-}
+    }).join('');
 
-function openCatDetailFromButton(cat) {
-  _catDetailCat = cat;
-  _catDetailPeriod = 'month';
-  openCatDetail(cat);
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">${CAT_ICONS[cat]||'💳'} ${cat.charAt(0).toUpperCase()+cat.slice(1)}</div>
+        <div style="text-align:right;">
+          <span style="font-size:15px;font-weight:700;color:${color};">€${data.total.toFixed(2).replace('.',',')}</span>
+          <span style="font-size:11px;color:var(--text-muted);margin-left:6px;">${catPct}%</span>
+        </div>
+      </div>
+      <div style="height:3px;background:rgba(255,255,255,0.06);border-radius:2px;margin-bottom:8px;overflow:hidden;">
+        <div style="height:100%;width:${catPct}%;background:${color};border-radius:2px;"></div>
+      </div>
+      ${itemsHtml}
+    </div>`;
+  }).join('');
 }
-
 
 // ── FREQUENZA PER GIORNO DELLA SETTIMANA (per categoria) ──
 function renderCatFreqChart(cat) {
+
   // const DAYS_IT already declared globally
   const exp = getExpenses().filter(e => e.cat === cat);
   const color    = CAT_COLORS[cat]?.line || '#c9a84c';
@@ -8391,140 +8394,19 @@ function renderWeekChart() {
   const busyDay = DAYS_IT[dayCounts.indexOf(Math.max(...dayCounts))];
   document.getElementById('weekStats').innerHTML = [
     { label:'Totale settimane', value:'€'+totalAmt.toFixed(2).replace('.',',') },
-    { label:'N° operazioni', value: totalCnt },
-    { label:'Giorno + spese', value: maxDay||'—' },
-    { label:'Giorno + frequente', value: busyDay||'—' }
+    { label:'N° giorni attivi', value: totalCnt },
+    { label:'Giorno con più €', value: maxDay },
+    { label:'Giorno più frequente', value: busyDay }
   ].map(s=>`<div class="stat-mini"><div class="s-label">${s.label}</div><div class="s-value">${s.value}</div></div>`).join('');
 }
 
-// ── GRAFICO ANNUALE ──
-function initYearSelect() {
-  const sel = document.getElementById('yearChartYear');
-  const sel2 = document.getElementById('yearChartYear2');
-  const now = new Date().getFullYear();
-  sel.innerHTML = '';
-  sel2.innerHTML = '';
-  for(let y=2023; y<=now+1; y++) {
-    const o1 = document.createElement('option');
-    o1.value=y; o1.textContent=y; if(y===now) o1.selected=true;
-    sel.appendChild(o1);
-    const o2 = document.createElement('option');
-    o2.value=y; o2.textContent=y; if(y===now-1) o2.selected=true;
-    sel2.appendChild(o2);
-  }
-}
-
-function toggleYearCompare() {
-  const cb  = document.getElementById('yearChartCompare');
-  const sel2 = document.getElementById('yearChartYear2');
-  sel2.disabled = !cb.checked;
-  sel2.style.opacity = cb.checked ? '1' : '0.5';
-  sel2.style.color   = cb.checked ? 'var(--text)' : 'var(--text-muted)';
-  renderYearChart();
-}
-
 function renderYearChart() {
-  const yr    = parseInt(document.getElementById('yearChartYear').value);
-  const mode  = document.getElementById('yearChartMode').value;
+  const yr = document.getElementById('yearChartYear').value;
   const compare = document.getElementById('yearChartCompare')?.checked;
-  const yr2   = compare ? parseInt(document.getElementById('yearChartYear2').value) : null;
+  const yr2 = document.getElementById('yearChartYear2')?.value;
   const gridColor = document.body.classList.contains('light') ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.05)';
-
-  // Helper: carica dati mese per mese per un anno
-  function loadYearData(y) {
-    const incData=[],expData=[],libData=[],bonData=[];
-    for(let m=1;m<=12;m++){
-      const inc=load('income_'+y+'_'+m,[]);
-      const exp=load('expenses_'+y+'_'+m,[]);
-      let i=0,e=0,l=0,b=0;
-      inc.forEach(x=>i+=x.amount);
-      exp.forEach(x=>{e+=x.amount; if(x.pay==='bonifico'||x.cat==='rata') b+=x.amount; else l+=x.amount;});
-      incData.push(i); expData.push(e); libData.push(l); bonData.push(b);
-    }
-    return {incData,expData,libData,bonData};
-  }
-
-  if(mode === 'all') {
-    const d1 = loadYearData(yr);
-    if(yearChartInst) yearChartInst.destroy();
-
-    let datasets, statsHtml;
-
-    if(compare && yr2 && yr2 !== yr) {
-      const d2 = loadYearData(yr2);
-      // Modalità confronto: linee spese libere + linee spese totali per i due anni
-      datasets = [
-        { label:`${yr} — Spese Libere`,   data:d1.libData, type:'bar',  backgroundColor:'rgba(74,232,122,0.55)', borderColor:'#4ae87a', borderWidth:2, borderRadius:5 },
-        { label:`${yr} — Bonifici/Rate`,  data:d1.bonData, type:'bar',  backgroundColor:'rgba(255,180,0,0.45)',  borderColor:'#ffb400', borderWidth:2, borderRadius:5 },
-        { label:`${yr} — Entrate`,        data:d1.incData, type:'line', borderColor:'#4caf82', backgroundColor:'transparent', borderWidth:2, pointRadius:3, tension:0.3 },
-        { label:`${yr2} — Spese Libere`,  data:d2.libData, type:'bar',  backgroundColor:'rgba(138,92,246,0.45)', borderColor:'#8b5cf6', borderWidth:2, borderRadius:5 },
-        { label:`${yr2} — Bonifici/Rate`, data:d2.bonData, type:'bar',  backgroundColor:'rgba(255,120,120,0.35)',borderColor:'#ff8080', borderWidth:2, borderRadius:5 },
-        { label:`${yr2} — Entrate`,       data:d2.incData, type:'line', borderColor:'#a78bfa', backgroundColor:'transparent', borderWidth:2, pointRadius:3, tension:0.3, borderDash:[5,4] },
-      ];
-
-      // KPI comparativi
-      const t1exp=d1.expData.reduce((s,v)=>s+v,0), t2exp=d2.expData.reduce((s,v)=>s+v,0);
-      const t1inc=d1.incData.reduce((s,v)=>s+v,0), t2inc=d2.incData.reduce((s,v)=>s+v,0);
-      const t1lib=d1.libData.reduce((s,v)=>s+v,0), t2lib=d2.libData.reduce((s,v)=>s+v,0);
-      const t1bon=d1.bonData.reduce((s,v)=>s+v,0), t2bon=d2.bonData.reduce((s,v)=>s+v,0);
-      const delta = t1exp - t2exp;
-      const fmt = v=>'€'+Math.abs(v).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,'.');
-      statsHtml = `
-        <div class="stat-mini" style="grid-column:span 2;background:rgba(255,255,255,0.03);border-radius:10px;padding:10px 14px;">
-          <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📊 Confronto ${yr} vs ${yr2}</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
-            <div><span style="color:var(--text-muted);">Entrate ${yr}:</span> <strong style="color:#4ae87a;">${fmt(t1inc)}</strong></div>
-            <div><span style="color:var(--text-muted);">Entrate ${yr2}:</span> <strong style="color:#a78bfa;">${fmt(t2inc)}</strong></div>
-            <div><span style="color:var(--text-muted);">Spese Libere ${yr}:</span> <strong style="color:#4ae87a;">${fmt(t1lib)}</strong></div>
-            <div><span style="color:var(--text-muted);">Spese Libere ${yr2}:</span> <strong style="color:#a78bfa;">${fmt(t2lib)}</strong></div>
-            <div><span style="color:var(--text-muted);">Bonifici/Rate ${yr}:</span> <strong style="color:#ffb400;">${fmt(t1bon)}</strong></div>
-            <div><span style="color:var(--text-muted);">Bonifici/Rate ${yr2}:</span> <strong style="color:#ff8080;">${fmt(t2bon)}</strong></div>
-          </div>
-          <div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:13px;">
-            Differenza spese totali: <strong style="color:${delta>=0?'var(--red)':'var(--green)'}">${delta>=0?'+':'-'}${fmt(delta)}</strong>
-            ${delta>0?'— hai speso di più nel '+yr:'— hai speso meno nel '+yr}
-          </div>
-        </div>`;
-    } else {
-      // Singolo anno con divisione libere/bonifici
-      datasets = [
-        { label:'Entrate',       data:d1.incData, backgroundColor:'rgba(76,175,130,0.65)', borderColor:'#4caf82', borderWidth:2, borderRadius:6 },
-        { label:'Spese Fisse',   data:Array(12).fill(getTotalFixedForYear(yr)), backgroundColor:'rgba(201,168,76,0.5)', borderColor:'#c9a84c', borderWidth:2, borderRadius:6 },
-        { label:'🟢 Spese Libere', data:d1.libData, backgroundColor:'rgba(74,232,122,0.6)', borderColor:'#4ae87a', borderWidth:2, borderRadius:6 },
-        { label:'🏦 Bonifici/Rate', data:d1.bonData, backgroundColor:'rgba(255,180,0,0.5)', borderColor:'#ffb400', borderWidth:2, borderRadius:6 },
-      ];
-      const totInc=d1.incData.reduce((s,v)=>s+v,0);
-      const totLib=d1.libData.reduce((s,v)=>s+v,0);
-      const totBon=d1.bonData.reduce((s,v)=>s+v,0);
-      const totFixed=getTotalFixedForYear(yr)*12;
-      const balance=totInc-totFixed-totLib-totBon;
-      statsHtml = [
-        {label:'Entrate '+yr, value:'€'+totInc.toFixed(2).replace('.',','), color:'var(--green)'},
-        {label:'Spese Libere', value:'€'+totLib.toFixed(2).replace('.',','), color:'#4ae87a'},
-        {label:'Bonifici/Rate', value:'€'+totBon.toFixed(2).replace('.',','), color:'#ffb400'},
-        {label:'Saldo Annuale', value:(balance<0?'-':'')+'€'+Math.abs(balance).toFixed(2).replace('.',','), color:balance>=0?'var(--green)':'var(--red)'}
-      ].map(s=>`<div class="stat-mini"><div class="s-label">${s.label}</div><div class="s-value" style="color:${s.color};">${s.value}</div></div>`).join('');
-    }
-
-    yearChartInst = new Chart(document.getElementById('yearChart').getContext('2d'), {
-      type:'bar',
-      data:{ labels: MESI, datasets },
-      options:{ responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ labels:{ color:chartTextColor(), font:{family:'DM Sans',size:11} }, position:'bottom' } },
-        scales:{
-          x:{ ticks:{ color:chartMutedColor() }, grid:{ color:gridColor } },
-          y:{ ticks:{ color:chartMutedColor() }, grid:{ color:gridColor },
-              title:{ display:true, text:'Importo (€)', color:chartMutedColor() } }
-        }
-      }
-    });
-    document.getElementById('yearStats').innerHTML = statsHtml;
-
-  } else {
-    // Spese per categoria — singolo anno o confronto
-    const cats = ['ristorante','bar','viaggi','hotel','svago','musei','extra','supermercato','rata'];
-    const catColors = ['rgba(201,168,76,0.8)','rgba(123,94,167,0.8)','rgba(76,175,130,0.8)','rgba(224,92,138,0.8)','rgba(80,160,220,0.8)','rgba(224,120,92,0.8)','rgba(150,220,100,0.8)','rgba(220,100,220,0.8)','rgba(255,180,0,0.8)'];
-
+  const cats = ['ristorante','bar','viaggi','hotel','svago','musei','extra','supermercato','rata'];
+  const catColors = ['rgba(255,107,107,0.8)','rgba(74,232,122,0.8)','rgba(74,144,232,0.8)','rgba(167,139,250,0.8)','rgba(255,183,77,0.8)','rgba(77,208,225,0.8)','rgba(201,168,76,0.8)','rgba(129,199,132,0.8)','rgba(240,98,146,0.8)'];
     function catDatasets(y, opacity, suffix) {
       return cats.map((cat,i) => {
         const data = Array(12).fill(0);
@@ -8555,8 +8437,7 @@ function renderYearChart() {
         }
       }
     });
-    document.getElementById('yearStats').innerHTML = '';
-  }
+  document.getElementById('yearStats').innerHTML = '';
 }
 
 // ═══════════════════════════════════════════════
@@ -12816,7 +12697,7 @@ function renderVSPayChart() {
   const totBySrc = defs.map(d=>series[d.key].reduce((s,v)=>s+v,0));
   const grand = totBySrc.reduce((s,v)=>s+v,0);
   document.getElementById('vsPayStats').innerHTML = defs.map((d,i)=>
-    `<div class="stat-mini"><div class="s-label">${d.label}</div><div class="s-value" style="color:${d.color};">€${totBySrc[i].toFixed(2).replace('.',',')} <span style="color:var(--text-muted);font-size:11px;">(${grand>0?(totBySrc[i]/grand*100).toFixed(0):'0'}%)</span></div></div>`
+    `<div class="stat-mini" onclick="openPayDetail('${d.key}','${d.label}','${d.color}')" title="Clicca per dettaglio ${d.label}" style="cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='${d.color}';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='';this.style.transform=''"><div class="s-label">${d.label}</div><div class="s-value" style="color:${d.color};">€${totBySrc[i].toFixed(2).replace('.',',')} <span style="color:var(--text-muted);font-size:11px;">(${grand>0?(totBySrc[i]/grand*100).toFixed(0):'0'}%)</span></div><div style="font-size:9px;color:var(--text-muted);margin-top:3px;">🔍 clicca per dettaglio</div></div>`
   ).join('');
 }
 
@@ -14974,6 +14855,30 @@ async function initPushNotifications() {
 <!-- Lock overlay created dynamically by lockScreen() -->
 
     <!-- MODAL AGGIUNGI PROMEMORIA -->
+    <!-- Modale dettaglio metodo pagamento -->
+    <div id="payDetailModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.82);z-index:9999;align-items:center;justify-content:center;padding:16px;">
+      <div style="background:var(--dark2);border:1px solid var(--border-strong);border-radius:18px;padding:0;max-width:680px;width:100%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid var(--border);">
+          <div>
+            <div style="font-size:20px;font-weight:700;" id="payDetailTitle">—</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="payDetailSubtitle"></div>
+          </div>
+          <button onclick="document.getElementById('payDetailModal').style.display='none'" style="background:rgba(255,255,255,0.07);border:none;color:var(--text-muted);font-size:20px;cursor:pointer;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">✕</button>
+        </div>
+        <div style="display:flex;gap:8px;padding:12px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;">
+          <span style="font-size:12px;color:var(--text-muted);">Periodo:</span>
+          <button class="pay-detail-period active" onclick="setPayDetailPeriod('month',this)" style="font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:var(--gold-dim);color:var(--gold);cursor:pointer;font-family:var(--font);">Questo mese</button>
+          <button class="pay-detail-period" onclick="setPayDetailPeriod('year',this)" style="font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">Quest'anno</button>
+          <button class="pay-detail-period" onclick="setPayDetailPeriod('all',this)" style="font-size:12px;padding:4px 12px;border-radius:20px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">Tutto</button>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid var(--border);" id="payDetailStats"></div>
+        <!-- Per categoria -->
+        <div style="padding:14px 22px 8px;border-bottom:1px solid var(--border);" id="payDetailCatRow"></div>
+        <!-- Lista spese -->
+        <div style="flex:1;overflow-y:auto;padding:14px 22px;" id="payDetailList"></div>
+      </div>
+    </div>
+
     <!-- Modale dettaglio categoria (click sul bottone categoria) -->
     <div id="catDetailModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,0.82);z-index:9999;align-items:center;justify-content:center;padding:16px;">
       <div style="background:var(--dark2);border:1px solid var(--border-strong);border-radius:18px;padding:0;max-width:680px;width:100%;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;">
