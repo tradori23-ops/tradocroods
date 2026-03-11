@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v13';
+  var BUILD = '20260311-v15';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -8006,7 +8006,7 @@ async function ritaggaSpese() {
 function renderGraphButtons() {
   const cats = ['ristorante','bar','viaggi','hotel','svago','musei','extra','supermercato','rata'];
   const c = document.getElementById('catButtons');
-  c.innerHTML = cats.map(cat=>`<span style="display:inline-flex;margin:3px;"><button class="cat-btn ${selectedCat===cat?'active':''}" onclick="selectCat('${cat}')" style="border-radius:8px 0 0 8px;margin:0;">${CAT_ICONS[cat]||'💳'} ${cat.charAt(0).toUpperCase()+cat.slice(1)}</button><button onclick="openCatDetail('${cat}')" title="Dettaglio" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;padding:7px 9px;cursor:pointer;color:var(--text-muted);font-size:12px;transition:all 0.2s;" onmouseover="this.style.background='var(--gold-dim)';this.style.color='var(--gold)'" onmouseout="this.style.background='rgba(255,255,255,0.06)';this.style.color='var(--text-muted)'">🔍</button></span>`).join('');
+  c.innerHTML = cats.map(cat=>`<span style="display:inline-flex;margin:3px;"><button class="cat-btn ${selectedCat===cat?'active':''}" onclick="selectCat('${cat}')" style="border-radius:8px 0 0 8px;margin:0;">${CAT_ICONS[cat]||'💳'} ${cat.charAt(0).toUpperCase()+cat.slice(1)}</button><button class="detail-cat-trigger" data-cat="${cat}" title="Dettaglio" style="background:rgba(255,255,255,0.06);border:1px solid var(--border);border-left:none;border-radius:0 8px 8px 0;padding:7px 9px;cursor:pointer;color:var(--text-muted);font-size:12px;transition:all 0.2s;">🔍</button></span>`).join('');
 }
 
 function selectCat(cat) {
@@ -8137,12 +8137,16 @@ let _catDetailPeriod = 'month';
 function openCatDetail(cat) {
   _catDetailCat = cat;
   _catDetailPeriod = 'month';
+  document.getElementById('catDetailModal').style.display = 'flex';
+  document.getElementById('catDetailList').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);">Caricamento...</div>';
   document.querySelectorAll('.cat-detail-period').forEach((b,i) => {
     b.style.background = i===0 ? 'var(--gold-dim)' : 'transparent';
     b.style.color      = i===0 ? 'var(--gold)' : 'var(--text-muted)';
   });
-  renderCatDetail();
-  document.getElementById('catDetailModal').style.display = 'flex';
+  try { renderCatDetail(); } catch(err) {
+    console.error('openCatDetail error:', err);
+    document.getElementById('catDetailList').innerHTML = '<div style="padding:24px;color:var(--red);">Errore: ' + err.message + '</div>';
+  }
 }
 
 function setCatDetailPeriod(period, btn) {
@@ -8153,7 +8157,10 @@ function setCatDetailPeriod(period, btn) {
   });
   btn.style.background = 'var(--gold-dim)';
   btn.style.color = 'var(--gold)';
-  renderCatDetail();
+  try { renderCatDetail(); } catch(err) {
+    console.error('renderCatDetail error:', err);
+    document.getElementById('catDetailList').innerHTML = '<div style="padding:24px;color:var(--red);">Errore: ' + err.message + '</div>';
+  }
 }
 
 function renderCatDetail() {
@@ -8254,13 +8261,17 @@ function openPayDetail(key, label, color) {
   _payDetailLabel = label;
   _payDetailColor = color || 'var(--gold)';
   _payDetailPeriod = 'month';
+  document.getElementById('payDetailModal').style.display = 'flex';
+  document.getElementById('payDetailList').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);">Caricamento...</div>';
   document.querySelectorAll('.pay-detail-period').forEach((b,i) => {
     b.style.background = i===0 ? 'rgba(255,255,255,0.08)' : 'transparent';
     b.style.color = i===0 ? 'var(--text)' : 'var(--text-muted)';
     b.style.borderColor = i===0 ? color : 'var(--border)';
   });
-  renderPayDetail();
-  document.getElementById('payDetailModal').style.display = 'flex';
+  try { renderPayDetail(); } catch(err) {
+    console.error('openPayDetail error:', err);
+    document.getElementById('payDetailList').innerHTML = '<div style="padding:24px;color:var(--red);">Errore: ' + err.message + '</div>';
+  }
 }
 
 function setPayDetailPeriod(period, btn) {
@@ -8273,7 +8284,10 @@ function setPayDetailPeriod(period, btn) {
   btn.style.background = 'rgba(255,255,255,0.08)';
   btn.style.color = 'var(--text)';
   btn.style.borderColor = _payDetailColor;
-  renderPayDetail();
+  try { renderPayDetail(); } catch(err) {
+    console.error('renderPayDetail error:', err);
+    document.getElementById('payDetailList').innerHTML = '<div style="padding:24px;color:var(--red);">Errore: ' + err.message + '</div>';
+  }
 }
 
 function renderPayDetail() {
@@ -12738,7 +12752,7 @@ function renderVSCatChart() {
   const totByCat=cats.map(c=>weekKeys.reduce((s,k)=>s+(weekExpMap[k]?.[c]||[]).reduce((s2,e)=>s2+e.amount,0),0));
   const grandTotal=totByCat.reduce((s,v)=>s+v,0);
   document.getElementById('vsCatStats').innerHTML=cats.map((c,i)=>({c,v:totByCat[i]})).filter(x=>x.v>0).sort((a,b)=>b.v-a.v)
-    .map(x=>`<div class="stat-mini" onclick="openCatDetail('${x.c}')" title="Clicca per dettaglio ${x.c}" style="cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='var(--gold)';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='';this.style.transform=''"><div class="s-label">${CAT_ICONS[x.c]||''} ${x.c}</div><div class="s-value" style="color:var(--gold);">€${x.v.toFixed(2).replace('.',',')} <span style="color:var(--text-muted);font-size:11px;">(${(grandTotal>0 ? (x.v/grandTotal*100) : 0).toFixed(0)}%)</span></div><div style="font-size:9px;color:var(--text-muted);margin-top:3px;">🔍 clicca per dettaglio</div></div>`).join('');
+    .map(x=>`<div class="stat-mini detail-cat-trigger" data-cat="${x.c}" style="cursor:pointer;transition:all 0.2s;"><div class="s-label">${CAT_ICONS[x.c]||''} ${x.c.charAt(0).toUpperCase()+x.c.slice(1)}</div><div class="s-value" style="color:var(--gold);">€${x.v.toFixed(2).replace('.',',')} <span style="color:var(--text-muted);font-size:11px;">(${(grandTotal>0 ? (x.v/grandTotal*100) : 0).toFixed(0)}%)</span></div><div style="font-size:9px;color:var(--text-muted);margin-top:3px;">🔍 clicca per dettaglio</div></div>`).join('');
 }
 
 // ── Graf. Per Metodo Pagamento ──
@@ -12817,7 +12831,7 @@ function renderVSPayChart() {
   const totBySrc = defs.map(d=>series[d.key].reduce((s,v)=>s+v,0));
   const grand = totBySrc.reduce((s,v)=>s+v,0);
   document.getElementById('vsPayStats').innerHTML = defs.map((d,i)=>
-    `<div class="stat-mini" onclick="openPayDetail('${d.key}','${d.label}','${d.color}')" title="Clicca per dettaglio ${d.label}" style="cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='${d.color}';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='';this.style.transform=''"><div class="s-label">${d.label}</div><div class="s-value" style="color:${d.color};">€${totBySrc[i].toFixed(2).replace('.',',')} <span style="color:var(--text-muted);font-size:11px;">(${grand>0?(totBySrc[i]/grand*100).toFixed(0):'0'}%)</span></div><div style="font-size:9px;color:var(--text-muted);margin-top:3px;">🔍 clicca per dettaglio</div></div>`
+    `<div class="stat-mini detail-pay-trigger" data-key="${d.key}" data-color="${d.color}" style="cursor:pointer;transition:all 0.2s;border-color:transparent;"><div class="s-label">${d.label}</div><div class="s-value" style="color:${d.color};">€${totBySrc[i].toFixed(2).replace('.',',')} <span style="color:var(--text-muted);font-size:11px;">(${grand>0?(totBySrc[i]/grand*100).toFixed(0):'0'}%)</span></div><div style="font-size:9px;color:var(--text-muted);margin-top:3px;">🔍 clicca per dettaglio</div></div>`
   ).join('');
 }
 
@@ -14970,6 +14984,24 @@ async function initPushNotifications() {
     await savePushSubscriptionToFirebase(sub);
   }
 }
+
+// ── CLICK DELEGATION: dettaglio categoria e metodo pagamento ──
+document.addEventListener('click', function(e) {
+  const catTrigger = e.target.closest('.detail-cat-trigger');
+  if(catTrigger) {
+    const cat = catTrigger.dataset.cat;
+    if(cat) { e.stopPropagation(); openCatDetail(cat); }
+    return;
+  }
+  const payTrigger = e.target.closest('.detail-pay-trigger');
+  if(payTrigger) {
+    const key   = payTrigger.dataset.key;
+    const color = payTrigger.dataset.color || 'var(--gold)';
+    const LABELS = {satispay:'📱 Satispay', sella:'🏦 Sella', revolut:'💜 Revolut'};
+    if(key) { e.stopPropagation(); openPayDetail(key, LABELS[key]||key, color); }
+    return;
+  }
+});
 
 </script>
 <!-- Lock overlay created dynamically by lockScreen() -->
