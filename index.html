@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v17';
+  var BUILD = '20260311-v18';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -15166,6 +15166,72 @@ function openWeekSummaryModal(filter) {
   }
 }
 
+
+// ── STAMPA DETTAGLIO MODALE ──
+function printDetailModal(modalId) {
+  const modal = document.getElementById(modalId);
+  if(!modal) return;
+
+  // Gather content
+  const titleEl    = modal.querySelector('[id$="Title"]');
+  const subtitleEl = modal.querySelector('[id$="Subtitle"]');
+  const statsEl    = modal.querySelector('[id$="Stats"]');
+  const listEl     = modal.querySelector('[id$="List"]');
+
+  const title    = titleEl    ? titleEl.textContent    : 'Dettaglio';
+  const subtitle = subtitleEl ? subtitleEl.textContent : '';
+  const statsHtml = statsEl   ? statsEl.innerHTML      : '';
+  const listHtml  = listEl    ? listEl.innerHTML       : '';
+
+  // Build a clean, light-mode print page
+  const html = `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>${title}</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; color:#1a1a2e; background:#fff; padding:28px 32px; font-size:13px; }
+    h1  { font-size:22px; font-weight:800; color:#1a1a2e; margin-bottom:4px; }
+    .sub { font-size:12px; color:#666; margin-bottom:18px; }
+    .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:0; border:1.5px solid #e0e0e0; border-radius:10px; overflow:hidden; margin-bottom:20px; }
+    .stats > div { padding:12px 10px; text-align:center; border-right:1px solid #e0e0e0; }
+    .stats > div:last-child { border-right:none; }
+    .stats > div > div:first-child { font-size:18px; font-weight:800; color:#1a1a2e; }
+    .stats > div > div:last-child  { font-size:9px; color:#888; text-transform:uppercase; letter-spacing:0.7px; margin-top:3px; }
+    /* neutralise dark-mode colours inside list */
+    #print-list * { color:#1a1a2e !important; background:transparent !important; border-color:#e0e0e0 !important; box-shadow:none !important; }
+    #print-list [style*="color:#4ae87a"], #print-list [style*="color: #4ae87a"] { color:#1a9952 !important; }
+    #print-list [style*="color:#ff"], #print-list [style*="color: #ff"]         { color:#c0392b !important; }
+    #print-list [style*="color:#ffb400"]                                        { color:#b07800 !important; }
+    #print-list [style*="color:#a78bfa"], #print-list [style*="color:#4a90e8"]  { color:#5b5b9e !important; }
+    #print-list > div { margin-bottom:10px; }
+    .logo { font-size:10px; color:#bbb; text-align:right; margin-top:24px; border-top:1px solid #eee; padding-top:10px; }
+    @media print {
+      body { padding:15mm 18mm; }
+      button { display:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <h1>${title.replace(/</g,'&lt;')}</h1>
+  <div class="sub">${subtitle.replace(/</g,'&lt;')}</div>
+  <div class="stats">${statsHtml}</div>
+  <div id="print-list">${listHtml}</div>
+  <div class="logo">TradoCroods · stampato il ${new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'})}</div>
+  <script>window.onload = function(){ window.print(); window.onafterprint = function(){ window.close(); }; }<\/script>
+</body>
+</html>`;
+
+  const w = window.open('', '_blank', 'width=800,height=700');
+  if(w) {
+    w.document.write(html);
+    w.document.close();
+  } else {
+    showToast('⚠️ Abilita i popup per stampare');
+  }
+}
+
 // ── CLICK DELEGATION: dettaglio categoria e metodo pagamento ──
 document.addEventListener('click', function(e) {
   const catTrigger = e.target.closest('.detail-cat-trigger');
@@ -15197,6 +15263,7 @@ document.addEventListener('click', function(e) {
             <div style="font-size:20px;font-weight:700;color:var(--gold);" id="weekDetailTitle">—</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="weekDetailSubtitle"></div>
           </div>
+          <button onclick="printDetailModal('weekDetailModal')" title="Stampa" style="background:rgba(201,168,67,0.12);border:1px solid rgba(201,168,67,0.3);color:var(--gold);font-size:14px;cursor:pointer;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--font);font-size:12px;font-weight:600;">🖨️ Stampa</button>
           <button onclick="document.getElementById('weekDetailModal').style.display='none'" style="background:rgba(255,255,255,0.07);border:none;color:var(--text-muted);font-size:20px;cursor:pointer;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">✕</button>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid var(--border);" id="weekDetailStats"></div>
@@ -15212,6 +15279,7 @@ document.addEventListener('click', function(e) {
             <div style="font-size:20px;font-weight:700;" id="payDetailTitle">—</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="payDetailSubtitle"></div>
           </div>
+          <button onclick="printDetailModal('payDetailModal')" title="Stampa" style="background:rgba(201,168,67,0.12);border:1px solid rgba(201,168,67,0.3);color:var(--gold);font-size:14px;cursor:pointer;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--font);font-size:12px;font-weight:600;">🖨️ Stampa</button>
           <button onclick="document.getElementById('payDetailModal').style.display='none'" style="background:rgba(255,255,255,0.07);border:none;color:var(--text-muted);font-size:20px;cursor:pointer;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">✕</button>
         </div>
         <div style="display:flex;gap:8px;padding:12px 22px;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center;">
@@ -15237,6 +15305,7 @@ document.addEventListener('click', function(e) {
             <div style="font-size:20px;font-weight:700;color:var(--gold);" id="catDetailTitle">—</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="catDetailSubtitle"></div>
           </div>
+          <button onclick="printDetailModal('catDetailModal')" title="Stampa" style="background:rgba(201,168,67,0.12);border:1px solid rgba(201,168,67,0.3);color:var(--gold);font-size:14px;cursor:pointer;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--font);font-size:12px;font-weight:600;">🖨️ Stampa</button>
           <button onclick="document.getElementById('catDetailModal').style.display='none'" style="background:rgba(255,255,255,0.07);border:none;color:var(--text-muted);font-size:20px;cursor:pointer;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">✕</button>
         </div>
         <!-- Filtro periodo -->
