@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v27';
+  var BUILD = '20260311-v28';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5269,8 +5269,12 @@ function doManualLogin() {
   if(fbReady && db) {
     if(errEl) errEl.textContent = '⏳ Verifico su cloud…';
     db.ref('tc_users').once('value').then(snap => {
-      const fbUsers = snap.val();
-      if(!Array.isArray(fbUsers)) {
+      let fbUsers = snap.val();
+      // Firebase restituisce oggetti invece di array — converti
+      if(fbUsers && !Array.isArray(fbUsers) && typeof fbUsers === 'object') {
+        fbUsers = Object.values(fbUsers);
+      }
+      if(!fbUsers || !Array.isArray(fbUsers) || fbUsers.length === 0) {
         if(errEl) errEl.textContent = 'Credenziali non valide. Riprova.';
         document.getElementById('manualPass').value = '';
         document.getElementById('manualPass').focus();
