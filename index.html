@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v29';
+  var BUILD = '20260311-v30';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -9655,6 +9655,16 @@ let currentDocTab  = 'medica';
 let docPreviewData = null;
 
 // ── MODALITÀ: 'drive' oppure 'local' ──────────────────────
+// Controlla subito se il token è ancora valido, altrimenti resetta
+(function() {
+  const _tok = localStorage.getItem('gdriveToken');
+  const _exp = parseInt(localStorage.getItem('gdriveTokenExp') || '0');
+  if(!_tok || _exp <= Date.now() + 60000) {
+    localStorage.removeItem('gdriveToken');
+    localStorage.removeItem('gdriveTokenExp');
+    localStorage.removeItem('docMode');
+  }
+})();
 let docMode = localStorage.getItem('docMode') || 'setup'; // 'setup' | 'drive' | 'local'
 
 // ── GOOGLE DRIVE CONFIG ───────────────────────────────────
