@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v30';
+  var BUILD = '20260311-v31';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -9790,11 +9790,18 @@ function connectGoogleDrive() {
       docMode = 'drive';
       localStorage.setItem('docMode', 'drive');
 
-      // Recupera email utente
+      // Recupera email utente — usa fetch diretto, NON gdriveRequest
+      // (gdriveRequest azzererebbe il token se riceve 401, bloccando tutto)
       try {
-        const info = await gdriveRequest('https://www.googleapis.com/oauth2/v3/userinfo');
-        const email = info.email || '—';
-        localStorage.setItem('gdriveEmail', email);
+        const infoResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { 'Authorization': 'Bearer ' + gdriveToken }
+        });
+        if(infoResp.ok) {
+          const info = await infoResp.json();
+          localStorage.setItem('gdriveEmail', info.email || '—');
+        } else {
+          localStorage.setItem('gdriveEmail', '—');
+        }
       } catch(e) { localStorage.setItem('gdriveEmail', '—'); }
 
       // Assicura struttura cartelle
