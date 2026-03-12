@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v28';
+  var BUILD = '20260311-v29';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -4921,6 +4921,8 @@ function fbSyncFromCloud(email, onDone) {
     const cloudData = snap.val();
     if(cloudData) {
       Object.entries(cloudData).forEach(([k, v]) => {
+        // Non ripristinare mai token Drive dal cloud — sono device-specific
+        if(k === 'gdriveToken' || k === 'gdriveTokenExp' || k === 'docMode' || k === 'gdriveClientId') return;
         const fullKey = `tc_${email}_${k}`;
         localStorage.setItem(fullKey, JSON.stringify(v));
       });
@@ -9684,12 +9686,13 @@ function initDocSystem() {
     gdriveTokenExp = savedExp;
     // Avvia timer auto-rinnovo per la sessione corrente
     setTimeout(() => scheduleAutoRenew(), 500);
-  } else if(savedToken) {
-    // Token scaduto — rimuovi
+  } else {
+    // Token scaduto o assente — reset completo Drive
     localStorage.removeItem('gdriveToken');
     localStorage.removeItem('gdriveTokenExp');
+    localStorage.removeItem('docMode');
     gdriveToken = null;
-    if(docMode === 'drive') docMode = 'setup'; // richiede riconnessione
+    docMode = 'setup';
   }
 
   updateDriveUI();
