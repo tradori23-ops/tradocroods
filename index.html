@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260311-v31';
+  var BUILD = '20260312-v33';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5427,8 +5427,29 @@ function doRegister() {
 
   const users = getUsers();
   if(users.find(u=>u.email===email)) { showMsg('Email già registrata.','error'); return; }
+
+  // Controlla anche su Firebase prima di registrare
+  if(fbReady && db) {
+    showMsg('⏳ Verifica in corso…', 'info');
+    db.ref('tc_users').once('value').then(snap => {
+      let fbUsers = snap.val();
+      if(fbUsers && !Array.isArray(fbUsers)) fbUsers = Object.values(fbUsers);
+      if(fbUsers && Array.isArray(fbUsers) && fbUsers.find(u => u.email === email)) {
+        showMsg('Email già registrata su un altro dispositivo.', 'error');
+        return;
+      }
+      _completeRegistration(name, email, pass);
+    }).catch(() => { _completeRegistration(name, email, pass); });
+  } else {
+    _completeRegistration(name, email, pass);
+  }
+}
+
+function _completeRegistration(name, email, pass) {
+  const users = getUsers();
+  if(users.find(u=>u.email===email)) { showMsg('Email già registrata.','error'); return; }
   users.push({ name, email, pass });
-  saveUsers(users); // salva localmente + Firebase automaticamente
+  saveUsers(users);
   showMsg('Profilo creato! Scegli il profilo e accedi.','success');
   renderProfilesGrid();
   backToProfiles();
@@ -6538,6 +6559,7 @@ function getTotalExpenses() { return getExpenses().reduce((s,e)=>s+e.amount,0); 
 
 // ===== DASHBOARD =====
 function renderDashboard() {
+  if(!document.getElementById('sum-income')) return; // dashboard non ancora nel DOM
   const inc      = Math.round(getIncome().reduce((s,i)=>s+i.amount,0) * 100) / 100;
   const fixed    = Math.round(getTotalFixedForYear(parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear())) * 100) / 100;
   const variable = Math.round(getTotalExpenses() * 100) / 100;
@@ -9790,19 +9812,8 @@ function connectGoogleDrive() {
       docMode = 'drive';
       localStorage.setItem('docMode', 'drive');
 
-      // Recupera email utente — usa fetch diretto, NON gdriveRequest
-      // (gdriveRequest azzererebbe il token se riceve 401, bloccando tutto)
-      try {
-        const infoResp = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-          headers: { 'Authorization': 'Bearer ' + gdriveToken }
-        });
-        if(infoResp.ok) {
-          const info = await infoResp.json();
-          localStorage.setItem('gdriveEmail', info.email || '—');
-        } else {
-          localStorage.setItem('gdriveEmail', '—');
-        }
-      } catch(e) { localStorage.setItem('gdriveEmail', '—'); }
+      // Usa direttamente l'email dell'utente già loggato (no chiamata userinfo)
+      localStorage.setItem('gdriveEmail', currentUser?.email || '—');
 
       // Assicura struttura cartelle
       await ensureDriveFolders();
@@ -14930,126 +14941,30 @@ function checkIOSInstallPrompt() {
   }
 }
 
-// Register inline service worker (no sw.js file needed)
+// Register external service worker
 async function registerSW() {
   if (!('serviceWorker' in navigator)) return;
   const host = window.location.hostname;
   if (host.includes('claudeusercontent.com') || host === 'localhost' || host === '127.0.0.1') return;
-
-  // SW inline come blob — intercetta fetch e serve HTML sempre fresh dalla rete
-  const swCode = `
-const CACHE = 'tradocroods-v20260311';
-self.addEventListener('install', e => { self.skipWaiting(); });
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
-  );
-});
-self.addEventListener('fetch', e => {
-  const url = new URL(e.request.url);
-  // HTML principale — sempre dalla rete, fallback cache
-  if(e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/')) {
-    e.respondWith(
-      fetch(e.request, { cache: 'no-store' })
-        .then(res => {
-          const clone = res.clone();
-          caches.open(CACHE).then(c => c.put(e.request, clone));
-          return res;
-        })
-        .catch(() => caches.match(e.request))
-    );
-    return;
-  }
-  // Tutto il resto — cache first
-  e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
-  );
-});
-self.addEventListener('message', e => {
-  if(e.data?.type === 'SKIP_WAITING') self.skipWaiting();
-});
-`;
-
   try {
-    const blob = new Blob([swCode], { type: 'application/javascript' });
-    const swUrl = URL.createObjectURL(blob);
     const scope = window.location.pathname.replace(/\/[^/]*$/, '/') || '/';
-    const reg = await navigator.serviceWorker.register(swUrl, { scope, updateViaCache: 'none' });
-    console.log('✅ SW inline registrato, scope:', reg.scope);
-    reg.update().catch(()=>{});
-    if(reg.waiting) {
-      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-      navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
-    }
+    const swPath = scope + 'sw.js';
+    const reg = await navigator.serviceWorker.register(swPath, { scope, updateViaCache: 'none' });
+    console.log('✅ SW registrato, scope:', reg.scope);
     reg.addEventListener('updatefound', () => {
       const nw = reg.installing;
-      nw?.addEventListener('statechange', () => {
+      nw.addEventListener('statechange', () => {
         if(nw.state === 'installed' && navigator.serviceWorker.controller) {
           nw.postMessage({ type: 'SKIP_WAITING' });
           navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
         }
       });
     });
-    return reg;
   } catch(e) {
-    if (!e.message?.includes('app-bound')) console.warn('SW registration failed:', e);
+    console.warn('SW registration failed:', e);
   }
 }
 
-// Init on load
-window.addEventListener('load', () => {
-  const host = window.location.hostname;
-  const isPreview = host.includes('claudeusercontent.com') || host === 'localhost' || host === '127.0.0.1';
-  if (isPreview) {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(regs => {
-        regs.forEach(r => r.unregister());
-      });
-    }
-    return;
-  }
-  registerSW().then(reg => {
-    if (reg) window._swReg = reg;
-  });
-  checkIOSInstallPrompt();
-});
-
-function testNotification() {
-  if (Notification.permission !== 'granted') {
-    Notification.requestPermission().then(p => {
-      if (p === 'granted') testNotification();
-      else showToast('⚠️ Permesso notifiche non concesso');
-    });
-    return;
-  }
-  try {
-    new Notification('✅ TradoCroods — Test', {
-      body: 'Le notifiche funzionano correttamente!',
-      icon: '/icon-192.png',
-      tag: 'test-' + Date.now(),
-      requireInteraction: false
-    });
-    showToast('🔔 Notifica inviata! Controlla il pannello notifiche');
-  } catch(e) {
-    showToast('❌ Errore: ' + e.message);
-    console.error('Test notifica:', e);
-  }
-}
-
-
-// ════════════════════════════════════
-// PUSH SUBSCRIPTION SYSTEM
-// ════════════════════════════════════
-let VAPID_PUBLIC_KEY = null; // caricata da /.netlify/functions/vapid-key
-
-function urlBase64ToUint8Array(base64String) {
-  const padding = '='.repeat((4 - base64String.length % 4) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-  const rawData = atob(base64);
-  return new Uint8Array([...rawData].map(c => c.charCodeAt(0)));
-}
 
 async function subscribeToPush() {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
