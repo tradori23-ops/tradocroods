@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260312-v33';
+  var BUILD = '20260312-v34';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -4234,6 +4234,10 @@ body.light .rata-card { background: #fdfcf7; }
               <div style="font-size:9px;color:#a78bfa;font-weight:700;text-transform:uppercase;">💜 Revolut</div>
               <div style="font-size:17px;font-weight:700;color:#a78bfa;" id="vs-weekRevolut">€0,00</div>
               <div style="font-size:8px;color:rgba(167,139,250,0.6);margin-top:1px;">🔍 dettaglio</div>
+            </div>
+            <div id="vs-weekManualeBadge" style="display:none;background:rgba(201,168,76,0.08);border:1.5px solid rgba(201,168,76,0.2);border-radius:10px;padding:6px 14px;text-align:center;">
+              <div style="font-size:9px;color:var(--gold);font-weight:700;text-transform:uppercase;">✏️ Manuali</div>
+              <div style="font-size:17px;font-weight:700;color:var(--gold);" id="vs-weekManuale">€0,00</div>
             </div>
           </div>
         </div>
@@ -12726,7 +12730,7 @@ function renderVSWeek() {
     let inc=[]; keys.forEach(k=>inc=inc.concat(load('income_'+k,[])||[])); return inc;
   })();
 
-  let totAll=0, totSat=0, totSel=0, totRev=0;
+  let totAll=0, totSat=0, totSel=0, totRev=0, totManual=0;
   dates.forEach(d => {
     const ds = localDateStr(d);
     const ds2=`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
@@ -12735,6 +12739,7 @@ function renderVSWeek() {
       if(e.source==='satispay') totSat+=e.amount;
       else if(e.source==='sella') totSel+=e.amount;
       else if(e.source==='revolut') totRev+=e.amount;
+      else if(e.source==='vs_manual' || !e.source) totManual+=e.amount;
     });
   });
 
@@ -12743,6 +12748,10 @@ function renderVSWeek() {
   if(el('vs-weekSatispay'))el('vs-weekSatispay').textContent= fmt(totSat);
   if(el('vs-weekSella'))   el('vs-weekSella').textContent   = fmt(totSel);
   if(el('vs-weekRevolut')) el('vs-weekRevolut').textContent = fmt(totRev);
+  if(el('vs-weekManuale')) {
+    el('vs-weekManuale').textContent = fmt(totManual);
+    el('vs-weekManualeBadge').style.display = totManual > 0 ? 'block' : 'none';
+  }
 
   const grid = el('vsWeekGrid');
   if(!grid) return;
