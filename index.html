@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260312-v34';
+  var BUILD = '20260312-v35';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5584,7 +5584,33 @@ function esci() {
 }
 
 // ===== INIT =====
+
+// Migrazione: converte source:'vs_manual' in base al campo pay
+function migrateVSManualSources() {
+  const payToSource = { satispay:'satispay', revolut:'revolut', bancomat:'sella', bonifico:'sella' };
+  let fixed = 0;
+  for(let i=0; i<localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if(!k || !k.includes('_vs_expenses_')) continue;
+    try {
+      let arr = JSON.parse(localStorage.getItem(k) || '[]');
+      let changed = false;
+      arr = arr.map(e => {
+        if(e.source === 'vs_manual' && payToSource[e.pay]) {
+          fixed++;
+          changed = true;
+          return {...e, source: payToSource[e.pay]};
+        }
+        return e;
+      });
+      if(changed) localStorage.setItem(k, JSON.stringify(arr));
+    } catch(err) {}
+  }
+  if(fixed > 0) { console.log('✅ Migrati ' + fixed + ' source vs_manual'); fbPushToCloud(); }
+}
+
 function initApp() {
+  migrateVSManualSources();
   loadTheme();
   renderVersion();
   const now = new Date();
@@ -13852,7 +13878,10 @@ function addVSExpense() {
   const d   = new Date(date + 'T12:00:00');
   const key = 'vs_expenses_' + d.getFullYear() + '_' + (d.getMonth()+1);
   const arr = load(key, []) || [];
-  arr.push({ id: Date.now(), cat, amount, desc, pay, date, source:'vs_manual' });
+  // Mappa pay → source per i badge settimanali
+  const payToSource = { satispay:'satispay', revolut:'revolut', bancomat:'sella', bonifico:'sella' };
+  const source = payToSource[pay] || 'vs_manual';
+  arr.push({ id: Date.now(), cat, amount, desc, pay, date, source });
   save(key, arr);
   bumpVersion();
   fbPushToCloud();
