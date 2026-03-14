@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260314-v59';
+  var BUILD = '20260314-v60';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -7418,7 +7418,36 @@ function renderIncome() {
   const tbody = document.getElementById('incomeTable');
   tbody.innerHTML = '';
   let total = 0;
-  if(!inc.length) {
+
+  // ── Stipendio mese precedente (se non c'è uno Ferrino nel mese corrente) ──
+  const hasFerrino = inc.some(i => i.type === 'ferrino');
+  let prevStipRows = [];
+  if(!hasFerrino) {
+    const yr = parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear());
+    const mo = parseInt(document.getElementById('globalMonth')?.value || new Date().getMonth()+1);
+    let prevYr = yr, prevMo = mo - 1;
+    if(prevMo < 1) { prevMo = 12; prevYr--; }
+    const prevKey = prevYr + '_' + prevMo;
+    const prevInc = load('income_' + prevKey, []) || [];
+    prevStipRows = prevInc.filter(i => i.type === 'ferrino');
+  }
+
+  // Mostra prima le righe dello stipendio mese precedente (in evidenza)
+  if(prevStipRows.length) {
+    prevStipRows.forEach(i => {
+      total += i.amount;
+      const dateStr = i.dateDisp || (i.date && i.date.includes('-') ? new Date(i.date+'T12:00:00').toLocaleDateString('it-IT') : i.date);
+      tbody.innerHTML += `<tr style="opacity:0.82;background:rgba(201,168,76,0.06);">
+        <td><span class="badge badge-cat" style="border-color:var(--gold-light);color:var(--gold);">🏢 Ferrino — mese prec.</span></td>
+        <td style="color:var(--gold);font-size:11px;">${i.causale || 'Stipendio mese precedente'} <span style="background:rgba(201,168,76,0.15);border-radius:4px;padding:1px 6px;font-size:10px;color:var(--gold);margin-left:4px;">📅 riportato</span></td>
+        <td class="positive">€${i.amount.toFixed(2).replace('.',',')}</td>
+        <td style="color:var(--gold);">${dateStr}</td>
+        <td><span style="font-size:10px;color:var(--text-muted);">—</span></td>
+      </tr>`;
+    });
+  }
+
+  if(!inc.length && !prevStipRows.length) {
     tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">💰</div>Nessuna entrata questo mese</div></td></tr>`;
   } else {
     inc.forEach(i => {
