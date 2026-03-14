@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260312-v35';
+  var BUILD = '20260312-v36';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -2300,7 +2300,16 @@ body.light .rata-card { background: #fdfcf7; }
           <strong>5.</strong> Torna in <code>Impostazioni progetto</code> e copia la configurazione qui sotto:
         </div>
 
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+        <!-- Incolla config Firebase -->
+        <div style="margin-top:16px;margin-bottom:14px;">
+          <label style="font-size:11px;color:var(--gold);font-weight:700;display:block;margin-bottom:6px;">⚡ INCOLLA CONFIGURAZIONE (metodo rapido)</label>
+          <textarea id="fb-paste" rows="5" placeholder="Incolla qui l'intero blocco firebaseConfig = { ... } copiato da Firebase Console" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1.5px solid var(--gold);border-radius:10px;padding:10px;font-size:11px;color:var(--text);font-family:'DM Mono',monospace;resize:vertical;outline:none;"></textarea>
+          <button onclick="parseFBPaste()" style="margin-top:6px;width:100%;padding:8px;background:rgba(201,168,76,0.15);border:1.5px solid var(--gold);border-radius:8px;color:var(--gold);font-size:12px;font-weight:700;cursor:pointer;">🔍 Leggi configurazione automaticamente</button>
+          <div id="fb-paste-msg" style="font-size:11px;margin-top:4px;text-align:center;"></div>
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:10px;">— oppure inserisci i campi manualmente —</div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:0px;">
           <div class="fld"><label>API Key</label><input class="fb-input" id="fb-apiKey" placeholder="AIzaSy..."></div>
           <div class="fld"><label>Auth Domain</label><input class="fb-input" id="fb-authDomain" placeholder="progetto.firebaseapp.com"></div>
           <div class="fld"><label>Database URL</label><input class="fb-input" id="fb-databaseURL" placeholder="https://progetto-default-rtdb.firebaseio.com"></div>
@@ -4983,6 +4992,48 @@ function openFirebaseModal() {
 
 function closeFirebaseModal() {
   document.getElementById('firebaseModal').style.display = 'none';
+}
+
+function parseFBPaste() {
+  const raw = (document.getElementById('fb-paste').value || '').trim();
+  const msg = document.getElementById('fb-paste-msg');
+  if(!raw) { msg.style.color='#e05c5c'; msg.textContent='⚠️ Incolla il blocco firebaseConfig prima.'; return; }
+
+  // Estrae coppie key: "value" dal testo
+  const extract = (key) => {
+    const idx = raw.indexOf(key + ':');
+    if(idx < 0) return '';
+    const after = raw.slice(idx + key.length + 1).trim();
+    const q = after[0];
+    if(q !== '"' && q !== "'") return '';
+    const end = after.indexOf(q, 1);
+    return end > 0 ? after.slice(1, end) : '';
+  };
+
+  const apiKey           = extract('apiKey');
+  const authDomain       = extract('authDomain');
+  const databaseURL      = extract('databaseURL');
+  const projectId        = extract('projectId');
+  const storageBucket    = extract('storageBucket');
+  const messagingSenderId= extract('messagingSenderId');
+  const appId            = extract('appId');
+
+  if(!apiKey || !databaseURL) {
+    msg.style.color='#e05c5c';
+    msg.textContent='❌ Config non riconosciuta. Copia il blocco completo firebaseConfig = { ... }';
+    return;
+  }
+
+  document.getElementById('fb-apiKey').value            = apiKey;
+  document.getElementById('fb-authDomain').value        = authDomain;
+  document.getElementById('fb-databaseURL').value       = databaseURL;
+  document.getElementById('fb-projectId').value         = projectId;
+  document.getElementById('fb-storageBucket').value     = storageBucket;
+  document.getElementById('fb-messagingSenderId').value = messagingSenderId;
+  document.getElementById('fb-appId').value             = appId;
+
+  msg.style.color='#4ae87a';
+  msg.textContent='✅ Campi compilati! Clicca "Connetti e Sincronizza" per salvare.';
 }
 
 function saveFirebaseConfig() {
