@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260314-v54';
+  var BUILD = '20260314-v55';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -4920,9 +4920,26 @@ body.light .ai-quick-btn { color:#4a4a7a; }
               <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Analizza le tue spese, risponde a qualsiasi domanda</div>
             </div>
           </div>
-          <button onclick="aiShowApiConfig()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:8px 14px;color:var(--text-muted);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;">
-            ⚙️ API Key
-          </button>
+          <div style="display:flex;gap:8px;">
+            <button onclick="aiShowCityConfig()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:8px 14px;color:var(--text-muted);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+              📍 Città
+            </button>
+            <button onclick="aiShowApiConfig()" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:8px 14px;color:var(--text-muted);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;">
+              ⚙️ API Key
+            </button>
+          </div>
+        </div>
+        <!-- Città config -->
+        <div id="ai-city-banner" class="hidden" style="margin-top:14px;padding:14px;background:rgba(60,120,220,0.12);border:1px solid rgba(100,160,255,0.25);border-radius:12px;">
+          <div style="font-size:13px;font-weight:600;color:#7eb8ff;margin-bottom:8px;">📍 Imposta la tua città</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">La geolocalizzazione automatica può essere imprecisa con VPN. Imposta la città manualmente.</div>
+          <div style="display:flex;gap:8px;">
+            <input type="text" id="ai-city-input" placeholder="Es. Torino" value=""
+              style="flex:1;font-size:13px;padding:8px 12px;border-radius:8px;"
+              onkeydown="if(event.key==='Enter') aiSaveCity()">
+            <button onclick="aiSaveCity()" style="padding:8px 16px;background:linear-gradient(135deg,#3b82f6,#6366f1);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">Salva</button>
+          </div>
+          <div id="ai-city-status" style="font-size:11px;margin-top:6px;color:var(--text-muted);"></div>
         </div>
         <!-- API Key config (nascosta di default) -->
         <div id="ai-apikey-banner" class="hidden" style="margin-top:14px;padding:14px;background:rgba(120,60,220,0.12);border:1px solid rgba(160,100,255,0.25);border-radius:12px;">
@@ -6289,7 +6306,27 @@ let aiWeatherData = null;   // dati meteo correnti
 
 // Geolocalizzazione + meteo da Open-Meteo (modelli ECMWF come Aeronautica Militare)
 async function aiLoadLocationAndWeather() {
-  if(!navigator.geolocation) return;
+  // Se l'utente ha impostato una città manuale, usala
+  const manualCity = localStorage.getItem('tc_ai_city') || '';
+  if(manualCity) {
+    // Geocodifica la città con Nominatim
+    try {
+      const r = await fetch('https://nominatim.openstreetmap.org/search?q='+encodeURIComponent(manualCity)+'&format=json&limit=1&accept-language=it',
+        { headers: { 'User-Agent': 'TradoCroods/1.0' } });
+      const d = await r.json();
+      if(d&&d[0]) {
+        aiUserLocation = { lat: parseFloat(d[0].lat).toFixed(4), lon: parseFloat(d[0].lon).toFixed(4), city: manualCity };
+        await aiLoadWeather(aiUserLocation.lat, aiUserLocation.lon);
+        return;
+      }
+    } catch(e) {}
+  }
+  if(!navigator.geolocation) {
+    // Default: Torino
+    aiUserLocation = { lat: '45.0703', lon: '7.6869', city: 'Torino' };
+    await aiLoadWeather('45.0703', '7.6869');
+    return;
+  }
   navigator.geolocation.getCurrentPosition(async (pos) => {
     const lat = pos.coords.latitude.toFixed(4);
     const lon = pos.coords.longitude.toFixed(4);
@@ -6308,6 +6345,15 @@ async function aiLoadLocationAndWeather() {
       aiUserLocation = { lat, lon, city: 'Posizione GPS' };
     }
 
+    await aiLoadWeather(lat, lon);
+  }, () => {
+    // Fallback: usa Torino se GPS negato
+    aiUserLocation = { lat: '45.0703', lon: '7.6869', city: 'Torino' };
+    aiLoadWeather('45.0703', '7.6869');
+  }, { timeout: 8000 });
+}
+
+async function aiLoadWeather(lat, lon) {
     // Meteo da Open-Meteo (stesso modello ECMWF usato dall'Aeronautica Militare)
     try {
       const wRes = await fetch(
@@ -6342,7 +6388,28 @@ async function aiLoadLocationAndWeather() {
         aiUpdateWelcome();
       }
     } catch(e) { console.warn('Meteo error:', e); }
-  }, () => {}, { timeout: 8000 });
+}
+
+function aiShowCityConfig() {
+  const banner = document.getElementById('ai-city-banner');
+  if(!banner) return;
+  banner.classList.toggle('hidden');
+  const inp = document.getElementById('ai-city-input');
+  const saved = localStorage.getItem('tc_ai_city') || '';
+  if(inp) inp.value = saved || 'Torino';
+}
+
+function aiSaveCity() {
+  const inp = document.getElementById('ai-city-input');
+  const status = document.getElementById('ai-city-status');
+  const city = (inp?.value || '').trim();
+  if(!city) return;
+  localStorage.setItem('tc_ai_city', city);
+  if(status) { status.style.color='#4ae87a'; status.textContent='✅ Città salvata! Ricarico meteo...'; }
+  document.getElementById('ai-city-banner')?.classList.add('hidden');
+  aiUserLocation = null; aiWeatherData = null;
+  aiLoadLocationAndWeather();
+  showToast('📍 Città aggiornata: ' + city);
 }
 
 function aiShowApiConfig() {
