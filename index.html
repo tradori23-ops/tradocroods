@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260312-v36';
+  var BUILD = '20260314-v39';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -2075,6 +2075,261 @@ body.light .rata-card { background: #fdfcf7; }
     /* Add bottom margin to content so footer doesn't overlap */
     .main-content, #app { padding-bottom: 70px !important; }
   }
+
+/* ═══════════════════════════════════════════════════════════════
+   GLASSMORPHISM — iOS / macOS / iPadOS Design Language
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Font sistema Apple ── */
+:root {
+  --font: -apple-system, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif;
+  --glass-bg:      rgba(28, 28, 46, 0.55);
+  --glass-bg-2:    rgba(20, 20, 38, 0.65);
+  --glass-border:  rgba(255, 255, 255, 0.10);
+  --glass-border-strong: rgba(255,255,255,0.18);
+  --glass-blur:    blur(24px) saturate(180%);
+  --glass-blur-sm: blur(14px) saturate(160%);
+  --glass-shadow:  0 8px 32px rgba(0,0,0,0.45), 0 1.5px 0 rgba(255,255,255,0.06) inset;
+  --glass-shadow-lg: 0 20px 60px rgba(0,0,0,0.55), 0 1.5px 0 rgba(255,255,255,0.08) inset;
+  --radius: 18px;
+  --radius-sm: 12px;
+  --radius-lg: 24px;
+}
+
+/* ── Sfondo mesh colorato fisso (come wallpaper iOS) ── */
+body {
+  background: #080814 !important;
+  font-family: var(--font) !important;
+  -webkit-font-smoothing: antialiased;
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 15%,  rgba(99,50,200,0.45) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 10%,  rgba(30,90,200,0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 85% 85%,  rgba(180,40,100,0.30) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 10% 90%,  rgba(20,130,100,0.25) 0%, transparent 55%),
+    radial-gradient(ellipse 50% 50% at 50% 50%,  rgba(60,40,140,0.20) 0%, transparent 70%),
+    #080814;
+  pointer-events: none;
+}
+body > * { position: relative; z-index: 1; }
+
+/* ── Card principale ── */
+.card {
+  background: var(--glass-bg) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--glass-shadow) !important;
+}
+
+/* ── Sidebar ── */
+.sidebar {
+  background: rgba(14, 14, 30, 0.72) !important;
+  backdrop-filter: blur(32px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
+  border-right: 1px solid var(--glass-border) !important;
+}
+
+/* ── Topbar / navbar ── */
+.topbar, .top-bar, nav, .navbar {
+  background: rgba(14, 14, 30, 0.65) !important;
+  backdrop-filter: var(--glass-blur) !important;
+  -webkit-backdrop-filter: var(--glass-blur) !important;
+  border-bottom: 1px solid var(--glass-border) !important;
+}
+
+/* ── Summary cards ── */
+.summary-card {
+  background: rgba(255,255,255,0.05) !important;
+  backdrop-filter: var(--glass-blur-sm) !important;
+  -webkit-backdrop-filter: var(--glass-blur-sm) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--glass-shadow) !important;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+}
+.summary-card:hover {
+  background: rgba(255,255,255,0.09) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.1) inset !important;
+}
+
+/* ── Modali ── */
+.modal-overlay, [id$="Modal"] > div, .fb-modal,
+.modal-box, .modal-content {
+  background: rgba(16, 16, 36, 0.82) !important;
+  backdrop-filter: blur(40px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
+  border: 1px solid var(--glass-border-strong) !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: var(--glass-shadow-lg) !important;
+}
+
+/* ── Day cards settimana ── */
+.day-card {
+  background: rgba(255,255,255,0.05) !important;
+  backdrop-filter: var(--glass-blur-sm) !important;
+  -webkit-backdrop-filter: var(--glass-blur-sm) !important;
+  border: 1px solid var(--glass-border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35) !important;
+}
+.day-card:hover, .day-card.selected {
+  background: rgba(255,255,255,0.09) !important;
+  border-color: rgba(212,168,67,0.45) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(212,168,67,0.2) !important;
+}
+
+/* ── Bottoni primari ── */
+.btn-gold, .btn-primary, [class*="btn-gold"] {
+  background: linear-gradient(135deg, rgba(212,168,67,0.9), rgba(240,201,106,0.85)) !important;
+  backdrop-filter: var(--glass-blur-sm) !important;
+  -webkit-backdrop-filter: var(--glass-blur-sm) !important;
+  border: 1px solid rgba(255,255,255,0.25) !important;
+  box-shadow: 0 4px 20px rgba(212,168,67,0.3), 0 1px 0 rgba(255,255,255,0.3) inset !important;
+  border-radius: var(--radius-sm) !important;
+}
+.btn-gold:hover {
+  box-shadow: 0 8px 28px rgba(212,168,67,0.45), 0 1px 0 rgba(255,255,255,0.3) inset !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── Input fields ── */
+input, select, textarea {
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: var(--radius-sm) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  color: var(--text) !important;
+  transition: border-color 0.2s, background 0.2s, box-shadow 0.2s !important;
+}
+input:focus, select:focus, textarea:focus {
+  background: rgba(255,255,255,0.11) !important;
+  border-color: rgba(212,168,67,0.5) !important;
+  box-shadow: 0 0 0 3px rgba(212,168,67,0.12) !important;
+  outline: none !important;
+}
+
+/* ── Login card ── */
+.login-card {
+  background: rgba(12, 12, 28, 0.75) !important;
+  backdrop-filter: blur(40px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 28px !important;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.65), 0 1.5px 0 rgba(255,255,255,0.08) inset !important;
+}
+
+/* ── Profile cards Netflix-style ── */
+.profile-card {
+  background: rgba(255,255,255,0.06) !important;
+  backdrop-filter: var(--glass-blur-sm) !important;
+  -webkit-backdrop-filter: var(--glass-blur-sm) !important;
+  border: 1px solid rgba(255,255,255,0.10) !important;
+  border-radius: var(--radius) !important;
+  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease !important;
+}
+.profile-card:hover {
+  background: rgba(255,255,255,0.11) !important;
+  transform: translateY(-4px) scale(1.03) !important;
+  box-shadow: 0 16px 40px rgba(0,0,0,0.5) !important;
+}
+
+/* ── Sidebar nav items ── */
+.nav-item, .sidebar-nav a {
+  border-radius: var(--radius-sm) !important;
+  transition: background 0.15s ease !important;
+}
+.nav-item:hover, .nav-item.active {
+  background: rgba(255,255,255,0.08) !important;
+  backdrop-filter: blur(8px) !important;
+}
+.nav-item.active {
+  background: rgba(212,168,67,0.15) !important;
+  border-left: 3px solid var(--gold) !important;
+}
+
+/* ── Cloud badge ── */
+#cloudBadge {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ── Scrollbar glassmorphism ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.12);
+  border-radius: 10px;
+  backdrop-filter: blur(4px);
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+
+/* ── Main content area ── */
+.main-content {
+  background: transparent !important;
+}
+
+/* ── Sezioni / sections ── */
+section, .section {
+  background: transparent !important;
+}
+
+/* ── Badges e pill ── */
+.badge, [class*="badge"] {
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+}
+
+/* ── Topbar buttons ── */
+.topbar-btn, .action-btn, [onclick] > button {
+  backdrop-filter: blur(8px) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ── Light mode glass ── */
+body.light::before {
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 15%,  rgba(160,120,255,0.25) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 90% 10%,  rgba(100,160,255,0.20) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 85% 85%,  rgba(255,120,180,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 10% 90%,  rgba(80,200,160,0.18) 0%, transparent 55%),
+    #f0eef8 !important;
+}
+body.light .card {
+  background: rgba(255,255,255,0.65) !important;
+  border-color: rgba(0,0,0,0.06) !important;
+}
+body.light .sidebar {
+  background: rgba(245,243,255,0.80) !important;
+  border-right-color: rgba(0,0,0,0.06) !important;
+}
+body.light .summary-card {
+  background: rgba(255,255,255,0.70) !important;
+  border-color: rgba(0,0,0,0.06) !important;
+}
+body.light .day-card {
+  background: rgba(255,255,255,0.70) !important;
+  border-color: rgba(0,0,0,0.08) !important;
+}
+body.light input, body.light select, body.light textarea {
+  background: rgba(255,255,255,0.80) !important;
+  border-color: rgba(0,0,0,0.10) !important;
+  color: #1a1a2e !important;
+}
+body.light .login-card {
+  background: rgba(255,255,255,0.78) !important;
+  border-color: rgba(0,0,0,0.06) !important;
+}
+
 </style>
 </head>
 <body>
@@ -2182,7 +2437,17 @@ body.light .rata-card { background: #fdfcf7; }
   <div class="footer-copy" id="loginFooter">
     <div class="copy-line">© 2026/2027 TradoCroods by Family</div>
     <div class="copy-line version" id="loginVersion">v.2.40</div>
-    <button onclick="aggiornaApp()" style="background:none;border:none;color:rgba(201,168,76,0.45);font-size:11px;cursor:pointer;font-family:inherit;margin-top:2px;padding:2px 8px;letter-spacing:0.3px;" title="Svuota cache e ricarica">🔄 Aggiorna app</button>
+  </div>
+
+  <!-- UPDATE TOAST BANNER (appare solo se disponibile aggiornamento) -->
+  <div id="tc-update-banner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(135deg,#1a1a3e,#2a1a4e);border:1.5px solid var(--gold);border-radius:16px;padding:12px 20px;display:none;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);min-width:260px;max-width:90vw;">
+    <div style="font-size:22px;">🔄</div>
+    <div style="flex:1;">
+      <div style="font-size:13px;font-weight:700;color:var(--gold);">Aggiornamento disponibile</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Nuova versione di TradoCroods pronta</div>
+    </div>
+    <button onclick="aggiornaApp()" style="background:linear-gradient(135deg,var(--gold),#e8a84c);border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;color:#1a1a3e;cursor:pointer;font-family:inherit;white-space:nowrap;">Installa ↻</button>
+    <button onclick="this.closest('#tc-update-banner').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:0 4px;line-height:1;">✕</button>
   </div>
 </div>
 
@@ -4764,9 +5029,22 @@ function initFirebase() {
     storage = firebase.storage();
     fbReady = false; // diventa true solo quando la connessione è confermata
     updateCloudBadge('syncing');
+    // Mantieni la connessione sempre attiva
+    try { db.ref('.info/connected').keepSynced(true); } catch(e) {}
     let _fbFirstConnect = true;
+    let _fbLastConnected = false;
     db.ref('.info/connected').on('value', snap => {
       const connected = snap.val() === true;
+      // Ignora disconnessioni brevi (< 3s) — Firebase le fa normalmente
+      if(!connected && _fbLastConnected) {
+        setTimeout(() => {
+          db.ref('.info/connected').once('value').then(s => {
+            if(s.val() !== true) { fbReady = false; updateCloudBadge(false); }
+          }).catch(() => {});
+        }, 3000);
+        return;
+      }
+      _fbLastConnected = connected;
       fbReady = connected;
       updateCloudBadge(connected);
       if(connected) {
@@ -4834,7 +5112,10 @@ function updateCloudBadge(state) {
     badge.style.background='rgba(224,92,92,0.15)';
     badge.style.borderColor='rgba(224,92,92,0.4)';
     badge.style.color='#e05c5c';
-    badge.innerHTML='☁️ Offline <span onclick="fbRetryConnect()" style="cursor:pointer;font-size:10px;background:rgba(255,255,255,0.1);border-radius:4px;padding:1px 6px;margin-left:4px;" title="Riprova connessione">🔄</span>';
+    badge.innerHTML='☁️ Offline <span onclick="fbRetryConnect()" style="cursor:pointer;font-size:10px;background:rgba(255,255,255,0.1);border-radius:4px;padding:1px 6px;margin-left:4px;" title="Riprova connessione">🔄 Riconnetti</span>';
+    // Auto-retry dopo 5s se va offline
+    clearTimeout(window._fbAutoRetry);
+    window._fbAutoRetry = setTimeout(() => { if(!fbReady) fbRetryConnect(); }, 5000);
   }
 }
 
@@ -5596,16 +5877,22 @@ function cambiaUtente() {
 }
 
 function aggiornaApp() {
-  showToast('🔄 Pulizia cache in corso…');
-  // Rimuove il build salvato così lo script anti-cache forza il refresh
+  showToast('🔄 Aggiornamento in corso…');
   try { localStorage.removeItem('tc_build'); } catch(e) {}
 
   const doReload = () => {
-    // Aggiunge timestamp all'URL per bypassare cache HTTP
     const url = window.location.href.split('?')[0] + '?v=' + Date.now();
     window.location.replace(url);
   };
 
+  // Se c'è un SW in attesa, attivalo
+  if(window._pendingSW) {
+    navigator.serviceWorker.addEventListener('controllerchange', doReload);
+    window._pendingSW.postMessage({ type: 'SKIP_WAITING' });
+    return;
+  }
+
+  // Altrimenti pulizia completa
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(regs => {
       const p1 = Promise.all(regs.map(r => r.unregister()));
@@ -15044,8 +15331,11 @@ async function registerSW() {
       const nw = reg.installing;
       nw.addEventListener('statechange', () => {
         if(nw.state === 'installed' && navigator.serviceWorker.controller) {
-          nw.postMessage({ type: 'SKIP_WAITING' });
-          navigator.serviceWorker.addEventListener('controllerchange', () => window.location.reload());
+          // Mostra banner aggiornamento invece di ricaricare automaticamente
+          const banner = document.getElementById('tc-update-banner');
+          if(banner) banner.style.display = 'flex';
+          // Quando l'utente clicca "Installa", il SW viene attivato e la pagina si ricarica
+          window._pendingSW = nw;
         }
       });
     });
