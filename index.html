@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260314-v51';
+  var BUILD = '20260314-v53';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -6303,7 +6303,10 @@ function aiSaveApiKey() {
     if(status) { status.style.color='#e05c5c'; status.textContent='❌ La chiave deve iniziare con sk-ant-'; }
     return;
   }
+  // Salva in più posti per sopravvivere agli aggiornamenti
   localStorage.setItem('tc_ai_api_key', key);
+  localStorage.setItem('tc_ai_api_key_global', key); // backup senza prefisso utente
+  try { sessionStorage.setItem('tc_ai_api_key', key); } catch(e) {}
   if(status) { status.style.color='#4ae87a'; status.textContent='✅ Salvata! Ora puoi usare l\'AI.'; }
   if(inp) inp.value = '';
   setTimeout(() => document.getElementById('ai-apikey-banner')?.classList.add('hidden'), 1500);
@@ -6588,7 +6591,7 @@ async function aiAsk(question) {
       '- Massimo 400 parole per risposta, a meno che non venga chiesto esplicitamente di essere più dettagliato\n'+
       '- Se l\'utente saluta o fa domande non finanziarie, comportati come un assistente generale utile';
 
-    const aiApiKey = localStorage.getItem('tc_ai_api_key') || '';
+    const aiApiKey = localStorage.getItem('tc_ai_api_key') || localStorage.getItem('tc_ai_api_key_global') || sessionStorage.getItem('tc_ai_api_key') || '';
     if(!aiApiKey) {
       aiSetLoading(false);
       aiAddMessage('assistant', '⚙️ Per usare l\'AI devi inserire la tua API key di Anthropic. Clicca su **⚙️ Configura API Key** qui sopra.');
@@ -6612,6 +6615,13 @@ async function aiAsk(question) {
     });
 
     const data = await response.json();
+    console.log('AI response:', response.status, JSON.stringify(data).slice(0,400));
+    if(!response.ok) {
+      const errMsg = data?.error?.message || data?.error?.type || ('HTTP ' + response.status);
+      aiSetLoading(false);
+      aiAddMessage('assistant', '❌ Errore API: ' + errMsg + '\n\n💡 Controlla che la API key sia corretta e che tu abbia crediti su console.anthropic.com');
+      return;
+    }
     const reply = data?.content?.[0]?.text || 'Mi dispiace, non ho ricevuto una risposta. Riprova.';
     aiSetLoading(false);
     aiAddMessage('assistant', reply);
