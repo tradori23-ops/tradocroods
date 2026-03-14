@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260314-v40';
+  var BUILD = '20260314-v44';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -2400,6 +2400,195 @@ body.light select option {
   color: #1a1830 !important;
 }
 
+
+/* ═══ AI ASSISTENTE ═══ */
+.ai-msg { display:flex; gap:10px; align-items:flex-start; }
+.ai-msg-bot { flex-direction:row; }
+.ai-msg-user { flex-direction:row-reverse; }
+
+.ai-avatar {
+  width:32px; height:32px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:16px; flex-shrink:0;
+  background:linear-gradient(135deg,rgba(124,58,237,0.3),rgba(219,39,119,0.3));
+  border:1px solid rgba(160,100,255,0.3);
+}
+
+.ai-bubble {
+  max-width:80%; padding:12px 16px;
+  border-radius:18px; font-size:13px; line-height:1.6;
+}
+.ai-msg-bot .ai-bubble {
+  background:rgba(255,255,255,0.07);
+  border:1px solid rgba(255,255,255,0.10);
+  border-top-color:rgba(255,255,255,0.18);
+  border-radius:4px 18px 18px 18px;
+  color:var(--text);
+}
+.ai-msg-user .ai-bubble {
+  background:linear-gradient(135deg,rgba(124,58,237,0.35),rgba(219,39,119,0.25));
+  border:1px solid rgba(160,100,255,0.25);
+  border-radius:18px 4px 18px 18px;
+  color:var(--text);
+  text-align:right;
+}
+.ai-msg-typing .ai-bubble {
+  display:flex; align-items:center; gap:4px; padding:14px 18px;
+}
+.ai-dot {
+  width:7px; height:7px; border-radius:50%;
+  background:var(--text-muted);
+  animation:aiDot 1.2s ease-in-out infinite;
+}
+.ai-dot:nth-child(2) { animation-delay:.2s; }
+.ai-dot:nth-child(3) { animation-delay:.4s; }
+@keyframes aiDot {
+  0%,80%,100% { transform:scale(0.7); opacity:0.4; }
+  40%          { transform:scale(1.1); opacity:1; }
+}
+
+.ai-quick-btn {
+  background:rgba(255,255,255,0.06);
+  border:1px solid rgba(255,255,255,0.12);
+  border-radius:20px; padding:6px 14px;
+  font-size:11px; color:var(--text-muted);
+  cursor:pointer; font-family:var(--font);
+  transition:background 0.15s, color 0.15s, border-color 0.15s;
+  white-space:nowrap;
+}
+.ai-quick-btn:hover {
+  background:rgba(160,100,255,0.15);
+  border-color:rgba(160,100,255,0.4);
+  color:var(--text);
+}
+
+body.light .ai-msg-bot .ai-bubble {
+  background:rgba(255,255,255,0.55);
+  border-color:rgba(255,255,255,0.75);
+  color:#1a1830;
+}
+body.light .ai-msg-user .ai-bubble { color:#1a1830; }
+body.light .ai-quick-btn { color:#4a4a7a; }
+
+
+/* ── AI Chat ── */
+.ai-msg {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  animation: aiMsgIn 0.3s cubic-bezier(.2,.8,.2,1) both;
+}
+@keyframes aiMsgIn {
+  from { opacity:0; transform: translateY(8px); }
+  to   { opacity:1; transform: translateY(0); }
+}
+.ai-msg-user { flex-direction: row-reverse; }
+.ai-avatar {
+  width: 32px; height: 32px; border-radius: 10px;
+  background: linear-gradient(135deg,#7c3aed,#db2777);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; flex-shrink: 0;
+}
+.ai-avatar-user {
+  background: linear-gradient(135deg,var(--gold),#e8a84c);
+}
+.ai-bubble {
+  max-width: 75%;
+  background: rgba(139,92,246,0.12);
+  border: 1px solid rgba(139,92,246,0.22);
+  border-radius: 16px 16px 16px 4px;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--text);
+}
+.ai-bubble-user {
+  background: rgba(212,168,67,0.12);
+  border-color: rgba(212,168,67,0.22);
+  border-radius: 16px 16px 4px 16px;
+  text-align: right;
+}
+.ai-quick-btn {
+  background: rgba(139,92,246,0.10);
+  border: 1px solid rgba(139,92,246,0.25);
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 12px;
+  color: #c4b5fd;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, transform 0.15s;
+  white-space: nowrap;
+}
+.ai-quick-btn:hover {
+  background: rgba(139,92,246,0.22);
+  transform: translateY(-1px);
+}
+.ai-dots span {
+  animation: aiDot 1.2s infinite;
+  font-size: 18px;
+  line-height: 1;
+}
+.ai-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ai-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes aiDot {
+  0%,80%,100% { opacity:0.2; transform:translateY(0); }
+  40%         { opacity:1;   transform:translateY(-4px); }
+}
+
+/* ── AI FAB Button ── */
+#tc-ai-fab {
+  position: fixed;
+  bottom: 28px;
+  right: 24px;
+  z-index: 9000;
+  width: 58px; height: 58px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(120,60,220,0.85), rgba(200,50,120,0.80));
+  backdrop-filter: blur(20px) saturate(200%);
+  -webkit-backdrop-filter: blur(20px) saturate(200%);
+  border: 1px solid rgba(255,255,255,0.20);
+  border-top-color: rgba(255,255,255,0.35);
+  box-shadow: 0 2px 0 rgba(255,255,255,0.15) inset,
+              0 8px 32px rgba(120,40,200,0.45),
+              0 2px 8px rgba(0,0,0,0.30);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 24px;
+  transition: transform 0.25s cubic-bezier(.2,.8,.2,1),
+              box-shadow 0.25s ease;
+  animation: fabIn 0.6s cubic-bezier(.2,.8,.2,1) both;
+}
+#tc-ai-fab:hover {
+  transform: scale(1.10) translateY(-2px);
+  box-shadow: 0 2px 0 rgba(255,255,255,0.18) inset,
+              0 16px 48px rgba(120,40,200,0.60),
+              0 4px 16px rgba(0,0,0,0.35);
+}
+#tc-ai-fab:active { transform: scale(0.95); }
+@keyframes fabIn {
+  from { opacity:0; transform: scale(0.6) translateY(20px); }
+  to   { opacity:1; transform: scale(1)   translateY(0);    }
+}
+#tc-ai-fab-pulse {
+  position: absolute; top: -3px; right: -3px;
+  width: 14px; height: 14px;
+  background: #22d3ee;
+  border-radius: 50%;
+  border: 2px solid rgba(0,0,0,0.4);
+  animation: fabPulse 2s ease-in-out infinite;
+}
+@keyframes fabPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.3); opacity: 0.7; }
+}
+
+/* ── Update Banner migliorato ── */
+#tc-update-banner {
+  backdrop-filter: blur(32px) saturate(200%) brightness(1.1) !important;
+  -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.1) !important;
+}
+
 </style>
 </head>
 <body>
@@ -2510,14 +2699,15 @@ body.light select option {
   </div>
 
   <!-- UPDATE TOAST BANNER (appare solo se disponibile aggiornamento) -->
-  <div id="tc-update-banner" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(135deg,#1a1a3e,#2a1a4e);border:1.5px solid var(--gold);border-radius:16px;padding:12px 20px;display:none;align-items:center;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);min-width:260px;max-width:90vw;">
-    <div style="font-size:22px;">🔄</div>
+  <div id="tc-update-banner" style="display:none;position:fixed;top:24px;right:24px;left:auto;transform:none;z-index:99999;backdrop-filter:blur(32px) saturate(220%) brightness(1.08);-webkit-backdrop-filter:blur(32px) saturate(220%) brightness(1.08);background:rgba(16,16,36,0.82);border:1px solid rgba(255,255,255,0.14);border-top:1px solid rgba(255,255,255,0.26);border-radius:20px;padding:16px 18px;align-items:center;gap:14px;box-shadow:0 2px 0 rgba(255,255,255,0.08) inset,0 24px 64px rgba(0,0,0,0.60),0 0 0 1px rgba(212,168,67,0.15);min-width:280px;max-width:360px;animation:bannerSlideIn 0.5s cubic-bezier(.2,.8,.2,1) both;">
+  <style>@keyframes bannerSlideIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}</style>
+    <div style="width:40px;height:40px;border-radius:12px;background:linear-gradient(135deg,var(--gold),#e8a84c);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;box-shadow:0 4px 16px rgba(212,168,67,0.35);">🔄</div>
     <div style="flex:1;">
-      <div style="font-size:13px;font-weight:700;color:var(--gold);">Aggiornamento disponibile</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Nuova versione di TradoCroods pronta</div>
+      <div style="font-size:13px;font-weight:700;color:var(--gold);letter-spacing:-0.2px;">Aggiornamento disponibile</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Nuova versione di TradoCroods pronta <span class="update-version" style="color:rgba(212,168,67,0.7);"></span></div>
     </div>
-    <button onclick="aggiornaApp()" style="background:linear-gradient(135deg,var(--gold),#e8a84c);border:none;border-radius:10px;padding:8px 16px;font-size:12px;font-weight:700;color:#1a1a3e;cursor:pointer;font-family:inherit;white-space:nowrap;">Installa ↻</button>
-    <button onclick="this.closest('#tc-update-banner').style.display='none'" style="background:none;border:none;color:var(--text-muted);font-size:16px;cursor:pointer;padding:0 4px;line-height:1;">✕</button>
+    <button onclick="aggiornaApp()" style="background:linear-gradient(135deg,var(--gold),#e8a84c);border:none;border-radius:11px;padding:9px 18px;font-size:12px;font-weight:700;color:#1a1000;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 4px 14px rgba(212,168,67,0.30);">Installa ↻</button>
+    <button onclick="document.getElementById('tc-update-banner').style.display='none'" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.10);border-radius:8px;color:var(--text-muted);font-size:14px;cursor:pointer;padding:4px 8px;line-height:1;">✕</button>
   </div>
 </div>
 
@@ -2591,6 +2781,9 @@ body.light select option {
       </div>
             <div class="nav-item" onclick="showSection('emergenza', this); closeSidebar()" style="color:var(--red) !important;">
         <span class="icon">🚨</span> Emergenza
+      </div>
+      <div class="nav-item" onclick="showSection('ai', this); closeSidebar()" style="background:linear-gradient(90deg,rgba(99,50,200,0.18),transparent);border-left:3px solid rgba(160,100,255,0.7);">
+        <span class="icon">✨</span> <span style="background:linear-gradient(90deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;">AI Assistente</span>
       </div>
     </div>
     <!-- SIDEBAR FOOTER -->
@@ -4700,6 +4893,61 @@ body.light select option {
       </div>
 
     </div>
+    <!-- ===== AI ASSISTENTE ===== -->
+    <div id="sec-ai" class="section" style="display:none;">
+      <div class="card mb-20" style="background:linear-gradient(135deg,rgba(99,50,200,0.15),rgba(180,40,100,0.10)) !important;border-color:rgba(160,100,255,0.25) !important;">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:6px;">
+          <div style="font-size:28px;">✨</div>
+          <div>
+            <div style="font-size:20px;font-weight:800;background:linear-gradient(90deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">AI Assistente TradoCroods</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">Analizza le tue spese, risponde alle tue domande, dà consigli sul budget</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat container -->
+      <div class="card" style="padding:0 !important;overflow:hidden;">
+        <!-- Messaggi -->
+        <div id="ai-messages" style="height:420px;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;">
+          <!-- Messaggio benvenuto -->
+          <div class="ai-msg ai-msg-bot">
+            <div class="ai-avatar">✨</div>
+            <div class="ai-bubble">
+              Ciao! Sono il tuo assistente finanziario AI. Posso analizzare le tue spese, rispondere a domande sul budget e darti consigli personalizzati.<br><br>
+              <strong>Prova a chiedermi:</strong><br>
+              • "Quanto ho speso questo mese?"<br>
+              • "Quali sono le mie categorie più costose?"<br>
+              • "Come posso risparmiare?"<br>
+              • "Analizza il mio budget settimanale"
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions -->
+        <div id="ai-quick" style="padding:10px 20px;border-top:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="ai-quick-btn" onclick="aiQuick('Analizza le mie spese di questo mese')">📊 Analisi mese</button>
+          <button class="ai-quick-btn" onclick="aiQuick('Quali categorie mi costano di più?')">🏷️ Top categorie</button>
+          <button class="ai-quick-btn" onclick="aiQuick('Come posso risparmiare questo mese?')">💡 Risparmio</button>
+          <button class="ai-quick-btn" onclick="aiQuick('Come va il mio budget settimanale?')">📅 Budget</button>
+          <button class="ai-quick-btn" onclick="aiQuick('Fai una previsione: riuscirò a chiudere il mese in positivo?')">🔮 Previsione mese</button>
+          <button class="ai-quick-btn" onclick="aiQuick('Quante volte ho usato Satispay questo mese e quanto ho speso?')">📱 Satispay</button>
+          <button class="ai-quick-btn" onclick="aiQuick('Qual è la mia spesa media giornaliera?')">📈 Media giornaliera</button>
+          <button class="ai-quick-btn" onclick="aiQuick('Confronta le mie spese con un budget ideale per una famiglia italiana')">🏠 Benchmark famiglia</button>
+        </div>
+
+        <!-- Input area -->
+        <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:flex-end;">
+          <textarea id="ai-input" placeholder="Scrivi la tua domanda…" rows="2"
+            style="flex:1;resize:none;font-size:14px;line-height:1.5;padding:10px 14px;border-radius:14px;"
+            onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiSend();}"></textarea>
+          <button onclick="aiSend()" id="ai-send-btn"
+            style="padding:10px 20px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#db2777);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;min-width:80px;transition:opacity 0.2s;">
+            Invia ✈️
+          </button>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -5978,6 +6226,8 @@ function aggiornaApp() {
 
 function esci() {
   if(!confirm('Sei sicuro di voler uscire?')) return;
+  const fab = document.getElementById('tc-ai-fab');
+  if(fab) fab.style.display = 'none';
   currentUser = null;
   localStorage.removeItem('tc_last_user');
   document.getElementById('loginPassword').value = '';
@@ -5990,6 +6240,228 @@ function esci() {
   renderProfilesGrid();
   showMsg('Hai effettuato il logout.', 'success');
 }
+
+
+// ═══════════════════════════════════════════════════════
+// AI ASSISTENTE — TradoCroods
+// Usa Claude API per analizzare le finanze
+// ═══════════════════════════════════════════════════════
+
+let aiHistory = []; // conversazione multi-turn
+
+function aiGetFinanceContext() {
+  try {
+    const yr = parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear());
+    const mo = parseInt(document.getElementById('globalMonth')?.value || (new Date().getMonth()+1));
+    const mesi = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+    const expenses = getExpenses() || [];
+    const income   = getIncome()   || [];
+    const fixed    = getFIXED()    || [];
+
+    // Spese per categoria
+    const byCat = {};
+    expenses.forEach(e => {
+      if(!byCat[e.cat]) byCat[e.cat] = 0;
+      byCat[e.cat] += e.amount;
+    });
+    const catSorted = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+
+    // Spese per metodo pagamento
+    const byPay = {};
+    expenses.forEach(e => {
+      const p = e.pay || e.source || 'altro';
+      if(!byPay[p]) byPay[p] = 0;
+      byPay[p] += e.amount;
+    });
+
+    const totExp   = expenses.reduce((s,e)=>s+e.amount,0);
+    const totInc   = income.reduce((s,i)=>s+i.amount,0);
+    const totFixed = fixed.reduce((s,f)=>s+(f.amount||0),0);
+    const balance  = totInc - totFixed - totExp;
+
+    // Budget settimanale
+    const wBudget = parseFloat(localStorage.getItem(getKey('vs_budget')) || '0');
+
+    // Ultime 10 spese
+    const lastExp = [...expenses].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,10);
+
+    const catLines = catSorted.slice(0,8).map(function(entry){
+      var c=entry[0],v=entry[1];
+      return '- '+c+': \u20ac'+v.toFixed(2)+' ('+(totExp>0?(v/totExp*100).toFixed(1):0)+'%)';
+    }).join('\n');
+    const payLines = Object.entries(byPay).map(function(entry){
+      return '- '+entry[0]+': \u20ac'+entry[1].toFixed(2);
+    }).join('\n');
+    const expLines = lastExp.map(function(e){
+      return '- '+e.date+' | '+e.cat+' | \u20ac'+e.amount.toFixed(2)+' | '+(e.desc||'-')+' | '+(e.pay||e.source||'-');
+    }).join('\n');
+    const fixLines = fixed.slice(0,8).map(function(f){
+      return '- '+f.name+': \u20ac'+(f.amount||0).toFixed(2)+' ('+(f.cat||'-')+')';
+    }).join('\n');
+
+    return '## Dati finanziari di '+mesi[mo-1]+' '+yr+' \u2014 '+(currentUser&&currentUser.name||'Utente')+'\n\n'+
+      '### Riepilogo mese\n'+
+      '- Entrate: \u20ac'+totInc.toFixed(2)+'\n'+
+      '- Spese fisse: \u20ac'+totFixed.toFixed(2)+'\n'+
+      '- Spese variabili: \u20ac'+totExp.toFixed(2)+'\n'+
+      '- Saldo rimanente: \u20ac'+balance.toFixed(2)+' '+(balance>=0?'OK':'NEGATIVO')+'\n\n'+
+      '### Spese per categoria (top 8)\n'+catLines+'\n\n'+
+      '### Spese per metodo pagamento\n'+payLines+'\n\n'+
+      '### Budget settimanale\n'+
+      '- \u20ac'+wBudget+' / settimana\n\n'+
+      '### Ultime 10 spese\n'+expLines+'\n\n'+
+      '### Spese fisse mensili\n'+fixLines;
+  } catch(e) {
+    return 'Dati finanziari non disponibili.';
+  }
+}
+
+function aiAddMessage(role, text) {
+  const el = document.getElementById('ai-messages');
+  if(!el) return;
+  const isBot = role === 'assistant';
+  const div = document.createElement('div');
+  div.className = 'ai-msg ' + (isBot ? 'ai-msg-bot' : 'ai-msg-user');
+  div.innerHTML = `
+    ${isBot ? '<div class="ai-avatar">✨</div>' : ''}
+    <div class="ai-bubble${!isBot?' ai-bubble-user':''}">${text.replace(/\n/g,'<br>').replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/^#{1,3} (.+)$/gm,'<strong>$1</strong>').replace(/^- (.+)$/gm,'• $1')}</div>
+    ${!isBot ? '<div class="ai-avatar ai-avatar-user">👤</div>' : ''}
+  `;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function aiSetLoading(on) {
+  const btn = document.getElementById('ai-send-btn');
+  const inp = document.getElementById('ai-input');
+  if(btn) { btn.disabled = on; btn.style.opacity = on ? '0.5' : '1'; btn.textContent = on ? '⏳' : 'Invia ✈️'; }
+  if(inp) inp.disabled = on;
+
+  if(on) {
+    const el = document.getElementById('ai-messages');
+    if(el) {
+      const dots = document.createElement('div');
+      dots.id = 'ai-typing';
+      dots.className = 'ai-msg ai-msg-bot';
+      dots.innerHTML = '<div class="ai-avatar">✨</div><div class="ai-bubble"><span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>';
+      el.appendChild(dots);
+      el.scrollTop = el.scrollHeight;
+    }
+  } else {
+    document.getElementById('ai-typing')?.remove();
+  }
+}
+
+async function aiSend() {
+  const inp = document.getElementById('ai-input');
+  const text = (inp?.value || '').trim();
+  if(!text) return;
+  inp.value = '';
+  aiAsk(text);
+}
+
+async function aiQuick(q) { aiAsk(q); }
+
+async function aiAsk(question) {
+  aiAddMessage('user', question);
+  aiHistory.push({ role: 'user', content: question });
+  aiSetLoading(true);
+
+  // Nascondi quick buttons dopo il primo messaggio
+  const qk = document.getElementById('ai-quick');
+  if(qk && aiHistory.length > 2) qk.style.display = 'none';
+
+  try {
+    const context = aiGetFinanceContext();
+    const systemPrompt = 'Sei TC Assistant, assistente AI personale integrato in TradoCroods, l\'app di gestione budget familiare di '+( currentUser?.name||'famiglia Tradori')+'.\n\n'+
+      'PERSONALITÀ: Sei amichevole, diretto, pratico. Parli sempre in italiano. Usi emoji con moderazione.\n\n'+
+      'CAPACITÀ:\n'+
+      '- Analisi finanziaria completa basata sui dati reali dell\'utente\n'+
+      '- Consigli personalizzati su risparmio e budget\n'+
+      '- Previsioni e proiezioni basate sulle tendenze\n'+
+      '- Risposte a QUALSIASI domanda generica (storia, geografia, cucina, tecnologia, salute, sport, ecc.)\n'+
+      '- Calcoli matematici e conversioni\n'+
+      '- Consigli pratici di ogni tipo\n'+
+      '- Discussioni su qualsiasi argomento\n\n'+
+      'DATI FINANZIARI REALI (usa questi per le domande di budget):\n'+context+'\n\n'+
+      'REGOLE:\n'+
+      '- Per domande sui dati finanziari: sii preciso con i numeri reali\n'+
+      '- Per domande generiche: rispondi normalmente come un assistente AI completo\n'+
+      '- Massimo 400 parole per risposta, a meno che non venga chiesto esplicitamente di essere più dettagliato\n'+
+      '- Se l\'utente saluta o fa domande non finanziarie, comportati come un assistente generale utile';
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: aiHistory
+      })
+    });
+
+    const data = await response.json();
+    const reply = data?.content?.[0]?.text || 'Mi dispiace, non ho ricevuto una risposta. Riprova.';
+    aiSetLoading(false);
+    aiAddMessage('assistant', reply);
+    aiHistory.push({ role: 'assistant', content: reply });
+
+    // Mantieni storia sotto 20 messaggi
+    if(aiHistory.length > 20) aiHistory = aiHistory.slice(-20);
+
+  } catch(err) {
+    aiSetLoading(false);
+    aiAddMessage('assistant', '❌ Errore di connessione. Verifica la connessione internet e riprova.');
+    console.error('AI error:', err);
+  }
+}
+
+function aiClearChat() {
+  aiHistory = [];
+  const el = document.getElementById('ai-messages');
+  if(el) el.innerHTML = `
+    <div class="ai-msg ai-msg-bot">
+      <div class="ai-avatar">✨</div>
+      <div class="ai-bubble">Chat pulita! Come posso aiutarti con le tue finanze? 🧹</div>
+    </div>`;
+  const qk = document.getElementById('ai-quick');
+  if(qk) qk.style.display = 'flex';
+}
+
+// ── Popup aggiornamento migliorato ──
+function checkForUpdates() {
+  const BUILD = document.querySelector('script')?.textContent?.match(/var BUILD = '([^']+)'/)?.[1] || '';
+  // Controlla GitHub ogni 10 minuti
+  setInterval(async () => {
+    try {
+      const r = await fetch(window.location.href.split('?')[0] + '?nocache=' + Date.now(), {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' }
+      });
+      const html = await r.text();
+      const m = html.match(/var BUILD = '([^']+)'/);
+      if(m && m[1] !== BUILD) showUpdateBanner(m[1]);
+    } catch(e) {}
+  }, 10 * 60 * 1000);
+}
+
+function showUpdateBanner(newVersion) {
+  const banner = document.getElementById('tc-update-banner');
+  if(!banner) return;
+  const vEl = banner.querySelector('.update-version');
+  if(vEl) vEl.textContent = newVersion;
+  banner.style.display = 'flex';
+  // Animazione entrata
+  banner.style.transform = 'translateX(-50%) translateY(20px)';
+  banner.style.opacity = '0';
+  banner.style.transition = 'transform 0.4s cubic-bezier(.2,.8,.2,1), opacity 0.3s ease';
+  setTimeout(() => {
+    banner.style.transform = 'translateX(-50%) translateY(0)';
+    banner.style.opacity = '1';
+  }, 50);
+}
+
 
 // ===== INIT =====
 
@@ -6019,6 +6491,10 @@ function migrateVSManualSources() {
 
 function initApp() {
   migrateVSManualSources();
+  // Mostra FAB AI
+  const fab = document.getElementById('tc-ai-fab');
+  if(fab) fab.style.display = 'flex';
+  checkForUpdates();
   loadTheme();
   renderVersion();
   const now = new Date();
@@ -15957,7 +16433,15 @@ window.addEventListener('beforeprint', function() {
   var el = document.getElementById('tc-pf-date');
   if(el) el.textContent = '🗓 ' + s;
 });
+
 </script>
+
+
+<!-- AI FAB Button -->
+<button id="tc-ai-fab" style="display:none;" onclick="showSection('ai');closeSidebar();" title="Apri AI Assistente" aria-label="AI Assistente">
+  <span id="tc-ai-fab-pulse"></span>
+  ✨
+</button>
 
 </body>
 </html>
