@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260314-v55';
+  var BUILD = '20260314-v56';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -2252,6 +2252,7 @@ textarea {
   backdrop-filter: blur(10px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
   color: var(--text) !important;
+  font-size: 16px !important; /* prevent iOS zoom */
   transition: border-color 0.2s, background 0.2s, box-shadow 0.2s !important;
 }
 input:focus, select:focus, textarea:focus {
@@ -2605,6 +2606,111 @@ body.light .ai-quick-btn { color:#4a4a7a; }
 }
 
 .hidden { display: none !important; }
+
+/* ════════════════════════════════════════
+   iOS / iPadOS / macOS compatibility fixes
+   ════════════════════════════════════════ */
+
+/* Prevent zoom on input focus (iOS) */
+input, select, textarea {
+  font-size: max(16px, 1em) !important;
+}
+
+/* Safe area insets per iPhone con notch/Dynamic Island */
+.main-content {
+  padding-bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+}
+#tc-ai-fab {
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  right: calc(24px + env(safe-area-inset-right));
+}
+#tc-update-banner {
+  top: calc(24px + env(safe-area-inset-top));
+  right: calc(24px + env(safe-area-inset-right));
+}
+
+/* Fix backdrop-filter su Safari (prefisso già presente, ma forziamo) */
+.card, .sidebar, .summary-card, .day-card,
+.login-card, .profile-card, .modal-box, .fb-modal {
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+}
+
+/* Fix scroll momentum su iOS */
+.main-content, #ai-messages, .modal-box,
+[id^="sec-"] {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Fix position:fixed su iOS Safari (100vh bug) */
+#loginPage {
+  height: 100dvh !important;
+}
+#app {
+  min-height: 100dvh;
+}
+
+/* Touch target minimo 44px (Apple HIG) */
+.nav-item, .btn, button, .ai-quick-btn,
+#tc-ai-fab, .hamburger-btn {
+  min-height: 44px;
+}
+.nav-item {
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* Fix select dropdown su iOS Safari (non mostra sfondo custom) */
+@supports (-webkit-touch-callout: none) {
+  select {
+    background: rgba(30,30,50,0.95) !important;
+    -webkit-appearance: none;
+  }
+  body.light select {
+    background: rgba(240,238,252,0.95) !important;
+  }
+}
+
+/* iPad landscape specifico (1024px) */
+@media (min-width: 768px) and (max-width: 1280px) and (orientation: landscape) {
+  #ai-messages { height: 55vh !important; }
+}
+
+/* iPhone SE / piccoli schermi */
+@media (max-width: 375px) {
+  .topbar-actions .btn { padding: 5px 7px; font-size: 11px; }
+  .card { padding: 12px; }
+  #ai-messages { height: 50vh !important; }
+}
+
+/* AI chat su mobile */
+@media (max-width: 768px) {
+  #ai-messages { height: 55vh !important; }
+  .ai-bubble { max-width: 90% !important; font-size: 14px !important; }
+  #ai-quick { gap: 6px !important; padding: 8px 12px !important; }
+  .ai-quick-btn { font-size: 11px !important; padding: 6px 10px !important; }
+  #tc-ai-fab { width: 52px !important; height: 52px !important; font-size: 22px !important; }
+}
+
+/* Fix modali su iPhone */
+@media (max-width: 480px) {
+  .modal, .modal-box, .fb-modal {
+    width: calc(100vw - 24px) !important;
+    max-height: 90dvh !important;
+    margin: 0 12px !important;
+  }
+}
+
+/* macOS Safari: rimuovi outline azzurro di default */
+@media (min-width: 1281px) {
+  :focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+  }
+  :focus:not(:focus-visible) { outline: none; }
+}
+
 </style>
 </head>
 <body>
