@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260314-v44';
+  var BUILD = '20260314-v46';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -2147,11 +2147,9 @@ body > * { position: relative; z-index: 1; }
 }
 
 /* ─────────── TOPBAR ─────────── */
-.topbar, .main-header, header {
-  background: rgba(10,10,22,0.55) !important;
-  backdrop-filter: var(--lg-blur) !important;
-  -webkit-backdrop-filter: var(--lg-blur) !important;
-  border-bottom: 1px solid var(--lg-border) !important;
+/* topbar is inline - no glass bg needed */
+body.light .topbar, body.light header, body.light .main-header {
+  background: transparent !important;
 }
 
 /* ─────────── SUMMARY CARDS ─────────── */
@@ -2589,6 +2587,12 @@ body.light .ai-quick-btn { color:#4a4a7a; }
   -webkit-backdrop-filter: blur(32px) saturate(200%) brightness(1.1) !important;
 }
 
+
+/* ── AI Mic pulse ── */
+@keyframes micPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,80,80,0.4); }
+  50%       { box-shadow: 0 0 0 8px rgba(255,80,80,0.0); }
+}
 </style>
 </head>
 <body>
@@ -4909,16 +4913,11 @@ body.light .ai-quick-btn { color:#4a4a7a; }
       <div class="card" style="padding:0 !important;overflow:hidden;">
         <!-- Messaggi -->
         <div id="ai-messages" style="height:420px;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:12px;">
-          <!-- Messaggio benvenuto -->
-          <div class="ai-msg ai-msg-bot">
+          <!-- Messaggio benvenuto (testo aggiornato da JS) -->
+          <div class="ai-msg ai-msg-bot" id="ai-welcome-msg">
             <div class="ai-avatar">✨</div>
-            <div class="ai-bubble">
-              Ciao! Sono il tuo assistente finanziario AI. Posso analizzare le tue spese, rispondere a domande sul budget e darti consigli personalizzati.<br><br>
-              <strong>Prova a chiedermi:</strong><br>
-              • "Quanto ho speso questo mese?"<br>
-              • "Quali sono le mie categorie più costose?"<br>
-              • "Come posso risparmiare?"<br>
-              • "Analizza il mio budget settimanale"
+            <div class="ai-bubble" id="ai-welcome-text">
+              Ciao! Come posso aiutarti?
             </div>
           </div>
         </div>
@@ -4937,9 +4936,13 @@ body.light .ai-quick-btn { color:#4a4a7a; }
 
         <!-- Input area -->
         <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;align-items:flex-end;">
-          <textarea id="ai-input" placeholder="Scrivi la tua domanda…" rows="2"
+          <textarea id="ai-input" placeholder="Scrivi oppure usa il microfono 🎙️" rows="2"
             style="flex:1;resize:none;font-size:14px;line-height:1.5;padding:10px 14px;border-radius:14px;"
             onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();aiSend();}"></textarea>
+          <button id="ai-mic-btn" onclick="aiToggleMic()" title="Parla con il microfono"
+            style="width:46px;height:46px;border-radius:14px;background:rgba(255,255,255,0.08);border:1.5px solid rgba(255,255,255,0.15);color:var(--text);font-size:20px;cursor:pointer;transition:all 0.2s;flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+            🎙️
+          </button>
           <button onclick="aiSend()" id="ai-send-btn"
             style="padding:10px 20px;border-radius:14px;background:linear-gradient(135deg,#7c3aed,#db2777);border:none;color:#fff;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;min-width:80px;transition:opacity 0.2s;">
             Invia ✈️
@@ -6248,6 +6251,83 @@ function esci() {
 // ═══════════════════════════════════════════════════════
 
 let aiHistory = []; // conversazione multi-turn
+let aiRecognition = null;
+let aiMicActive = false;
+
+// Aggiorna messaggio benvenuto con nome utente
+function aiUpdateWelcome() {
+  const name = currentUser?.name?.split(' ')[0] || 'Sergio';
+  const el = document.getElementById('ai-welcome-text');
+  if(el) el.innerHTML = 'Ciao <strong>' + name + '</strong>! 👋 Come posso aiutarti oggi?<br><small style="color:var(--text-muted);font-size:12px;">Chiedimi delle tue spese o qualsiasi altra cosa — sono qui per te.</small>';
+}
+
+function aiToggleMic() {
+  if(!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+    showToast('⚠️ Il tuo browser non supporta il microfono. Usa Chrome o Safari.');
+    return;
+  }
+  if(aiMicActive) {
+    aiStopMic();
+  } else {
+    aiStartMic();
+  }
+}
+
+function aiStartMic() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  aiRecognition = new SpeechRecognition();
+  aiRecognition.lang = 'it-IT';
+  aiRecognition.continuous = false;
+  aiRecognition.interimResults = true;
+  aiMicActive = true;
+
+  const btn = document.getElementById('ai-mic-btn');
+  if(btn) {
+    btn.style.background = 'rgba(220,50,50,0.25)';
+    btn.style.borderColor = 'rgba(255,80,80,0.6)';
+    btn.style.animation = 'micPulse 1s ease-in-out infinite';
+    btn.innerHTML = '🔴';
+  }
+  const inp = document.getElementById('ai-input');
+  if(inp) inp.placeholder = '🎙️ Sto ascoltando...';
+
+  aiRecognition.onresult = (event) => {
+    let transcript = '';
+    for(let i = event.resultIndex; i < event.results.length; i++) {
+      transcript += event.results[i][0].transcript;
+    }
+    if(inp) inp.value = transcript;
+  };
+
+  aiRecognition.onend = () => {
+    aiMicActive = false;
+    if(btn) {
+      btn.style.background = 'rgba(255,255,255,0.08)';
+      btn.style.borderColor = 'rgba(255,255,255,0.15)';
+      btn.style.animation = '';
+      btn.innerHTML = '🎙️';
+    }
+    if(inp) inp.placeholder = 'Scrivi oppure usa il microfono 🎙️';
+    // Invia automaticamente se c'è testo
+    if(inp && inp.value.trim()) {
+      setTimeout(() => aiSend(), 300);
+    }
+  };
+
+  aiRecognition.onerror = (e) => {
+    aiMicActive = false;
+    if(btn) { btn.style.background=''; btn.style.animation=''; btn.innerHTML='🎙️'; }
+    if(e.error === 'not-allowed') showToast('❌ Permesso microfono negato. Consenti nelle impostazioni del browser.');
+    else showToast('❌ Errore microfono: ' + e.error);
+  };
+
+  aiRecognition.start();
+}
+
+function aiStopMic() {
+  if(aiRecognition) aiRecognition.stop();
+  aiMicActive = false;
+}
 
 function aiGetFinanceContext() {
   try {
@@ -6577,7 +6657,8 @@ function showSection(id, el) {
     emergenza:'🚨 Emergenza',
     documenti:'📁 Documenti & Fatture',
     librietto:'🏦 Libretto di Risparmio',
-    vistaSpese:'🗓️ Spese Settimanali — Sella/Satispay/Revolut'
+    vistaSpese:'🗓️ Spese Settimanali — Sella/Satispay/Revolut',
+    ai:'✨ AI Assistente'
   };
   document.getElementById('pageTitle').textContent = titles[id]||id;
   if(id==='grafici') { setTimeout(() => { renderGraphButtons(); if(currentGraphTab==='week') renderWeekChart(); if(currentGraphTab==='year'){ initYearSelect(); renderYearChart(); } if(currentGraphTab==='budget') renderBudgetChart(); if(currentGraphTab==='trend') renderTrendChart(); if(currentGraphTab==='giri') renderGiriChart(); if(currentGraphTab==='pdf') renderPdfChart(); if(currentGraphTab==='librietto') renderLib2Chart(); if(currentGraphTab==='salute') renderSaluteChart(); }, 50); }
@@ -6588,6 +6669,13 @@ function showSection(id, el) {
   if(id==='documenti') { renderAllDocLists(); initDocDragDrop(); }
   if(id==='entrate') updateRimanenza();
   if(id==='librietto') { setTimeout(() => renderLibrietto(), 50); }
+  if(id==='ai') {
+    aiUpdateWelcome();
+    const msgs = document.getElementById('ai-messages');
+    const qk = document.getElementById('ai-quick');
+    if(msgs && msgs.children.length <= 1 && qk) qk.style.display = 'flex';
+    setTimeout(() => document.getElementById('ai-input')?.focus(), 100);
+  }
 }
 
 function showYearWarning() {
