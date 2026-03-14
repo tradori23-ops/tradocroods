@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260314-v39';
+  var BUILD = '20260314-v40';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -2077,257 +2077,327 @@ body.light .rata-card { background: #fdfcf7; }
   }
 
 /* ═══════════════════════════════════════════════════════════════
-   GLASSMORPHISM — iOS / macOS / iPadOS Design Language
+   LIQUID GLASS — iOS 18 / macOS Tahoe / iPadOS 18
    ═══════════════════════════════════════════════════════════════ */
 
-/* ── Font sistema Apple ── */
 :root {
   --font: -apple-system, 'SF Pro Display', 'Helvetica Neue', system-ui, sans-serif;
-  --glass-bg:      rgba(28, 28, 46, 0.55);
-  --glass-bg-2:    rgba(20, 20, 38, 0.65);
-  --glass-border:  rgba(255, 255, 255, 0.10);
-  --glass-border-strong: rgba(255,255,255,0.18);
-  --glass-blur:    blur(24px) saturate(180%);
-  --glass-blur-sm: blur(14px) saturate(160%);
-  --glass-shadow:  0 8px 32px rgba(0,0,0,0.45), 0 1.5px 0 rgba(255,255,255,0.06) inset;
-  --glass-shadow-lg: 0 20px 60px rgba(0,0,0,0.55), 0 1.5px 0 rgba(255,255,255,0.08) inset;
+
+  /* Glass tokens — dark */
+  --lg-fill:         rgba(255,255,255,0.08);
+  --lg-fill-hover:   rgba(255,255,255,0.13);
+  --lg-fill-strong:  rgba(255,255,255,0.05);
+  --lg-blur:         blur(28px) saturate(200%) brightness(1.08);
+  --lg-blur-sm:      blur(16px) saturate(180%) brightness(1.05);
+  --lg-blur-lg:      blur(48px) saturate(220%) brightness(1.06);
+  --lg-border:       rgba(255,255,255,0.13);
+  --lg-border-top:   rgba(255,255,255,0.22);
+  --lg-shadow:       0 2px 1px rgba(255,255,255,0.06) inset,
+                     0 8px 32px rgba(0,0,0,0.40),
+                     0 2px 8px rgba(0,0,0,0.20);
+  --lg-shadow-lg:    0 2px 1px rgba(255,255,255,0.08) inset,
+                     0 24px 64px rgba(0,0,0,0.55),
+                     0 4px 16px rgba(0,0,0,0.30);
   --radius: 18px;
   --radius-sm: 12px;
-  --radius-lg: 24px;
+  --radius-lg: 22px;
 }
 
-/* ── Sfondo mesh colorato fisso (come wallpaper iOS) ── */
-body {
-  background: #080814 !important;
-  font-family: var(--font) !important;
-  -webkit-font-smoothing: antialiased;
-}
+/* ── Font ── */
+body { font-family: var(--font) !important; -webkit-font-smoothing: antialiased; }
+
+/* ── Sfondo mesh (wallpaper iOS/macOS Tahoe) ── */
+body { background: #09090f !important; }
 body::before {
   content: '';
-  position: fixed;
-  inset: 0;
-  z-index: 0;
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(ellipse 80% 60% at 10% 15%,  rgba(99,50,200,0.45) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 90% 10%,  rgba(30,90,200,0.35) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 60% at 85% 85%,  rgba(180,40,100,0.30) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 50% at 10% 90%,  rgba(20,130,100,0.25) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 50% at 50% 50%,  rgba(60,40,140,0.20) 0%, transparent 70%),
-    #080814;
-  pointer-events: none;
+    radial-gradient(ellipse 90% 70% at 8%  12%, rgba(88, 40,200,0.50) 0%, transparent 55%),
+    radial-gradient(ellipse 65% 55% at 92% 8%,  rgba(24, 80,210,0.40) 0%, transparent 55%),
+    radial-gradient(ellipse 75% 65% at 88% 88%, rgba(185,35, 95,0.35) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at  8% 92%, rgba(15,125, 95,0.28) 0%, transparent 55%),
+    radial-gradient(ellipse 55% 55% at 50% 50%, rgba(50, 30,130,0.22) 0%, transparent 65%),
+    #09090f;
+  animation: meshDrift 20s ease-in-out infinite alternate;
+}
+@keyframes meshDrift {
+  0%   { filter: hue-rotate(0deg)   brightness(1.00); }
+  50%  { filter: hue-rotate(12deg)  brightness(1.05); }
+  100% { filter: hue-rotate(-8deg)  brightness(0.97); }
 }
 body > * { position: relative; z-index: 1; }
 
-/* ── Card principale ── */
+/* ─────────── CARD ─────────── */
 .card {
-  background: var(--glass-bg) !important;
-  backdrop-filter: var(--glass-blur) !important;
-  -webkit-backdrop-filter: var(--glass-blur) !important;
-  border: 1px solid var(--glass-border) !important;
+  background: var(--lg-fill) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  border: 1px solid var(--lg-border) !important;
+  border-top-color: var(--lg-border-top) !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: var(--glass-shadow) !important;
+  box-shadow: var(--lg-shadow) !important;
 }
 
-/* ── Sidebar ── */
+/* ─────────── SIDEBAR ─────────── */
 .sidebar {
-  background: rgba(14, 14, 30, 0.72) !important;
-  backdrop-filter: blur(32px) saturate(200%) !important;
-  -webkit-backdrop-filter: blur(32px) saturate(200%) !important;
-  border-right: 1px solid var(--glass-border) !important;
+  background: rgba(10,10,22,0.60) !important;
+  backdrop-filter: blur(40px) saturate(220%) brightness(1.06) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(220%) brightness(1.06) !important;
+  border-right: 1px solid var(--lg-border) !important;
 }
 
-/* ── Topbar / navbar ── */
-.topbar, .top-bar, nav, .navbar {
-  background: rgba(14, 14, 30, 0.65) !important;
-  backdrop-filter: var(--glass-blur) !important;
-  -webkit-backdrop-filter: var(--glass-blur) !important;
-  border-bottom: 1px solid var(--glass-border) !important;
+/* ─────────── TOPBAR ─────────── */
+.topbar, .main-header, header {
+  background: rgba(10,10,22,0.55) !important;
+  backdrop-filter: var(--lg-blur) !important;
+  -webkit-backdrop-filter: var(--lg-blur) !important;
+  border-bottom: 1px solid var(--lg-border) !important;
 }
 
-/* ── Summary cards ── */
+/* ─────────── SUMMARY CARDS ─────────── */
 .summary-card {
-  background: rgba(255,255,255,0.05) !important;
-  backdrop-filter: var(--glass-blur-sm) !important;
-  -webkit-backdrop-filter: var(--glass-blur-sm) !important;
-  border: 1px solid var(--glass-border) !important;
+  background: var(--lg-fill) !important;
+  backdrop-filter: var(--lg-blur-sm) !important;
+  -webkit-backdrop-filter: var(--lg-blur-sm) !important;
+  border: 1px solid var(--lg-border) !important;
+  border-top-color: var(--lg-border-top) !important;
   border-radius: var(--radius) !important;
-  box-shadow: var(--glass-shadow) !important;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease !important;
+  box-shadow: var(--lg-shadow) !important;
+  transition: transform 0.25s cubic-bezier(.2,.8,.2,1),
+              background 0.2s ease,
+              box-shadow 0.25s ease !important;
 }
 .summary-card:hover {
-  background: rgba(255,255,255,0.09) !important;
+  background: var(--lg-fill-hover) !important;
   transform: translateY(-3px) !important;
-  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 1px 0 rgba(255,255,255,0.1) inset !important;
+  box-shadow: 0 2px 1px rgba(255,255,255,0.08) inset,
+              0 16px 48px rgba(0,0,0,0.50) !important;
 }
 
-/* ── Modali ── */
-.modal-overlay, [id$="Modal"] > div, .fb-modal,
-.modal-box, .modal-content {
-  background: rgba(16, 16, 36, 0.82) !important;
-  backdrop-filter: blur(40px) saturate(200%) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
-  border: 1px solid var(--glass-border-strong) !important;
+/* ─────────── MODALI ─────────── */
+.modal-box, .fb-modal,
+[id="catDetailModal"] > div,
+[id="payDetailModal"] > div,
+[id="weekDetailModal"] > div,
+[id="firebaseModal"] > div,
+[id="confirmDeleteModal"] > div,
+.modal-overlay > div {
+  background: rgba(14,14,28,0.78) !important;
+  backdrop-filter: var(--lg-blur-lg) !important;
+  -webkit-backdrop-filter: var(--lg-blur-lg) !important;
+  border: 1px solid var(--lg-border) !important;
+  border-top-color: var(--lg-border-top) !important;
   border-radius: var(--radius-lg) !important;
-  box-shadow: var(--glass-shadow-lg) !important;
+  box-shadow: var(--lg-shadow-lg) !important;
 }
 
-/* ── Day cards settimana ── */
+/* ─────────── DAY CARDS ─────────── */
 .day-card {
-  background: rgba(255,255,255,0.05) !important;
-  backdrop-filter: var(--glass-blur-sm) !important;
-  -webkit-backdrop-filter: var(--glass-blur-sm) !important;
-  border: 1px solid var(--glass-border) !important;
+  background: var(--lg-fill-strong) !important;
+  backdrop-filter: var(--lg-blur-sm) !important;
+  -webkit-backdrop-filter: var(--lg-blur-sm) !important;
+  border: 1px solid var(--lg-border) !important;
+  border-top-color: var(--lg-border-top) !important;
   border-radius: var(--radius) !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.35) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.30) !important;
+  transition: transform 0.2s cubic-bezier(.2,.8,.2,1),
+              background 0.2s ease,
+              box-shadow 0.2s ease !important;
 }
-.day-card:hover, .day-card.selected {
-  background: rgba(255,255,255,0.09) !important;
-  border-color: rgba(212,168,67,0.45) !important;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(212,168,67,0.2) !important;
+.day-card:hover {
+  background: var(--lg-fill-hover) !important;
+  border-color: rgba(212,168,67,0.40) !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 2px 1px rgba(255,255,255,0.08) inset,
+              0 12px 36px rgba(0,0,0,0.45) !important;
 }
-
-/* ── Bottoni primari ── */
-.btn-gold, .btn-primary, [class*="btn-gold"] {
-  background: linear-gradient(135deg, rgba(212,168,67,0.9), rgba(240,201,106,0.85)) !important;
-  backdrop-filter: var(--glass-blur-sm) !important;
-  -webkit-backdrop-filter: var(--glass-blur-sm) !important;
-  border: 1px solid rgba(255,255,255,0.25) !important;
-  box-shadow: 0 4px 20px rgba(212,168,67,0.3), 0 1px 0 rgba(255,255,255,0.3) inset !important;
-  border-radius: var(--radius-sm) !important;
-}
-.btn-gold:hover {
-  box-shadow: 0 8px 28px rgba(212,168,67,0.45), 0 1px 0 rgba(255,255,255,0.3) inset !important;
-  transform: translateY(-1px) !important;
+.day-card.selected {
+  border-color: rgba(212,168,67,0.55) !important;
+  background: rgba(212,168,67,0.10) !important;
 }
 
-/* ── Input fields ── */
-input, select, textarea {
-  background: rgba(255,255,255,0.07) !important;
-  border: 1px solid rgba(255,255,255,0.12) !important;
-  border-radius: var(--radius-sm) !important;
+/* ─────────── BOTTONI ─────────── */
+.btn-gold, .btn-primary {
+  background: linear-gradient(160deg,
+    rgba(228,180,75,0.92),
+    rgba(212,155,55,0.88)) !important;
   backdrop-filter: blur(8px) !important;
   -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid rgba(255,225,120,0.30) !important;
+  border-top-color: rgba(255,235,150,0.50) !important;
+  box-shadow: 0 1px 0 rgba(255,240,160,0.35) inset,
+              0 4px 20px rgba(212,168,67,0.28) !important;
+  border-radius: var(--radius-sm) !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+.btn-gold:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 1px 0 rgba(255,240,160,0.40) inset,
+              0 8px 28px rgba(212,168,67,0.40) !important;
+}
+.btn-outline {
+  background: rgba(255,255,255,0.06) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  border: 1px solid var(--lg-border) !important;
+  border-top-color: var(--lg-border-top) !important;
+  border-radius: var(--radius-sm) !important;
+}
+
+/* ─────────── INPUT / SELECT / TEXTAREA ─────────── */
+input:not([type=checkbox]):not([type=radio]),
+select,
+textarea {
+  background: rgba(255,255,255,0.07) !important;
+  border: 1px solid rgba(255,255,255,0.11) !important;
+  border-radius: var(--radius-sm) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
   color: var(--text) !important;
   transition: border-color 0.2s, background 0.2s, box-shadow 0.2s !important;
 }
 input:focus, select:focus, textarea:focus {
   background: rgba(255,255,255,0.11) !important;
-  border-color: rgba(212,168,67,0.5) !important;
-  box-shadow: 0 0 0 3px rgba(212,168,67,0.12) !important;
+  border-color: rgba(212,168,67,0.55) !important;
+  box-shadow: 0 0 0 3px rgba(212,168,67,0.14),
+              0 1px 0 rgba(255,255,255,0.08) inset !important;
   outline: none !important;
 }
 
-/* ── Login card ── */
-.login-card {
-  background: rgba(12, 12, 28, 0.75) !important;
-  backdrop-filter: blur(40px) saturate(200%) !important;
-  -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
-  border: 1px solid rgba(255,255,255,0.12) !important;
-  border-radius: 28px !important;
-  box-shadow: 0 32px 80px rgba(0,0,0,0.65), 0 1.5px 0 rgba(255,255,255,0.08) inset !important;
+/* ─────────── SELECT dropdown ─────────── */
+select option {
+  background: #1a1a30 !important;
+  color: var(--text) !important;
 }
 
-/* ── Profile cards Netflix-style ── */
+/* ─────────── LOGIN CARD ─────────── */
+.login-card {
+  background: rgba(10,10,22,0.70) !important;
+  backdrop-filter: blur(48px) saturate(220%) brightness(1.08) !important;
+  -webkit-backdrop-filter: blur(48px) saturate(220%) brightness(1.08) !important;
+  border: 1px solid var(--lg-border) !important;
+  border-top-color: rgba(255,255,255,0.25) !important;
+  border-radius: 28px !important;
+  box-shadow: var(--lg-shadow-lg) !important;
+}
+
+/* ─────────── PROFILE CARDS ─────────── */
 .profile-card {
-  background: rgba(255,255,255,0.06) !important;
-  backdrop-filter: var(--glass-blur-sm) !important;
-  -webkit-backdrop-filter: var(--glass-blur-sm) !important;
-  border: 1px solid rgba(255,255,255,0.10) !important;
+  background: var(--lg-fill) !important;
+  backdrop-filter: var(--lg-blur-sm) !important;
+  -webkit-backdrop-filter: var(--lg-blur-sm) !important;
+  border: 1px solid var(--lg-border) !important;
+  border-top-color: var(--lg-border-top) !important;
   border-radius: var(--radius) !important;
-  transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease !important;
+  transition: transform 0.25s cubic-bezier(.2,.8,.2,1),
+              background 0.2s ease,
+              box-shadow 0.2s ease !important;
 }
 .profile-card:hover {
-  background: rgba(255,255,255,0.11) !important;
+  background: var(--lg-fill-hover) !important;
   transform: translateY(-4px) scale(1.03) !important;
-  box-shadow: 0 16px 40px rgba(0,0,0,0.5) !important;
+  box-shadow: 0 2px 1px rgba(255,255,255,0.08) inset,
+              0 20px 48px rgba(0,0,0,0.55) !important;
 }
 
-/* ── Sidebar nav items ── */
-.nav-item, .sidebar-nav a {
-  border-radius: var(--radius-sm) !important;
+/* ─────────── NAV ITEMS ─────────── */
+.nav-item, .sidebar nav a {
+  border-radius: 10px !important;
   transition: background 0.15s ease !important;
 }
-.nav-item:hover, .nav-item.active {
-  background: rgba(255,255,255,0.08) !important;
-  backdrop-filter: blur(8px) !important;
-}
+.nav-item:hover { background: rgba(255,255,255,0.07) !important; }
 .nav-item.active {
-  background: rgba(212,168,67,0.15) !important;
+  background: rgba(212,168,67,0.14) !important;
   border-left: 3px solid var(--gold) !important;
 }
 
-/* ── Cloud badge ── */
+/* ─────────── CLOUD BADGE ─────────── */
 #cloudBadge {
-  backdrop-filter: blur(12px) !important;
-  -webkit-backdrop-filter: blur(12px) !important;
-  border-radius: var(--radius-sm) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
+  border-radius: 10px !important;
 }
 
-/* ── Scrollbar glassmorphism ── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* ─────────── SCROLLBAR ─────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.11);
   border-radius: 10px;
-  backdrop-filter: blur(4px);
 }
-::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.22); }
+::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.20); }
 
-/* ── Main content area ── */
-.main-content {
-  background: transparent !important;
-}
-
-/* ── Sezioni / sections ── */
-section, .section {
-  background: transparent !important;
+/* ─────────── UPDATE BANNER ─────────── */
+#tc-update-banner {
+  backdrop-filter: blur(24px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(200%) !important;
 }
 
-/* ── Badges e pill ── */
-.badge, [class*="badge"] {
-  backdrop-filter: blur(8px) !important;
-  -webkit-backdrop-filter: blur(8px) !important;
+/* ══════════════════════════════════════
+   LIGHT MODE — Liquid Glass chiaro
+   (stile iPadOS con sfondo pastello)
+   ══════════════════════════════════════ */
+body.light {
+  --lg-fill:        rgba(255,255,255,0.42);
+  --lg-fill-hover:  rgba(255,255,255,0.60);
+  --lg-fill-strong: rgba(255,255,255,0.32);
+  --lg-border:      rgba(255,255,255,0.65);
+  --lg-border-top:  rgba(255,255,255,0.85);
+  --lg-shadow:      0 2px 1px rgba(255,255,255,0.80) inset,
+                    0 8px 32px rgba(80,60,120,0.12),
+                    0 2px 8px rgba(80,60,120,0.08);
+  --lg-shadow-lg:   0 2px 1px rgba(255,255,255,0.85) inset,
+                    0 24px 64px rgba(80,60,120,0.18),
+                    0 4px 16px rgba(80,60,120,0.10);
+  background: #ece9f5 !important;
 }
-
-/* ── Topbar buttons ── */
-.topbar-btn, .action-btn, [onclick] > button {
-  backdrop-filter: blur(8px) !important;
-  border-radius: var(--radius-sm) !important;
-}
-
-/* ── Light mode glass ── */
 body.light::before {
   background:
-    radial-gradient(ellipse 80% 60% at 10% 15%,  rgba(160,120,255,0.25) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 50% at 90% 10%,  rgba(100,160,255,0.20) 0%, transparent 55%),
-    radial-gradient(ellipse 70% 60% at 85% 85%,  rgba(255,120,180,0.18) 0%, transparent 55%),
-    radial-gradient(ellipse 60% 50% at 10% 90%,  rgba(80,200,160,0.18) 0%, transparent 55%),
-    #f0eef8 !important;
+    radial-gradient(ellipse 90% 70% at 8%  12%, rgba(160,100,255,0.22) 0%, transparent 55%),
+    radial-gradient(ellipse 65% 55% at 92% 8%,  rgba( 80,150,255,0.18) 0%, transparent 55%),
+    radial-gradient(ellipse 75% 65% at 88% 88%, rgba(255,100,160,0.16) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at  8% 92%, rgba( 60,200,150,0.14) 0%, transparent 55%),
+    #ece9f5 !important;
+  animation: none !important;
 }
 body.light .card {
-  background: rgba(255,255,255,0.65) !important;
-  border-color: rgba(0,0,0,0.06) !important;
+  background: var(--lg-fill) !important;
+  border-color: var(--lg-border) !important;
+  border-top-color: var(--lg-border-top) !important;
+  color: #1a1830 !important;
 }
 body.light .sidebar {
-  background: rgba(245,243,255,0.80) !important;
-  border-right-color: rgba(0,0,0,0.06) !important;
+  background: rgba(240,237,252,0.72) !important;
+  border-right-color: rgba(255,255,255,0.65) !important;
 }
 body.light .summary-card {
-  background: rgba(255,255,255,0.70) !important;
-  border-color: rgba(0,0,0,0.06) !important;
+  background: var(--lg-fill) !important;
+  border-color: var(--lg-border) !important;
 }
 body.light .day-card {
-  background: rgba(255,255,255,0.70) !important;
-  border-color: rgba(0,0,0,0.08) !important;
+  background: var(--lg-fill) !important;
+  border-color: var(--lg-border) !important;
 }
-body.light input, body.light select, body.light textarea {
-  background: rgba(255,255,255,0.80) !important;
-  border-color: rgba(0,0,0,0.10) !important;
-  color: #1a1a2e !important;
+body.light input:not([type=checkbox]):not([type=radio]),
+body.light select,
+body.light textarea {
+  background: rgba(255,255,255,0.60) !important;
+  border-color: rgba(255,255,255,0.80) !important;
+  color: #1a1830 !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.90) inset !important;
 }
 body.light .login-card {
-  background: rgba(255,255,255,0.78) !important;
-  border-color: rgba(0,0,0,0.06) !important;
+  background: rgba(255,255,255,0.52) !important;
+  border-color: rgba(255,255,255,0.80) !important;
+  border-top-color: rgba(255,255,255,0.95) !important;
+}
+body.light .profile-card {
+  background: var(--lg-fill) !important;
+  border-color: var(--lg-border) !important;
+}
+body.light select option {
+  background: #f0eef8 !important;
+  color: #1a1830 !important;
 }
 
 </style>
