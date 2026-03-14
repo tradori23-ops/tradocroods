@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260314-v53';
+  var BUILD = '20260314-v54';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -6284,6 +6284,66 @@ function esci() {
 // ═══════════════════════════════════════════════════════
 
 let aiHistory = []; // conversazione multi-turn
+let aiUserLocation = null;  // { lat, lon, city }
+let aiWeatherData = null;   // dati meteo correnti
+
+// Geolocalizzazione + meteo da Open-Meteo (modelli ECMWF come Aeronautica Militare)
+async function aiLoadLocationAndWeather() {
+  if(!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(async (pos) => {
+    const lat = pos.coords.latitude.toFixed(4);
+    const lon = pos.coords.longitude.toFixed(4);
+
+    // Reverse geocoding con Nominatim (OpenStreetMap) — gratuito
+    try {
+      const geoRes = await fetch(
+        'https://nominatim.openstreetmap.org/reverse?lat='+lat+'&lon='+lon+'&format=json&accept-language=it',
+        { headers: { 'User-Agent': 'TradoCroods/1.0' } }
+      );
+      const geoData = await geoRes.json();
+      const city = geoData?.address?.city || geoData?.address?.town ||
+                   geoData?.address?.village || geoData?.address?.county || 'Posizione rilevata';
+      aiUserLocation = { lat, lon, city };
+    } catch(e) {
+      aiUserLocation = { lat, lon, city: 'Posizione GPS' };
+    }
+
+    // Meteo da Open-Meteo (stesso modello ECMWF usato dall'Aeronautica Militare)
+    try {
+      const wRes = await fetch(
+        'https://api.open-meteo.com/v1/forecast?latitude='+lat+'&longitude='+lon+
+        '&current=temperature_2m,apparent_temperature,weathercode,windspeed_10m,precipitation,relative_humidity_2m'+
+        '&daily=weathercode,temperature_2m_max,temperature_2m_min,precipitation_sum,windspeed_10m_max'+
+        '&timezone=Europe/Rome&forecast_days=4&language=it'
+      );
+      const wData = await wRes.json();
+      const cur = wData?.current;
+      const daily = wData?.daily;
+      if(cur) {
+        const wmoDesc = {0:'Sereno',1:'Prevalentemente sereno',2:'Parzialmente nuvoloso',3:'Coperto',
+          45:'Nebbia',48:'Nebbia gelata',51:'Pioviggine lieve',53:'Pioviggine',55:'Pioviggine intensa',
+          61:'Pioggia lieve',63:'Pioggia',65:'Pioggia intensa',71:'Neve lieve',73:'Neve',75:'Neve intensa',
+          80:'Rovesci leggeri',81:'Rovesci',82:'Rovesci violenti',95:'Temporale',99:'Temporale con grandine'};
+        const desc = wmoDesc[cur.weathercode] || 'N/D';
+        const days = (daily?.time||[]).slice(1,4).map((d,i)=>
+          d+': '+wmoDesc[daily.weathercode[i+1]]+'  max '+daily.temperature_2m_max[i+1]+'°  min '+daily.temperature_2m_min[i+1]+'°'
+        ).join(' | ');
+        aiWeatherData = {
+          city: aiUserLocation?.city || 'N/D',
+          temp: cur.temperature_2m,
+          feels: cur.apparent_temperature,
+          desc,
+          wind: cur.windspeed_10m,
+          humidity: cur.relative_humidity_2m,
+          precip: cur.precipitation,
+          forecast: days
+        };
+        // Aggiorna il benvenuto con meteo
+        aiUpdateWelcome();
+      }
+    } catch(e) { console.warn('Meteo error:', e); }
+  }, () => {}, { timeout: 8000 });
+}
 
 function aiShowApiConfig() {
   const banner = document.getElementById('ai-apikey-banner');
@@ -6319,7 +6379,16 @@ let aiMicActive = false;
 function aiUpdateWelcome() {
   const name = currentUser?.name?.split(' ')[0] || 'Sergio';
   const el = document.getElementById('ai-welcome-text');
-  if(el) el.innerHTML = 'Ciao <strong>' + name + '</strong>! 👋 Come posso aiutarti oggi?<br><small style="color:var(--text-muted);font-size:12px;">Chiedimi delle tue spese o qualsiasi altra cosa — sono qui per te.</small>';
+  if(!el) return;
+  let weatherLine = '';
+  if(aiWeatherData) {
+    weatherLine = '<br><span style="font-size:12px;color:var(--text-muted);">📍 '+aiWeatherData.city+
+      ' · '+aiWeatherData.desc+' '+aiWeatherData.temp+'°C · vento '+aiWeatherData.wind+' km/h</span>';
+  } else if(aiUserLocation) {
+    weatherLine = '<br><span style="font-size:12px;color:var(--text-muted);">📍 '+aiUserLocation.city+'</span>';
+  }
+  el.innerHTML = 'Ciao <strong>'+name+'</strong>! 👋 Come posso aiutarti oggi?'+weatherLine+
+    '<br><small style="color:var(--text-muted);font-size:11px;">Chiedimi delle tue spese o qualsiasi altra cosa — sono qui per te.</small>';
 }
 
 // ── Text-to-Speech (voce femminile come Alexa) ──
@@ -6452,6 +6521,18 @@ function aiStopMic() {
 
 function aiGetFinanceContext() {
   try {
+    // Aggiungi meteo e posizione se disponibili
+    let locationCtx = '';
+    if(aiUserLocation) {
+      locationCtx = '\n### Posizione e Meteo (fonte: modello ECMWF - come Aeronautica Militare)\n'+
+        '- Posizione: '+aiUserLocation.city+' (lat '+aiUserLocation.lat+', lon '+aiUserLocation.lon+')\n';
+      if(aiWeatherData) {
+        locationCtx +=
+          '- Meteo ora: '+aiWeatherData.desc+' | '+aiWeatherData.temp+'°C (percepiti '+aiWeatherData.feels+'°C)\n'+
+          '- Vento: '+aiWeatherData.wind+' km/h | Umidità: '+aiWeatherData.humidity+'% | Pioggia ora: '+aiWeatherData.precip+'mm\n'+
+          '- Prossimi 3 giorni: '+aiWeatherData.forecast+'\n';
+      }
+    }
     const yr = parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear());
     const mo = parseInt(document.getElementById('globalMonth')?.value || (new Date().getMonth()+1));
     const mesi = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
@@ -6500,7 +6581,7 @@ function aiGetFinanceContext() {
       return '- '+f.name+': \u20ac'+(f.amount||0).toFixed(2)+' ('+(f.cat||'-')+')';
     }).join('\n');
 
-    return '## Dati finanziari di '+mesi[mo-1]+' '+yr+' \u2014 '+(currentUser&&currentUser.name||'Utente')+'\n\n'+
+    return locationCtx+'## Dati finanziari di '+mesi[mo-1]+' '+yr+' \u2014 '+(currentUser&&currentUser.name||'Utente')+'\n\n'+
       '### Riepilogo mese\n'+
       '- Entrate: \u20ac'+totInc.toFixed(2)+'\n'+
       '- Spese fisse: \u20ac'+totFixed.toFixed(2)+'\n'+
@@ -6818,6 +6899,7 @@ function showSection(id, el) {
   if(id==='entrate') updateRimanenza();
   if(id==='librietto') { setTimeout(() => renderLibrietto(), 50); }
   if(id==='ai') {
+    aiLoadLocationAndWeather();
     aiUpdateWelcome();
     const msgs = document.getElementById('ai-messages');
     const qk = document.getElementById('ai-quick');
