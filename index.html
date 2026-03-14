@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260314-v56';
+  var BUILD = '20260314-v57';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -14183,7 +14183,7 @@ function renderVSWeek() {
     const excludedExp = allDayExp.filter(e => vsIsExcluded(e) || e.pay==='bonifico');
     const excludedTotal = excludedExp.reduce((s,e)=>s+e.amount, 0);
 
-    grid.innerHTML += `<div class="day-card" style="${isToday?'border-color:var(--gold-light);':''}" onclick="vsOpenDayDetail('${ds}','${DAYS_IT[i]} ${d.getDate()} ${MESI[d.getMonth()]} ${d.getFullYear()}')" title="Clicca per dettaglio">
+    grid.innerHTML += `<div class="day-card" style="${isToday?'border-color:var(--gold-light);':''}" onclick="openWeekDayModal('${ds}','${DAYS_IT[i]} ${d.getDate()} ${MESI[d.getMonth()]} ${d.getFullYear()}')" title="Clicca per dettaglio 🔍">
       <div class="day-header" style="cursor:pointer;">${DAYS_IT[i]}<br><span style="font-size:16px;font-weight:700;">${d.getDate()}</span></div>
       <div class="day-items">
         ${dayInc.map(x=>{
