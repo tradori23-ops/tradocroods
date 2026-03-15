@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260314-v60';
+  var BUILD = '20260315-v62';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3017,11 +3017,16 @@ input, select, textarea {
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
 
         <!-- RIMANENZA -->
-        <div style="background:var(--card);border-radius:18px;padding:20px 22px;border:1.5px solid rgba(74,232,122,0.25);" id="dash-rim-box">
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:6px;">📦 Rimanenza Mensile</div>
-          <div style="font-size:38px;font-weight:900;font-family:'Playfair Display',serif;" id="sum-balance">€0,00</div>
+        <div style="background:var(--card);border-radius:18px;padding:22px 26px;border:2px solid rgba(74,232,122,0.35);position:relative;overflow:hidden;" id="dash-rim-box">
+          <!-- label -->
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:2px;">💰 Rimanenza Reale ad Oggi</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Stipendio − spese fisse − spese variabili</div>
+          <!-- importo grande -->
+          <div style="font-size:52px;font-weight:900;font-family:'Playfair Display',serif;line-height:1;" id="sum-balance">€0,00</div>
+          <!-- sub-info al giorno -->
+          <div id="dash-al-giorno-info" style="margin-top:8px;font-size:12px;font-weight:600;color:var(--text-muted);"></div>
           <div id="sum-income-detail" style="font-size:10px;color:var(--gold);margin-top:6px;line-height:1.5;display:none;"></div>
-          <div style="margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
             <span>Da mese prec.</span>
             <span id="dash-riporto" style="color:var(--gold);">—</span>
           </div>
@@ -4570,6 +4575,18 @@ input, select, textarea {
           <div style="display:none;" id="vs-fisse"></div>
           <div style="display:none;" id="vs-liquidita"></div>
           <div style="display:none;" id="vs-budget-spent-clean">0</div>
+        </div>
+      </div>
+
+      <!-- BANNER RIMANENZA REALE MENSILE -->
+      <div id="vs-rim-reale-banner" style="background:var(--card);border-radius:18px;padding:16px 22px;margin-bottom:14px;border:2px solid rgba(74,232,122,0.25);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">💰 Rimanenza Reale ad Oggi</div>
+          <div style="font-size:11px;color:var(--text-muted);">Entrate − spese fisse − spese libere − bonifici</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:38px;font-weight:900;font-family:'Playfair Display',serif;line-height:1;" id="vs-rim-reale-val">€0,00</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:3px;" id="vs-rim-reale-hint"></div>
         </div>
       </div>
 
@@ -7608,6 +7625,30 @@ function updateRimanenza() {
   const lbl = el('rim-result-label');
   if(lbl) lbl.style.color = rimanenza >= 0 ? '#4ae87a' : 'var(--red)';
   if(el('rim-result')) { el('rim-result').textContent = fmt(rimanenza); el('rim-result').style.color = rimanenza>=0?'#4ae87a':'var(--red)'; }
+
+  // ── Sincronizza sum-balance (card Dashboard) con la rimanenza reale ──
+  const sbEl = el('sum-balance');
+  if(sbEl) {
+    sbEl.textContent = fmt(rimanenza);
+    sbEl.style.color = rimanenza >= 0 ? '#4ae87a' : 'var(--red)';
+    const sbBox = el('dash-rim-box');
+    if(sbBox) {
+      sbBox.style.borderColor = rimanenza >= 0 ? 'rgba(74,232,122,0.4)' : 'rgba(224,92,92,0.5)';
+    }
+  }
+  // ── al giorno nella dashboard card ──
+  const dAGEl = el('dash-al-giorno-info');
+  if(dAGEl) {
+    if(alGiorno !== null && alGiorno > 0) {
+      dAGEl.textContent = '📆 '+fmt(alGiorno)+' al giorno · '+giorniRimasti+' giorni rimasti';
+      dAGEl.style.color = alGiorno > 20 ? '#4ae87a' : alGiorno > 10 ? '#ffb400' : 'var(--red)';
+    } else if(rimanenza < 0) {
+      dAGEl.textContent = '⚠️ Spese superiori alle entrate';
+      dAGEl.style.color = 'var(--red)';
+    } else {
+      dAGEl.textContent = '';
+    }
+  }
 
   // Status
   if(el('rim-status')) {
@@ -15359,6 +15400,25 @@ function renderVSTotale() {
   const margine = Math.round((budgetSett - spentSett) * 100) / 100;
 
   // ── Aggiorna HTML ──
+
+  // Rimanenza reale mensile — legge direttamente da rim-result (Dashboard)
+  const rimRealeEl = document.getElementById('rim-result');
+  const vsRimReale = document.getElementById('vs-rim-reale-val');
+  const vsRimHint  = document.getElementById('vs-rim-reale-hint');
+  const vsRimBanner = document.getElementById('vs-rim-reale-banner');
+  if(vsRimReale && rimRealeEl) {
+    const rimTxt = rimRealeEl.textContent || '€0,00';
+    vsRimReale.textContent = rimTxt;
+    const rimVal = parseFloat(rimTxt.replace(/[€\s\u00a0]/g,'').replace(',','.')) || 0;
+    vsRimReale.style.color = rimVal >= 0 ? 'var(--green)' : 'var(--red)';
+    if(vsRimBanner) vsRimBanner.style.borderColor = rimVal >= 0 ? 'rgba(74,232,122,0.3)' : 'rgba(224,92,92,0.3)';
+    if(vsRimHint) {
+      const alGiornoEl = document.getElementById('rim-al-giorno');
+      const alGiorno = alGiornoEl ? alGiornoEl.textContent : '';
+      vsRimHint.textContent = alGiorno && alGiorno !== '—' ? '📆 ' + alGiorno + ' al giorno disponibili' : '';
+    }
+  }
+
   if(elv('vs-tot-mensile')) {
     elv('vs-tot-mensile').textContent = fmt2(baseLibera);
     elv('vs-tot-mensile').style.color = col(baseLibera);
