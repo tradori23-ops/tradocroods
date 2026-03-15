@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v65';
+  var BUILD = '20260315-v66';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -7670,20 +7670,6 @@ function updateRimanenza() {
       sbBox.style.borderColor = rimanenza >= 0 ? 'rgba(74,232,122,0.4)' : 'rgba(224,92,92,0.5)';
     }
   }
-  // ── al giorno nella dashboard card ──
-  const dAGEl = el('dash-al-giorno-info');
-  if(dAGEl) {
-    if(alGiorno !== null && alGiorno > 0) {
-      dAGEl.textContent = '📆 '+fmt(alGiorno)+' al giorno · '+giorniRimasti+' giorni rimasti';
-      dAGEl.style.color = alGiorno > 20 ? '#4ae87a' : alGiorno > 10 ? '#ffb400' : 'var(--red)';
-    } else if(rimanenza < 0) {
-      dAGEl.textContent = '⚠️ Spese superiori alle entrate';
-      dAGEl.style.color = 'var(--red)';
-    } else {
-      dAGEl.textContent = '';
-    }
-  }
-
   // Status
   if(el('rim-status')) {
     if(rimanenza > 0) { el('rim-status').textContent = '✅ Surplus di '+fmt(rimanenza); el('rim-status').style.color='#4ae87a'; }
@@ -7713,6 +7699,20 @@ function updateRimanenza() {
   const giorniTotali = new Date(yr, mo, 0).getDate();
   const giorniRimasti = isCurrentMonth ? Math.max(0, giorniTotali - giornoOggi) : 0;
   const alGiorno = giorniRimasti > 0 && rimanenza > 0 ? Math.round((rimanenza / giorniRimasti)*100)/100 : null;
+
+  // ── al giorno nella dashboard card ──
+  const dAGEl = el('dash-al-giorno-info');
+  if(dAGEl) {
+    if(alGiorno !== null && alGiorno > 0) {
+      dAGEl.textContent = '📆 '+fmt(alGiorno)+' al giorno · '+giorniRimasti+' giorni rimasti';
+      dAGEl.style.color = alGiorno > 20 ? '#4ae87a' : alGiorno > 10 ? '#ffb400' : 'var(--red)';
+    } else if(rimanenza < 0) {
+      dAGEl.textContent = '⚠️ Spese superiori alle entrate';
+      dAGEl.style.color = 'var(--red)';
+    } else {
+      dAGEl.textContent = '';
+    }
+  }
 
   if(el('rim-giorno-oggi'))   el('rim-giorno-oggi').textContent  = giornoOggi + ' / ' + giorniTotali;
   if(el('rim-giorni-rimasti'))el('rim-giorni-rimasti').textContent= giorniRimasti > 0 ? giorniRimasti+' giorni' : 'Fine mese';
