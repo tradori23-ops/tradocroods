@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v76';
+  var BUILD = '20260315-v77';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -16948,7 +16948,57 @@ async function initPushNotifications() {
 
 
 // ── DETTAGLIO SETTIMANA / GIORNO (sec-settimanale) ──
+let _wdCurrentDate = null;
+let _wdCurrentLabel = null;
+
+function wdQuickAddClose() {
+  const p = document.getElementById('wdQuickAddPanel');
+  const b = document.getElementById('wdQuickAddBtn');
+  if(p) p.style.display = 'none';
+  if(b) b.textContent = '➕ Aggiungi';
+}
+
+function toggleWdQuickAdd() {
+  const panel = document.getElementById('wdQuickAddPanel');
+  const btn = document.getElementById('wdQuickAddBtn');
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '✖ Chiudi' : '➕ Aggiungi';
+  if(open) {
+    document.getElementById('wdQuickAddLabel').textContent = _wdCurrentLabel || '';
+    document.getElementById('wdQuickAddAmount').value = '';
+    document.getElementById('wdQuickAddDesc').value = '';
+    setTimeout(() => document.getElementById('wdQuickAddAmount').focus(), 100);
+  }
+}
+
+function wdQuickAddSave() {
+  if(!_wdCurrentDate) return;
+  const cat    = document.getElementById('wdQuickAddCat').value;
+  const pay    = document.getElementById('wdQuickAddPay').value;
+  const amount = parseFloat(document.getElementById('wdQuickAddAmount').value);
+  const desc   = document.getElementById('wdQuickAddDesc').value.trim() || '—';
+  if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido!'); return; }
+
+  const d = new Date(_wdCurrentDate);
+  const yr = d.getFullYear(), mo = d.getMonth()+1;
+  const exps = load(yr+'_'+mo, []);
+  const key = yr+'_'+mo;
+  const allExps = load('expenses_'+key, []);
+  const source = pay === 'satispay' ? 'satispay' : pay === 'bonifico' ? 'sella' : 'manual';
+  allExps.push({ id: Date.now()+Math.random(), date: _wdCurrentDate, cat, pay, amount, desc, source });
+  save('expenses_'+key, allExps);
+  bumpVersion(); fbPushToCloud();
+  wdQuickAddClose();
+  // Riapri il modal aggiornato
+  openWeekDayModal(_wdCurrentDate, _wdCurrentLabel);
+  renderWeek(); renderDashboard(); updateRimanenza();
+  showToast('✅ Spesa aggiunta!');
+}
+
 function openWeekDayModal(ds, label) {
+  _wdCurrentDate = ds;
+  _wdCurrentLabel = label;
   const modal = document.getElementById('weekDetailModal');
   modal.style.display = 'flex';
   document.getElementById('weekDetailList').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);">Caricamento...</div>';
@@ -17272,10 +17322,53 @@ document.addEventListener('click', function(e) {
             <div style="font-size:20px;font-weight:700;color:var(--gold);" id="weekDetailTitle">—</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="weekDetailSubtitle"></div>
           </div>
-          <button onclick="printDetailModal('weekDetailModal')" title="Stampa" style="background:rgba(201,168,67,0.12);border:1px solid rgba(201,168,67,0.3);color:var(--gold);font-size:14px;cursor:pointer;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--font);font-size:12px;font-weight:600;">🖨️ Stampa</button>
-          <button onclick="document.getElementById('weekDetailModal').style.display='none'" style="background:var(--dark3);border:1px solid var(--border);color:var(--text-muted);font-size:20px;cursor:pointer;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">✕</button>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button onclick="printDetailModal('weekDetailModal')" title="Stampa" style="background:rgba(201,168,67,0.12);border:1px solid rgba(201,168,67,0.3);color:var(--gold);font-size:14px;cursor:pointer;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--font);font-size:12px;font-weight:600;">🖨️ Stampa</button>
+            <button onclick="toggleWdQuickAdd()" id="wdQuickAddBtn" style="background:rgba(74,232,122,0.15);border:1px solid rgba(74,232,122,0.4);color:#4ae87a;font-size:12px;font-weight:700;cursor:pointer;border-radius:8px;padding:6px 12px;white-space:nowrap;">➕ Aggiungi</button>
+            <button onclick="document.getElementById('weekDetailModal').style.display='none';wdQuickAddClose();" style="background:var(--dark3);border:1px solid var(--border);color:var(--text-muted);font-size:20px;cursor:pointer;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">✕</button>
+          </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid var(--border);" id="weekDetailStats"></div>
+        <!-- quick-add inside weekDetailModal -->
+        <div id="wdQuickAddPanel" style="display:none;padding:14px 22px;border-bottom:1px solid var(--border);background:rgba(201,168,76,0.05);">
+          <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:10px;">➕ Aggiungi spesa per <span id="wdQuickAddLabel" style="color:var(--text);font-weight:400;"></span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;align-items:end;">
+            <div class="fld" style="margin:0;">
+              <label style="font-size:11px;">Categoria</label>
+              <select id="wdQuickAddCat">
+                <option value="bar">☕ Bar</option>
+                <option value="ristorante">🍽️ Ristorante</option>
+                <option value="supermercato">🛒 Supermercato</option>
+                <option value="svago">🎭 Svago</option>
+                <option value="viaggi">✈️ Viaggi</option>
+                <option value="hotel">🏨 Hotel</option>
+                <option value="musei">🏛️ Musei</option>
+                <option value="extra">💡 Extra</option>
+              </select>
+            </div>
+            <div class="fld" style="margin:0;">
+              <label style="font-size:11px;">Pagamento</label>
+              <select id="wdQuickAddPay">
+                <option value="satispay">📱 Satispay</option>
+                <option value="bancomat">💳 Bancomat</option>
+                <option value="contanti">💵 Contanti</option>
+                <option value="tickets">🎫 Tickets</option>
+              </select>
+            </div>
+            <div class="fld" style="margin:0;">
+              <label style="font-size:11px;">Importo €</label>
+              <input type="number" id="wdQuickAddAmount" step="0.01" min="0" placeholder="0,00" style="font-size:15px;font-weight:700;">
+            </div>
+            <div class="fld" style="margin:0;">
+              <label style="font-size:11px;">Descrizione</label>
+              <input type="text" id="wdQuickAddDesc" placeholder="es. Caffè...">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">
+            <button onclick="wdQuickAddClose()" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:8px;padding:7px 16px;cursor:pointer;font-size:12px;">Annulla</button>
+            <button onclick="wdQuickAddSave()" style="background:rgba(74,232,122,0.2);border:1px solid rgba(74,232,122,0.4);color:#4ae87a;border-radius:8px;padding:7px 20px;cursor:pointer;font-size:12px;font-weight:700;">💾 Salva</button>
+          </div>
+        </div>
         <div style="flex:1;overflow-y:auto;padding:16px 22px;" id="weekDetailList"></div>
       </div>
     </div>
