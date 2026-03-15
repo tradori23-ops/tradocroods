@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v64';
+  var BUILD = '20260315-v65';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -8084,7 +8084,8 @@ function renderDashboard() {
   if(!hasFerrino) {
     let prevYr = yr, prevMo = mo - 1;
     if(prevMo < 1) { prevMo = 12; prevYr--; }
-    const prevInc = load('income_' + prevYr + '_' + prevMo, []) || [];
+    const prevKey = prevYr + '_' + prevMo; // stesso formato di periodKey() — senza zero padding
+    const prevInc = load('income_' + prevKey, []) || [];
     prevStip = Math.round(prevInc.filter(i=>i.type==='ferrino').reduce((s,i)=>s+i.amount,0)*100)/100;
     inc = Math.round((inc + prevStip)*100)/100;
   }
@@ -8103,7 +8104,6 @@ function renderDashboard() {
       ? Math.round(curIncome.filter(i=>i.type==='ferrino').reduce((s,i)=>s+i.amount,0)*100)/100
       : prevStip;
     dashStip.textContent = '€'+stipVal.toFixed(2).replace('.',',');
-    dashStip.style.color = prevStip>0&&!hasFerrino ? 'var(--gold)' : 'var(--gold)';
   }
   const dashExtra = document.getElementById('dash-extra');
   if(dashExtra) {
@@ -8111,7 +8111,9 @@ function renderDashboard() {
     dashExtra.textContent = '€'+extraVal.toFixed(2).replace('.',',');
   }
 
-  // sum-balance è sincronizzato da updateRimanenza — non sovrascrivere qui
+  // Chiama updateRimanenza per calcolare e mostrare la rimanenza reale corretta
+  updateRimanenza();
+
   document.getElementById('creditoRimanente').textContent = '€'+inc.toFixed(2).replace('.',',');
   document.getElementById('creditoRimanente').className = 'positive';
 
