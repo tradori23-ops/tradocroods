@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v63';
+  var BUILD = '20260315-v64';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -8071,16 +8071,49 @@ function renderDashboard() {
   if(!document.getElementById('sum-income')) return;
   if(!document.getElementById('creditoRimanente')) return;
   if(!document.getElementById('latestExpenses')) return;
-  const inc      = Math.round(getIncome().reduce((s,i)=>s+i.amount,0) * 100) / 100;
-  const fixed    = Math.round(getTotalFixedForYear(parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear())) * 100) / 100;
+  const yr = parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear());
+  const mo = parseInt(document.getElementById('globalMonth')?.value || new Date().getMonth()+1);
+
+  // ── Entrate mese corrente ──
+  const curIncome = getIncome();
+  let inc = Math.round(curIncome.reduce((s,i)=>s+i.amount,0) * 100) / 100;
+
+  // ── Stipendio mese precedente (se non c'è Ferrino nel mese corrente) ──
+  const hasFerrino = curIncome.some(i => i.type === 'ferrino');
+  let prevStip = 0;
+  if(!hasFerrino) {
+    let prevYr = yr, prevMo = mo - 1;
+    if(prevMo < 1) { prevMo = 12; prevYr--; }
+    const prevInc = load('income_' + prevYr + '_' + prevMo, []) || [];
+    prevStip = Math.round(prevInc.filter(i=>i.type==='ferrino').reduce((s,i)=>s+i.amount,0)*100)/100;
+    inc = Math.round((inc + prevStip)*100)/100;
+  }
+
+  const fixed    = Math.round(getTotalFixedForYear(yr) * 100) / 100;
   const variable = Math.round(getTotalExpenses() * 100) / 100;
-  const balance  = Math.round((inc - fixed - variable) * 100) / 100;
+
   document.getElementById('sum-income').textContent = '€'+inc.toFixed(2).replace('.',',');
   document.getElementById('sum-fixed').textContent = '€'+fixed.toFixed(2).replace('.',',');
   document.getElementById('sum-var').textContent = '€'+variable.toFixed(2).replace('.',',');
-  document.getElementById('sum-balance').textContent = (balance<0?'-':'')+'€'+Math.abs(balance).toFixed(2).replace('.',',');
-  document.getElementById('creditoRimanente').textContent = (balance<0?'-':'')+'€'+Math.abs(balance).toFixed(2).replace('.',',');
-  document.getElementById('creditoRimanente').className = balance >= 0 ? 'positive' : 'negative';
+
+  // Aggiorna dettaglio stipendio nella card Entrate
+  const dashStip = document.getElementById('dash-stipendio');
+  if(dashStip) {
+    const stipVal = hasFerrino
+      ? Math.round(curIncome.filter(i=>i.type==='ferrino').reduce((s,i)=>s+i.amount,0)*100)/100
+      : prevStip;
+    dashStip.textContent = '€'+stipVal.toFixed(2).replace('.',',');
+    dashStip.style.color = prevStip>0&&!hasFerrino ? 'var(--gold)' : 'var(--gold)';
+  }
+  const dashExtra = document.getElementById('dash-extra');
+  if(dashExtra) {
+    const extraVal = Math.round(curIncome.filter(i=>i.type!=='ferrino').reduce((s,i)=>s+i.amount,0)*100)/100;
+    dashExtra.textContent = '€'+extraVal.toFixed(2).replace('.',',');
+  }
+
+  // sum-balance è sincronizzato da updateRimanenza — non sovrascrivere qui
+  document.getElementById('creditoRimanente').textContent = '€'+inc.toFixed(2).replace('.',',');
+  document.getElementById('creditoRimanente').className = 'positive';
 
   // Latest expenses
   const exp = getExpenses().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
@@ -8101,8 +8134,6 @@ function renderDashboard() {
   if(dashChartInst) dashChartInst.destroy();
   const ctx = document.getElementById('dashChart').getContext('2d');
 
-  const yr = parseInt(document.getElementById('globalYear').value);
-  const mo = parseInt(document.getElementById('globalMonth').value);
   const daysInMonth = new Date(yr, mo, 0).getDate();
   const today = new Date();
   const isCurrentMonth = (yr === today.getFullYear() && mo === today.getMonth()+1);
