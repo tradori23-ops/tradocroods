@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v67';
+  var BUILD = '20260315-v68';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -4921,9 +4921,9 @@ input, select, textarea {
         <div class="card-title">📅 Spese Settimanali — Sella / Satispay / Revolut</div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
           <div style="display:flex;align-items:center;gap:12px;">
-            <button class="calendar-nav" onclick="vsWeekOffset--; window._vsTrendOffAManual=false; renderVSWeek(); vsGraphTab(vsCurrentGraphTab);">◀</button>
+            <button class="calendar-nav" onclick="vsWeekOffset--; window._vsTrendOffAManual=false; renderVSWeek(); vsGraphTab(vsCurrentGraphTab); renderVSBudgetBar();">◀</button>
             <span style="font-size:15px;font-weight:600;" id="vs-weekLabel">Settimana</span>
-            <button class="calendar-nav" onclick="vsWeekOffset++; window._vsTrendOffAManual=false; renderVSWeek(); vsGraphTab(vsCurrentGraphTab);">▶</button>
+            <button class="calendar-nav" onclick="vsWeekOffset++; window._vsTrendOffAManual=false; renderVSWeek(); vsGraphTab(vsCurrentGraphTab); renderVSBudgetBar();">▶</button>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <div style="background:rgba(74,232,122,0.08);border:1.5px solid rgba(74,232,122,0.2);border-radius:10px;padding:6px 14px;text-align:center;">
