@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v71';
+  var BUILD = '20260315-v72';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -7602,14 +7602,13 @@ function updateRimanenza() {
   }
 
   // ── SPESE MESE CORRENTE (solo reali importate, NO fisse in anticipo) ──
-  const fixedTotal  = Math.round(getTotalFixedForYear(yr)*100)/100; // solo per display
-  const speseBonif  = allExp.filter(e=>e.pay==='bonifico'||e.cat==='rata');
-  const speseLibere = allExp.filter(e=>e.pay!=='bonifico'&&e.cat!=='rata');
-  const totBonif    = Math.round(speseBonif.reduce((s,e)=>s+e.amount,0)*100)/100;
-  const totLibere   = Math.round(speseLibere.reduce((s,e)=>s+e.amount,0)*100)/100;
-  // totBonif (bonifici/rate) sono già coperti da fixedTotal (spese fisse pianificate):
-  // includerli ENTRAMBI = double counting → usiamo solo fixedTotal + totLibere
-  const totTutteSpese = Math.round((fixedTotal + totLibere)*100)/100;
+  const fixedTotal  = Math.round(getTotalFixedForYear(yr)*100)/100;
+  // Stesso approccio di renderVSBudget: vsFilter + !fromFixed = solo spese variabili reali
+  const vsSpese = vsLoadMonth(yr, mo).filter(e => !e.fromFixed);
+  const totVarSpese = Math.round(vsSpese.reduce((s,e)=>s+e.amount,0)*100)/100;
+  const totBonif = 0;
+  const totLibere = totVarSpese;
+  const totTutteSpese = Math.round((fixedTotal + totVarSpese)*100)/100;
 
   // ── LIQUIDITÀ = Stipendio − spese fine mese precedente ──
   // ATTENZIONE: quando stipendio===0, totEntrate è già = prevStip - totSpesePrev + extra
