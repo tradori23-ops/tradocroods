@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v72';
+  var BUILD = '20260315-v75';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -1207,6 +1207,40 @@ body.light .stat-mini .s-label { color:#44446a; }
 .summary-card.expense .value { color: var(--red); }
 .summary-card.fixed .value { color: var(--gold); }
 .summary-card.balance .value { color: var(--accent2); }
+
+/* ===== RIMANENZA LABEL NEON ===== */
+.rim-label-title {
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #4ae87a;
+  text-shadow:
+    0 0 6px rgba(74,232,122,0.9),
+    0 0 14px rgba(74,232,122,0.6),
+    0 0 28px rgba(74,232,122,0.3);
+  margin-bottom: 4px;
+}
+.rim-label-sub {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #c9a84c;
+  text-shadow:
+    0 0 5px rgba(201,168,76,0.8),
+    0 0 12px rgba(201,168,76,0.4);
+  margin-bottom: 10px;
+}
+body.light .rim-label-title {
+  color: #0a7a32;
+  text-shadow: none;
+  font-weight: 900;
+}
+body.light .rim-label-sub {
+  color: #7a5200;
+  text-shadow: none;
+  font-weight: 800;
+}
 
 /* ===== SPESE FISSE ===== */
 .fixed-expenses-grid {
@@ -3059,8 +3093,8 @@ input, select, textarea {
         <!-- RIMANENZA -->
         <div style="background:var(--card);border-radius:18px;padding:22px 26px;border:2px solid rgba(74,232,122,0.35);position:relative;overflow:hidden;" id="dash-rim-box">
           <!-- label -->
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:2px;">💰 Rimanenza Reale ad Oggi</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Stipendio − spese fisse − spese variabili</div>
+          <div class="rim-label-title">💰 Rimanenza Reale ad Oggi</div>
+          <div class="rim-label-sub">📅 Rimanenza Mensile</div>
           <!-- importo grande -->
           <div style="font-size:52px;font-weight:900;font-family:'Playfair Display',serif;line-height:1;" id="sum-balance">€0,00</div>
           <!-- sub-info al giorno -->
@@ -3858,9 +3892,57 @@ input, select, textarea {
 
       <!-- NOTE SETTIMANALI -->
       <div class="card mt-20" id="weekNotePanel" style="display:none;">
-        <div class="card-title">📝 Note & Modifica — <span id="weekNoteDay" style="color:var(--text);font-size:16px;"></span></div>
-        <div class="grid-2" style="gap:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div class="card-title" style="margin:0;">📅 <span id="weekNoteDay" style="color:var(--text);font-size:16px;"></span></div>
+          <button class="btn btn-gold" onclick="toggleQuickAddDay()" id="quickAddDayBtn" style="font-size:13px;padding:8px 16px;">➕ Aggiungi Spesa</button>
+        </div>
 
+        <!-- QUICK ADD SPESA -->
+        <div id="quickAddDayPanel" style="display:none;background:var(--dark3);border:1px solid rgba(201,168,76,0.3);border-radius:14px;padding:16px;margin-bottom:16px;">
+          <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:12px;">➕ Nuova Spesa — <span id="quickAddDayLabel" style="color:var(--text);font-weight:400;"></span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div class="fld" style="margin:0;">
+              <label>Categoria</label>
+              <select id="quickAddCat">
+                <option value="bar">☕ Bar</option>
+                <option value="ristorante">🍽️ Ristorante</option>
+                <option value="supermercato">🛒 Supermercato</option>
+                <option value="svago">🎭 Svago</option>
+                <option value="viaggi">✈️ Viaggi</option>
+                <option value="hotel">🏨 Hotel</option>
+                <option value="musei">🏛️ Musei</option>
+                <option value="extra">💡 Extra</option>
+                <option value="rata">📦 Rata</option>
+              </select>
+            </div>
+            <div class="fld" style="margin:0;">
+              <label>Metodo Pagamento</label>
+              <select id="quickAddPay">
+                <option value="satispay">📱 Satispay</option>
+                <option value="bancomat">💳 Bancomat</option>
+                <option value="contanti">💵 Contanti</option>
+                <option value="tickets">🎫 Tickets</option>
+                <option value="bonifico">🏦 Bonifico</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div class="fld" style="margin:0;">
+              <label>Importo (€)</label>
+              <input type="number" id="quickAddAmount" step="0.01" min="0" placeholder="0,00" style="font-size:16px;font-weight:700;">
+            </div>
+            <div class="fld" style="margin:0;">
+              <label>Descrizione (opzionale)</label>
+              <input type="text" id="quickAddDesc" placeholder="es. Caffè, Spesa...">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline" onclick="toggleQuickAddDay()" style="flex:1;">Annulla</button>
+            <button class="btn btn-gold" onclick="saveQuickAddDay()" style="flex:2;">💾 Salva Spesa</button>
+          </div>
+        </div>
+
+        <div class="grid-2" style="gap:20px;">
           <!-- NOTE -->
           <div>
             <div class="fld" style="margin-bottom:14px;">
@@ -3870,9 +3952,9 @@ input, select, textarea {
             <button class="btn btn-gold" onclick="saveWeekNote()" style="width:100%;">💾 Salva Nota</button>
           </div>
 
-          <!-- MODIFICA SPESA -->
+          <!-- SPESE DEL GIORNO -->
           <div>
-            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">✏️ Modifica Spesa del Giorno</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">✏️ Spese del Giorno</div>
             <div id="weekDayExpList" style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;"></div>
           </div>
         </div>
@@ -4388,6 +4470,15 @@ input, select, textarea {
           <div style="font-size:17px;font-weight:700;color:var(--gold);">Documenti & Fatture</div>
           <div style="font-size:13px;color:var(--text-muted);" id="docStorageDesc">Archivia le tue fatture divise per categoria.</div>
         </div>
+      </div>
+
+      <!-- DEDUP BUTTON -->
+      <div style="background:linear-gradient(135deg,rgba(74,232,122,0.08),rgba(74,232,122,0.02));border:1.5px solid rgba(74,232,122,0.25);border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#4ae87a;">🧹 Rimuovi Duplicati Cross-Carta</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">Elimina automaticamente le spese importate da più carte nello stesso giorno (es. Satispay + Revolut stesso pagamento)</div>
+        </div>
+        <button class="btn btn-gold" onclick="runManualDedup()" style="background:rgba(74,232,122,0.15);border-color:rgba(74,232,122,0.4);color:#4ae87a;white-space:nowrap;">🧹 Esegui ora</button>
       </div>
 
       <!-- GOOGLE DRIVE PANEL -->
@@ -8497,6 +8588,61 @@ function saveEditExp() {
   renderDashboard();
   vsRefreshIfActive();
   showToast('✅ Spesa aggiornata!');
+}
+
+function toggleQuickAddDay() {
+  const panel = document.getElementById('quickAddDayPanel');
+  const btn = document.getElementById('quickAddDayBtn');
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '✖ Chiudi' : '➕ Aggiungi Spesa';
+  if(open) {
+    document.getElementById('quickAddDayLabel').textContent = document.getElementById('weekNoteDay').textContent;
+    document.getElementById('quickAddAmount').value = '';
+    document.getElementById('quickAddDesc').value = '';
+    setTimeout(() => document.getElementById('quickAddAmount').focus(), 100);
+  }
+}
+
+function saveQuickAddDay() {
+  if(!selectedWeekDay) return;
+  const cat    = document.getElementById('quickAddCat').value;
+  const pay    = document.getElementById('quickAddPay').value;
+  const amount = parseFloat(document.getElementById('quickAddAmount').value);
+  const desc   = document.getElementById('quickAddDesc').value.trim() || '—';
+  if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido!'); return; }
+
+  // Determina mese/anno dalla data selezionata
+  const d = new Date(selectedWeekDay);
+  const yr = d.getFullYear();
+  const mo = d.getMonth() + 1;
+  const key = yr + '_' + mo;
+  const exps = load('expenses_' + key, []);
+
+  const newExp = {
+    id: Date.now() + Math.random(),
+    date: selectedWeekDay,
+    cat, pay, amount,
+    desc,
+    source: pay === 'satispay' ? 'satispay' : pay === 'bonifico' ? 'sella' : 'manual'
+  };
+  exps.push(newExp);
+  save('expenses_' + key, exps);
+  bumpVersion();
+  fbPushToCloud();
+
+  // Reset form e chiudi
+  document.getElementById('quickAddAmount').value = '';
+  document.getElementById('quickAddDesc').value = '';
+  toggleQuickAddDay();
+
+  // Refresh
+  renderWeekDayExpenses(selectedWeekDay);
+  renderWeek();
+  renderDashboard();
+  updateRimanenza();
+  vsRefreshIfActive();
+  showToast('✅ Spesa aggiunta!');
 }
 
 function prevWeek() { weekOffset--; renderWeek(); }
@@ -13509,9 +13655,105 @@ function genericConfirmImport(parsed, previewId, statusId, label) {
   if(previewId.includes('sella'))   sellaParsed   = [];
   if(previewId.includes('revolut')) revolutParsed = [];
   refreshAll();
-  showToast(`✅ Importate ${totalImported} uscite da ${label} in ${Object.keys(byMonth).length} mes${Object.keys(byMonth).length===1?'e':'i'}!`);
+  // Auto-dedup cross-source dopo ogni importazione
+  const dupsRemoved = deduplicateAllMonths();
+  const dupMsg = dupsRemoved > 0 ? ` · 🧹 ${dupsRemoved} duplicati rimossi` : '';
+  showToast(`✅ Importate ${totalImported} uscite da ${label} in ${Object.keys(byMonth).length} mes${Object.keys(byMonth).length===1?'e':'i'}!${dupMsg}`);
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// ── DEDUP CROSS-SOURCE ──
+// Rileva e rimuove duplicati tra Satispay/Revolut/Sella stesso giorno
+// ═══════════════════════════════════════════════════════════════
+
+// Priorità fonte: teniamo Satispay > Revolut / Sella
+const SOURCE_PRIORITY = { satispay: 3, sella: 2, revolut: 1, manual: 0 };
+
+function cleanDesc(desc) {
+  if(!desc) return '';
+  return desc.toLowerCase()
+    .replace(/[^a-z0-9àèéìòù\s]/gi,'')
+    .replace(/\s+/g,' ')
+    .trim()
+    .substring(0,12);
+}
+
+function isCrossSourceDuplicate(a, b) {
+  // Stessa data
+  if(a.date !== b.date) return false;
+  // Stessa fonte = non è cross-source
+  if(a.source === b.source) return false;
+  // Almeno una delle due deve essere da carta
+  const srcSet = new Set([a.source, b.source]);
+  if(!srcSet.has('satispay') && !srcSet.has('revolut') && !srcSet.has('sella')) return false;
+
+  // Importi simili: stessa cifra o differenza ≤ €2 (fee Revolut)
+  const diff = Math.abs(a.amount - b.amount);
+  const maxAmt = Math.max(a.amount, b.amount);
+  const withinTolerance = diff <= 2.5 || (maxAmt > 0 && diff/maxAmt <= 0.15);
+  if(!withinTolerance) return false;
+
+  // Descrizioni simili (primi 8 char puliti)
+  const da = cleanDesc(a.desc);
+  const db = cleanDesc(b.desc);
+  if(da.length >= 4 && db.length >= 4) {
+    const shorter = da.length < db.length ? da : db;
+    const longer  = da.length < db.length ? db : da;
+    if(!longer.startsWith(shorter.substring(0,6))) return false;
+  }
+
+  return true;
+}
+
+function deduplicateMonth(expenses) {
+  // Per ogni coppia, se cross-source duplicate, tieni quello con priorità più alta
+  const toRemove = new Set();
+  for(let i = 0; i < expenses.length; i++) {
+    if(toRemove.has(i)) continue;
+    for(let j = i+1; j < expenses.length; j++) {
+      if(toRemove.has(j)) continue;
+      if(isCrossSourceDuplicate(expenses[i], expenses[j])) {
+        const priA = SOURCE_PRIORITY[expenses[i].source] || 0;
+        const priB = SOURCE_PRIORITY[expenses[j].source] || 0;
+        // Rimuovi quello con priorità più bassa
+        if(priA >= priB) toRemove.add(j);
+        else toRemove.add(i);
+      }
+    }
+  }
+  return { cleaned: expenses.filter((_,i) => !toRemove.has(i)), removed: toRemove.size };
+}
+
+function deduplicateAllMonths() {
+  if(!currentUser?.email) return 0;
+  const prefix = `tc_${currentUser.email}_expenses_`;
+  let totalRemoved = 0;
+  for(let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if(!key || !key.startsWith(prefix)) continue;
+    try {
+      const expenses = JSON.parse(localStorage.getItem(key) || '[]');
+      const { cleaned, removed } = deduplicateMonth(expenses);
+      if(removed > 0) {
+        localStorage.setItem(key, JSON.stringify(cleaned));
+        totalRemoved += removed;
+      }
+    } catch(e) {}
+  }
+  if(totalRemoved > 0) {
+    bumpVersion();
+    fbPushToCloud();
+    refreshAll();
+  }
+  return totalRemoved;
+}
+
+function runManualDedup() {
+  const n = deduplicateAllMonths();
+  if(n > 0) showToast(`🧹 Rimossi ${n} duplicati cross-carta!`);
+  else showToast('✅ Nessun duplicato trovato.');
+}
 
 // ═══════════════════════════════════════════════════════════════
 // ── SPESE SETTIMANALI (SELLA/SATISPAY/REVOLUT) ──
