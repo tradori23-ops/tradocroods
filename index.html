@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v68';
+  var BUILD = '20260315-v69';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -2772,6 +2772,7 @@ input, select, textarea {
 
       <!-- Form accesso manuale (mostrato quando nessun profilo in localStorage) -->
       <div id="manualLoginArea" style="display:none;width:100%;margin-top:4px;">
+        <form onsubmit="doManualLogin();return false;" autocomplete="on">
         <div style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:14px;">Inserisci email e password del tuo profilo</div>
         <div class="form-group">
           <label>Email</label>
@@ -2787,6 +2788,7 @@ input, select, textarea {
         <div id="manualLoginErr" style="color:#e05c5c;font-size:12px;text-align:center;min-height:16px;margin-bottom:4px;"></div>
         <button class="btn-primary" onclick="doManualLogin()">Accedi</button>
         <button onclick="showManualRegister()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:6px;padding:4px 8px;font-family:inherit;">Nuovo profilo →</button>
+        </form>
       </div>
     </div>
 
@@ -2794,19 +2796,22 @@ input, select, textarea {
     <div id="profilePasswordStep">
       <div class="sel-avatar" id="selAvatar">?</div>
       <div style="font-size:16px;font-weight:700;" id="selName">—</div>
+      <form onsubmit="doLoginProfile();return false;" autocomplete="on">
       <div class="form-group" style="width:100%;">
         <div style="position:relative;">
-          <input type="password" id="loginPassword" placeholder="Password" style="padding-right:48px;" onkeydown="if(event.key==='Enter')doLoginProfile()">
+          <input type="password" id="loginPassword" placeholder="Password" style="padding-right:48px;" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLoginProfile()">
           <button type="button" onclick="togglePwd('loginPassword','eyeLogin')" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;line-height:1;color:var(--text-muted);" id="eyeLogin">👁️</button>
         </div>
       </div>
       <button class="btn-primary" onclick="doLoginProfile()">Accedi</button>
-      <button onclick="backToProfiles()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:-4px;padding:4px 8px;font-family:inherit;">← Cambia profilo</button>
+      <button type="button" onclick="backToProfiles()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:-4px;padding:4px 8px;font-family:inherit;">← Cambia profilo</button>
+      </form>
     </div>
 
     <!-- STEP REGISTRAZIONE -->
     <div id="registerStep" style="display:none;">
       <div style="font-size:16px;font-weight:700;margin-bottom:16px;text-align:center;">➕ Nuovo Profilo</div>
+      <form onsubmit="doRegister();return false;" autocomplete="on">
       <div class="form-group">
         <label>Nome</label>
         <input type="text" id="regName" placeholder="Il tuo nome">
@@ -2823,7 +2828,8 @@ input, select, textarea {
         </div>
       </div>
       <button class="btn-primary" onclick="doRegister()">Crea Profilo</button>
-      <button class="btn btn-outline" onclick="backToProfiles()" style="font-size:13px;margin-top:-6px;">← Annulla</button>
+      <button type="button" class="btn btn-outline" onclick="backToProfiles()" style="font-size:13px;margin-top:-6px;">← Annulla</button>
+      </form>
     </div>
 
     <!-- hidden legacy inputs -->
