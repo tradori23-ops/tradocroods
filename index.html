@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v75';
+  var BUILD = '20260315-v76';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5058,9 +5058,55 @@ input, select, textarea {
             <div style="font-size:15px;font-weight:700;color:var(--gold);" id="vsDayDetailTitle">—</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Dettaglio spese · clicca ✏️ per modificare</div>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;">
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <div id="vsDayDetailKPI" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+            <button onclick="toggleVsQuickAdd()" id="vsQuickAddBtn" class="btn btn-gold" style="font-size:12px;padding:7px 14px;">➕ Aggiungi Spesa</button>
             <button onclick="vsCloseDayDetail()" style="background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--text-muted);border-radius:8px;padding:6px 12px;cursor:pointer;">✕ Chiudi</button>
+          </div>
+        </div>
+
+        <!-- QUICK ADD nel popup VS -->
+        <div id="vsQuickAddPanel" style="display:none;background:var(--dark3);border:1px solid rgba(201,168,76,0.3);border-radius:14px;padding:16px;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:12px;">➕ Nuova Spesa — <span id="vsQuickAddLabel" style="color:var(--text);font-weight:400;"></span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+            <div class="fld" style="margin:0;">
+              <label>Categoria</label>
+              <select id="vsQuickAddCat">
+                <option value="bar">☕ Bar</option>
+                <option value="ristorante">🍽️ Ristorante</option>
+                <option value="supermercato">🛒 Supermercato</option>
+                <option value="svago">🎭 Svago</option>
+                <option value="viaggi">✈️ Viaggi</option>
+                <option value="hotel">🏨 Hotel</option>
+                <option value="musei">🏛️ Musei</option>
+                <option value="extra">💡 Extra</option>
+                <option value="rata">📦 Rata</option>
+              </select>
+            </div>
+            <div class="fld" style="margin:0;">
+              <label>Metodo Pagamento</label>
+              <select id="vsQuickAddPay">
+                <option value="satispay">📱 Satispay</option>
+                <option value="bancomat">💳 Bancomat</option>
+                <option value="contanti">💵 Contanti</option>
+                <option value="tickets">🎫 Tickets</option>
+                <option value="bonifico">🏦 Bonifico</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+            <div class="fld" style="margin:0;">
+              <label>Importo (€)</label>
+              <input type="number" id="vsQuickAddAmount" step="0.01" min="0" placeholder="0,00" style="font-size:16px;font-weight:700;">
+            </div>
+            <div class="fld" style="margin:0;">
+              <label>Descrizione (opzionale)</label>
+              <input type="text" id="vsQuickAddDesc" placeholder="es. Caffè, Spesa...">
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline" onclick="toggleVsQuickAdd()" style="flex:1;">Annulla</button>
+            <button class="btn btn-gold" onclick="saveVsQuickAdd()" style="flex:2;">💾 Salva Spesa</button>
           </div>
         </div>
 
@@ -13747,6 +13793,51 @@ function deduplicateAllMonths() {
     refreshAll();
   }
   return totalRemoved;
+}
+
+function toggleVsQuickAdd() {
+  const panel = document.getElementById('vsQuickAddPanel');
+  const btn = document.getElementById('vsQuickAddBtn');
+  const open = panel.style.display === 'none';
+  panel.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '✖ Chiudi' : '➕ Aggiungi Spesa';
+  if(open) {
+    document.getElementById('vsQuickAddLabel').textContent = document.getElementById('vsDayDetailTitle').textContent;
+    document.getElementById('vsQuickAddAmount').value = '';
+    document.getElementById('vsQuickAddDesc').value = '';
+    setTimeout(() => document.getElementById('vsQuickAddAmount').focus(), 100);
+  }
+}
+
+function saveVsQuickAdd() {
+  if(!vsDayDetailDate) return;
+  const cat    = document.getElementById('vsQuickAddCat').value;
+  const pay    = document.getElementById('vsQuickAddPay').value;
+  const amount = parseFloat(document.getElementById('vsQuickAddAmount').value);
+  const desc   = document.getElementById('vsQuickAddDesc').value.trim() || '—';
+  if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido!'); return; }
+
+  const d = new Date(vsDayDetailDate);
+  const yr = d.getFullYear();
+  const mo = d.getMonth() + 1;
+  const key = yr + '_' + mo;
+  const exps = load('expenses_' + key, []);
+
+  const source = pay === 'satispay' ? 'satispay' : pay === 'bonifico' ? 'sella' : 'manual';
+  exps.push({ id: Date.now()+Math.random(), date: vsDayDetailDate, cat, pay, amount, desc, source });
+  save('expenses_' + key, exps);
+  bumpVersion();
+  fbPushToCloud();
+
+  document.getElementById('vsQuickAddAmount').value = '';
+  document.getElementById('vsQuickAddDesc').value = '';
+  toggleVsQuickAdd();
+
+  vsRenderDayDetailList(vsDayDetailDate);
+  renderWeek();
+  renderDashboard();
+  updateRimanenza();
+  showToast('✅ Spesa aggiunta!');
 }
 
 function runManualDedup() {
