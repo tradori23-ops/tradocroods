@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v70';
+  var BUILD = '20260315-v71';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -16191,6 +16191,7 @@ function checkRemindersMain() {
 
 function updateReminderBadge() {
   const now = Date.now();
+  const list = getReminders();
   const pending = list.filter(r => !r.completed && r.ts > now).length;
   const overdue = list.filter(r => !r.completed && r.ts <= now && r.notified).length;
   const badge = document.getElementById('reminderNavBadge');
