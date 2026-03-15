@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v77';
+  var BUILD = '20260315-v78';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -8670,7 +8670,7 @@ function saveQuickAddDay() {
     date: selectedWeekDay,
     cat, pay, amount,
     desc,
-    source: pay === 'satispay' ? 'satispay' : pay === 'bonifico' ? 'sella' : 'manual'
+    source: pay === 'satispay' ? 'satispay' : pay === 'revolut' ? 'revolut' : 'sella'
   };
   exps.push(newExp);
   save('expenses_' + key, exps);
@@ -13823,7 +13823,7 @@ function saveVsQuickAdd() {
   const key = yr + '_' + mo;
   const exps = load('expenses_' + key, []);
 
-  const source = pay === 'satispay' ? 'satispay' : pay === 'bonifico' ? 'sella' : 'manual';
+  const source = pay === 'satispay' ? 'satispay' : pay === 'revolut' ? 'revolut' : 'sella';
   exps.push({ id: Date.now()+Math.random(), date: vsDayDetailDate, cat, pay, amount, desc, source });
   save('expenses_' + key, exps);
   bumpVersion();
@@ -16985,7 +16985,7 @@ function wdQuickAddSave() {
   const exps = load(yr+'_'+mo, []);
   const key = yr+'_'+mo;
   const allExps = load('expenses_'+key, []);
-  const source = pay === 'satispay' ? 'satispay' : pay === 'bonifico' ? 'sella' : 'manual';
+  const source = pay === 'satispay' ? 'satispay' : pay === 'revolut' ? 'revolut' : 'sella';
   allExps.push({ id: Date.now()+Math.random(), date: _wdCurrentDate, cat, pay, amount, desc, source });
   save('expenses_'+key, allExps);
   bumpVersion(); fbPushToCloud();
