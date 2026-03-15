@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v78';
+  var BUILD = '20260315-v79';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -7134,18 +7134,31 @@ function showUpdateBanner(newVersion) {
 
 // ===== INIT =====
 
-// Migrazione: converte source:'vs_manual' in base al campo pay
+// Migrazione: converte source:'vs_manual'/'manual' in base al campo pay
 function migrateVSManualSources() {
-  const payToSource = { satispay:'satispay', revolut:'revolut', bancomat:'sella', bonifico:'sella' };
+  const payToSource = {
+    satispay:'satispay', revolut:'revolut',
+    bancomat:'sella', bonifico:'sella', contanti:'sella',
+    tickets:'sella', carta:'sella', sella:'sella'
+  };
   let fixed = 0;
   for(let i=0; i<localStorage.length; i++) {
     const k = localStorage.key(i);
-    if(!k || !k.includes('_vs_expenses_')) continue;
+    if(!k) continue;
+    // Copre sia _vs_expenses_ che _expenses_
+    if(!k.includes('_expenses_')) continue;
     try {
       let arr = JSON.parse(localStorage.getItem(k) || '[]');
       let changed = false;
       arr = arr.map(e => {
-        if(e.source === 'vs_manual' && payToSource[e.pay]) {
+        // Converti sia vs_manual che manual → fonte corretta
+        if((e.source === 'vs_manual' || e.source === 'manual') && payToSource[e.pay]) {
+          fixed++;
+          changed = true;
+          return {...e, source: payToSource[e.pay]};
+        }
+        // Se source mancante ma pay presente, assegna fonte
+        if(!e.source && e.pay && payToSource[e.pay]) {
           fixed++;
           changed = true;
           return {...e, source: payToSource[e.pay]};
@@ -7155,7 +7168,7 @@ function migrateVSManualSources() {
       if(changed) localStorage.setItem(k, JSON.stringify(arr));
     } catch(err) {}
   }
-  if(fixed > 0) { console.log('✅ Migrati ' + fixed + ' source vs_manual'); fbPushToCloud(); }
+  if(fixed > 0) { console.log('✅ Migrati ' + fixed + ' source manual→sella'); fbPushToCloud(); }
 }
 
 function initApp() {
