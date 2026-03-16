@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260316-v92';
+  var BUILD = '20260317-v96';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3205,7 +3205,7 @@ input, select, textarea {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <button class="btn btn-outline" onclick="resetPagamenti()" style="font-size:12px;">🔄 Reset Pagamenti Mese</button>
-            <button class="btn btn-gold" onclick="saveCurrentFixedAsSnapshot()" style="font-size:12px;background:rgba(74,184,232,0.15);border-color:rgba(74,184,232,0.4);color:#4ab8e8;">📸 Salva come spese fisse anno <span id="snapBtnYear"></span></button>
+            <button class="btn btn-gold" onclick="saveCurrentFixedAsSnapshot()" style="font-size:12px;background:rgba(74,184,232,0.2);border-color:rgba(74,184,232,0.6);color:#ffffff;font-weight:700;">📸 Salva come spese fisse anno <span id="snapBtnYear" style="color:#7dd8f8;"></span></button>
           </div>
         </div>
 
@@ -6513,49 +6513,47 @@ function doManualLogin() {
   const localUser  = localUsers.find(u => u.email === email && u.pass === pass);
   if(localUser) { enterApp(localUser); return; }
 
-  // Se non trovato in locale, prova a recuperare da Firebase
-  if(fbReady && db) {
-    if(errEl) errEl.textContent = '⏳ Verifico su cloud…';
-    safeDb()?.ref('tc_users').once('value').then(snap => {
+  // Login via Firebase (funziona anche in InPrivate su iOS)
+  if(errEl) errEl.textContent = '⏳ Connessione cloud in corso…';
+
+  const tryFb = (attempt) => {
+    const _sdb = safeDb();
+    if(!_sdb) {
+      if(attempt >= 8) {
+        if(errEl) errEl.textContent = '⚠️ Nessuna connessione. Controlla internet e riprova.';
+        return;
+      }
+      setTimeout(() => tryFb(attempt + 1), 1000);
+      return;
+    }
+    _sdb.ref('tc_users').once('value').then(snap => {
       let fbUsers = snap.val();
-      // Firebase restituisce oggetti invece di array — converti
       if(fbUsers && !Array.isArray(fbUsers) && typeof fbUsers === 'object') {
         fbUsers = Object.values(fbUsers);
       }
-      if(!fbUsers || !Array.isArray(fbUsers) || fbUsers.length === 0) {
-        if(errEl) errEl.textContent = 'Credenziali non valide. Riprova.';
-        document.getElementById('manualPass').value = '';
-        document.getElementById('manualPass').focus();
+      if(!fbUsers || !Array.isArray(fbUsers)) {
+        if(errEl) errEl.textContent = 'Credenziali non valide.';
         return;
       }
       const fbUser = fbUsers.find(u => u.email === email && u.pass === pass);
       if(!fbUser) {
-        if(errEl) errEl.textContent = 'Credenziali non valide. Riprova.';
+        if(errEl) errEl.textContent = 'Credenziali non valide.';
         document.getElementById('manualPass').value = '';
         document.getElementById('manualPass').focus();
         return;
       }
-      // Salva utenti in localStorage per i prossimi accessi
-      localStorage.setItem('tc_users', JSON.stringify(fbUsers));
+      try { localStorage.setItem('tc_users', JSON.stringify(fbUsers)); } catch(e) {}
       enterApp(fbUser);
     }).catch(() => {
-      if(errEl) errEl.textContent = 'Errore di connessione. Riprova.';
-    });
-  } else {
-    // Firebase non pronto — aspetta fino a 8 secondi
-    if(errEl) errEl.textContent = '⏳ Connessione in corso…';
-    let waited = 0;
-    const tryLogin = setInterval(() => {
-      waited += 500;
-      if(fbReady && db) {
-        clearInterval(tryLogin);
-        doManualLogin(); // riprova
-      } else if(waited >= 8000) {
-        clearInterval(tryLogin);
-        if(errEl) errEl.textContent = 'Nessuna connessione cloud. Connettiti a internet e riprova.';
+      if(attempt >= 3) {
+        if(errEl) errEl.textContent = 'Errore connessione. Riprova.';
+      } else {
+        setTimeout(() => tryFb(attempt + 1), 2000);
       }
-    }, 500);
-  }
+    });
+  };
+
+  tryFb(0);
 }
 
 function showManualRegister() {
