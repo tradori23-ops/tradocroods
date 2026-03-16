@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v82';
+  var BUILD = '20260315-v83';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -15688,33 +15688,65 @@ function resetMonth() {
 
 function resetYear() {
   const yr = document.getElementById('globalYear').value;
+
+  // Mostra modal con scelta: reset parziale o totale
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  overlay.innerHTML = `
+    <div style="background:var(--dark2);border:1.5px solid rgba(224,92,92,0.5);border-radius:20px;padding:28px;max-width:440px;width:100%;text-align:center;">
+      <div style="font-size:36px;margin-bottom:12px;">🗑️</div>
+      <div style="font-size:18px;font-weight:800;color:var(--red);margin-bottom:8px;">Reset Anno ${yr}</div>
+      <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px;">Scegli cosa vuoi cancellare:</div>
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+        <button onclick="doResetYear('partial','${yr}',this.closest('div[style*=fixed]'))"
+          style="background:rgba(255,180,0,0.15);border:1.5px solid rgba(255,180,0,0.4);color:#ffb400;border-radius:12px;padding:14px 18px;cursor:pointer;font-size:13px;font-weight:700;text-align:left;">
+          ⚠️ Reset Parziale<br>
+          <span style="font-size:11px;font-weight:400;color:var(--text-muted);">Spese, entrate, note, pagamenti, emergenze, PDF ${yr}</span>
+        </button>
+        <button onclick="doResetYear('total','${yr}',this.closest('div[style*=fixed]'))"
+          style="background:rgba(224,92,92,0.15);border:1.5px solid rgba(224,92,92,0.5);color:var(--red);border-radius:12px;padding:14px 18px;cursor:pointer;font-size:13px;font-weight:700;text-align:left;">
+          💥 Cancella TUTTO ${yr}<br>
+          <span style="font-size:11px;font-weight:400;color:var(--text-muted);">Tutto quanto sopra + spese fisse, giri, libretto, budget, rimanenze, note settimanali</span>
+        </button>
+      </div>
+      <button onclick="this.closest('div[style*=fixed]').remove()"
+        style="background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:8px;padding:8px 20px;cursor:pointer;font-size:13px;">
+        Annulla
+      </button>
+    </div>`;
+  document.body.appendChild(overlay);
+}
+
+function doResetYear(mode, yr, overlay) {
+  overlay?.remove();
+  const label = mode === 'total' ? 'TUTTO' : 'i dati principali';
   showCustomConfirm(
     '🗑️',
-    `Elimina TUTTI i dati ${yr}`,
-    `Verranno cancellati:\n• Spese variabili di tutti i mesi\n• Entrate di tutti i mesi\n• Note del calendario\n• Pagamenti spese fisse\n• Spese emergenza\n• PDF importati\n\nQuesta azione NON è reversibile!`,
-    '🗑️ Elimina Anno',
+    `Conferma: cancella ${label} ${yr}`,
+    mode === 'total'
+      ? `Verranno cancellati TUTTI i dati dell'anno ${yr} senza eccezioni.\n\nQuesta azione NON è reversibile!`
+      : `Verranno cancellati spese, entrate, note, pagamenti e PDF di ${yr}.\n\nQuesta azione NON è reversibile!`,
+    '🗑️ Confermo — Cancella',
     'linear-gradient(135deg,#c0392b,#922b21)',
     () => {
       const email  = currentUser?.email || 'guest';
       const prefix = `tc_${email}_`;
 
-      // Cancella tutti i mesi dell'anno
+      // ── RESET PARZIALE (base) ──
       for(let mo = 1; mo <= 12; mo++) {
         localStorage.removeItem(`${prefix}expenses_${yr}_${mo}`);
+        localStorage.removeItem(`${prefix}vs_expenses_${yr}_${mo}`);
         localStorage.removeItem(`${prefix}income_${yr}_${mo}`);
         localStorage.removeItem(`${prefix}pagamenti_${yr}_${mo}`);
+        localStorage.removeItem(`${prefix}weekNotes`); // note settimanali globali
       }
-
-      // Cancella note dell'anno
+      // Note calendario
       const notes = getNotes();
       Object.keys(notes).forEach(k => { if(k.startsWith(yr+'-')) delete notes[k]; });
       saveNotes(notes);
-
-      // Cancella emergenze dell'anno
-      const allEmg = getEmergenze();
-      saveEmergenze(allEmg.filter(e => !e.month?.startsWith(yr+'_')));
-
-      // Cancella PDF importati dell'anno
+      // Emergenze
+      try { const allEmg = getEmergenze(); saveEmergenze(allEmg.filter(e => !e.month?.startsWith(yr+'_'))); } catch(e) {}
+      // PDF importati
       const keysToRemove = [];
       for(let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
@@ -15722,12 +15754,51 @@ function resetYear() {
       }
       keysToRemove.forEach(k => localStorage.removeItem(k));
 
+      if(mode === 'total') {
+        // ── RESET TOTALE: cancella TUTTO quello che contiene l'anno ──
+        const allKeys = [];
+        for(let i = 0; i < localStorage.length; i++) {
+          const k = localStorage.key(i);
+          if(!k || !k.startsWith(prefix)) continue;
+          // Spese fisse snapshot
+          if(k.includes(`fixedSnapshot_${yr}`)) allKeys.push(k);
+          // Giri
+          if(k.includes('_giri_')) {
+            try {
+              const giri = JSON.parse(localStorage.getItem(k) || '[]');
+              const filtered = giri.filter(g => !g.date?.startsWith(yr));
+              localStorage.setItem(k, JSON.stringify(filtered));
+            } catch(e) {}
+          }
+          // Libretto risparmio
+          if(k.includes('_librietto_')) {
+            try {
+              const lib = JSON.parse(localStorage.getItem(k) || '[]');
+              const filtered = lib.filter(l => !l.date?.startsWith(yr));
+              localStorage.setItem(k, JSON.stringify(filtered));
+            } catch(e) {}
+          }
+          // Rimanenze
+          if(k.includes(`_rimanenza_${yr}_`)) allKeys.push(k);
+          // Budget settimanale
+          if(k.includes(`_vs_budget_`)) allKeys.push(k);
+          // Promemoria anno
+          if(k.includes('_reminders_')) {
+            try {
+              const rems = JSON.parse(localStorage.getItem(k) || '[]');
+              const filtered = rems.filter(r => !new Date(r.ts).getFullYear().toString().startsWith(yr));
+              localStorage.setItem(k, JSON.stringify(filtered));
+            } catch(e) {}
+          }
+        }
+        allKeys.forEach(k => localStorage.removeItem(k));
+      }
+
       fbPushToCloud();
       bumpVersion();
       refreshAll();
-      // Forza re-render sezione attiva
       if(document.getElementById('sec-vistaSpese')?.classList.contains('active')) renderVSAll();
-      showToast(`🗑️ Anno ${yr} resettato completamente`);
+      showToast(`🗑️ Anno ${yr} ${mode === 'total' ? 'cancellato completamente' : 'resettato'}`);
     }
   );
 }
