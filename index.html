@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v83';
+  var BUILD = '20260315-v84';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5970,13 +5970,15 @@ const _origSave = window._origSave || null;
 
 function fbSave(email, k, v) {
   if(!fbReady || !db) return;
-  const ref = db.ref(fbKey(email, k));
+  const _sdb = safeDb(); if(!_sdb) return;
+  const ref = _sdb.ref(fbKey(email, k));
   ref.set(v).catch(e => console.warn('FB save error:', e));
 }
 
 function fbLoad(email, k, callback) {
   if(!fbReady || !db) { callback(null); return; }
-  db.ref(fbKey(email, k)).once('value')
+  const _sdb2 = safeDb(); if(!_sdb2) { if(cb) cb(); return; }
+  _sdb2.ref(fbKey(email, k)).once('value')
     .then(snap => callback(snap.val()))
     .catch(() => callback(null));
 }
@@ -5997,13 +5999,13 @@ function fbSavePhoto(email, dataUrl) {
       canvas.height = img.height * ratio;
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
       const compressed = canvas.toDataURL('image/jpeg', 0.7);
-      db.ref(`photos/${safeEmail}`).set({ data: compressed })
+      safeDb()?.ref(`photos/${safeEmail}`).set({ data: compressed })
         .catch(e => console.warn('FB photo save error:', e));
     };
     img.src = dataUrl;
   } catch(e) {
     // fallback: salva diretta
-    db.ref(`photos/${safeEmail}`).set({ data: dataUrl })
+    safeDb()?.ref(`photos/${safeEmail}`).set({ data: dataUrl })
       .catch(err => console.warn('FB photo save error:', err));
   }
 }
@@ -6011,7 +6013,7 @@ function fbSavePhoto(email, dataUrl) {
 function fbLoadPhoto(email, callback) {
   if(!fbReady || !db) { callback(null); return; }
   const safeEmail = email.replace(/[.#$\[\]]/g, '_');
-  db.ref(`photos/${safeEmail}`).once('value')
+  safeDb()?.ref(`photos/${safeEmail}`).once('value')
     .then(snap => {
       const val = snap.val();
       callback(val && val.data ? val.data : null);
@@ -6025,7 +6027,7 @@ function fbSyncFromCloud(email, onDone) {
   updateCloudBadge('syncing');
   const safeEmail = email.replace(/[.#$\[\]]/g, '_');
   // Sync dati + foto in parallelo
-  const dataPromise = db.ref(`users/${safeEmail}`).once('value').then(snap => {
+  const dataPromise = safeDb()?.ref(`users/${safeEmail}`).once('value').then(snap => {
     const cloudData = snap.val();
     if(cloudData) {
       Object.entries(cloudData).forEach(([k, v]) => {
@@ -6064,7 +6066,7 @@ function fbPushToCloud() {
     }
   }
   // Salva dati su Firebase
-  db.ref(`users/${safeEmail}`).set(batch)
+  safeDb()?.ref(`users/${safeEmail}`).set(batch)
     .then(() => updateCloudBadge(true))
     .catch(e => { console.warn('FB push error:', e); updateCloudBadge(false); });
   // Salva foto separatamente (compressa)
@@ -6172,7 +6174,7 @@ const _origSaveUsersRef = saveUsers;
 saveUsers = function(u) {
   localStorage.setItem('tc_users', JSON.stringify(u));
   if(fbReady && db) {
-    db.ref('tc_users').set(u).catch(()=>{});
+    safeDb()?.ref('tc_users').set(u).catch(()=>{});
   }
 };
 
@@ -6420,7 +6422,7 @@ function doManualLogin() {
   // Se non trovato in locale, prova a recuperare da Firebase
   if(fbReady && db) {
     if(errEl) errEl.textContent = '⏳ Verifico su cloud…';
-    db.ref('tc_users').once('value').then(snap => {
+    safeDb()?.ref('tc_users').once('value').then(snap => {
       let fbUsers = snap.val();
       // Firebase restituisce oggetti invece di array — converti
       if(fbUsers && !Array.isArray(fbUsers) && typeof fbUsers === 'object') {
@@ -6581,7 +6583,7 @@ function doRegister() {
   // Controlla anche su Firebase prima di registrare
   if(fbReady && db) {
     showMsg('⏳ Verifica in corso…', 'info');
-    db.ref('tc_users').once('value').then(snap => {
+    safeDb()?.ref('tc_users').once('value').then(snap => {
       let fbUsers = snap.val();
       if(fbUsers && !Array.isArray(fbUsers)) fbUsers = Object.values(fbUsers);
       if(fbUsers && Array.isArray(fbUsers) && fbUsers.find(u => u.email === email)) {
@@ -16427,7 +16429,7 @@ function generateQRPin() {
   const expiry = Date.now() + 10 * 60 * 1000; // 10 minuti
 
   // Salva solo email e scadenza — l'altro dispositivo leggerà direttamente da users/
-  db.ref('sync_pins/' + pin).set({
+  safeDb()?.ref('sync_pins/' + pin).set({
     email: currentUser.email,
     expiry
   }).then(() => {
@@ -16451,7 +16453,7 @@ function generateQRPin() {
       if(secsLeft <= 0) {
         clearInterval(timer);
         if(el) el.textContent = '❌ Codice scaduto — generane uno nuovo';
-        db.ref('sync_pins/' + pin).remove();
+        safeDb()?.ref('sync_pins/' + pin).remove();
       }
     }, 1000);
   }).catch(e => {
@@ -16479,11 +16481,11 @@ function importQRPin() {
   msgEl.style.color='var(--gold)'; msgEl.textContent='⏳ Ricerca codice...';
 
   // 1. Leggi il PIN per trovare l'email sorgente
-  db.ref('sync_pins/' + pin).once('value').then(snap => {
+  safeDb()?.ref('sync_pins/' + pin).once('value').then(snap => {
     const entry = snap.val();
     if(!entry) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Codice non trovato o già usato.'; return; }
     if(Date.now() > entry.expiry) {
-      db.ref('sync_pins/' + pin).remove();
+      safeDb()?.ref('sync_pins/' + pin).remove();
       msgEl.style.color='var(--red)'; msgEl.textContent='❌ Codice scaduto. Generane uno nuovo.'; return;
     }
 
@@ -16492,11 +16494,12 @@ function importQRPin() {
     msgEl.textContent='⏳ Scarico dati dal cloud...';
 
     // 2. Leggi direttamente i dati dell'utente sorgente da Firebase
-    const dataPromise = db.ref(`users/${safeSource}`).once('value');
+    const _syncdb = safeDb(); if(!_syncdb) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Errore connessione Firebase.'; return; }
+    const dataPromise = _syncdb.ref(`users/${safeSource}`).once('value');
     const photoPromise = new Promise(resolve => fbLoadPhoto(sourceEmail, resolve));
 
     Promise.all([dataPromise, photoPromise]).then(([dataSnap, photoUrl]) => {
-      db.ref('sync_pins/' + pin).remove(); // elimina PIN usato
+      safeDb()?.ref('sync_pins/' + pin).remove(); // elimina PIN usato
 
       // 3. Applica i dati sull'utente corrente
       const cloudData = dataSnap.val() || {};
@@ -16898,7 +16901,7 @@ function eseguiCleanupDati() {
   keysToDelete.forEach(k => { localStorage.removeItem(k); rimossi++; });
   if(fbReady && db) {
     const safeEmail = email.replace(/[.#$\[\]]/g, '_');
-    db.ref(`users/${safeEmail}`).once('value').then(snap => {
+    safeDb()?.ref(`users/${safeEmail}`).once('value').then(snap => {
       const data = snap.val();
       if(!data) return;
       const updates = {};
@@ -16906,7 +16909,7 @@ function eseguiCleanupDati() {
         const m = k.match(/_(\d{4})(?:_\d+)?$/);
         if(m && parseInt(m[1]) <= cutoffYear) updates[k] = null;
       });
-      if(Object.keys(updates).length) db.ref(`users/${safeEmail}`).update(updates);
+      if(Object.keys(updates).length) safeDb()?.ref(`users/${safeEmail}`).update(updates);
     });
   }
   const list = getReminders();
@@ -17106,6 +17109,16 @@ function checkNotifPermission() {
 // ════════════════════════════════════
 // PWA INSTALL SYSTEM
 // ════════════════════════════════════
+// ── Safe DB accessor — evita "Cannot call ref on deleted database" ──
+function safeDb() {
+  if(!db) return null;
+  try {
+    // Verifica che il db non sia stato eliminato tentando di accedere a app
+    if(db.app && db.app.isDeleted_) return null;
+    return db;
+  } catch(e) { return null; }
+}
+
 let _pwaInstallPrompt = null;
 
 function triggerPwaInstall() {
@@ -17237,7 +17250,7 @@ async function savePushSubscriptionToFirebase(sub) {
   const userId = currentUser.email.replace(/[.@]/g, '_');
   const reminders = getReminders();
   try {
-    await db.ref('pushSubscriptions/' + userId).set({
+    const _psdb = safeDb(); if(_psdb) await _psdb.ref('pushSubscriptions/' + userId).set({
       subscription: sub.toJSON(),
       reminders: reminders,
       updatedAt: Date.now()
@@ -17253,7 +17266,7 @@ async function syncRemindersToFirebase() {
   const userId = currentUser.email.replace(/[.@]/g, '_');
   const reminders = getReminders();
   try {
-    await db.ref('pushSubscriptions/' + userId + '/reminders').set(reminders);
+    if(_psdb) await _psdb.ref('pushSubscriptions/' + userId + '/reminders').set(reminders);
   } catch(e) {
     console.warn('Firebase reminders sync error:', e);
   }
