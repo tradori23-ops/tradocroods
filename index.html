@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v85';
+  var BUILD = '20260316-v87';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -1735,8 +1735,26 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   [style*="grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr"] {
     grid-template-columns: 1fr 1fr !important;
   }
+  /* Quick-add forms su mobile: colonne singole */
+  #quickAddDayPanel [style*="grid-template-columns:1fr 1fr"],
+  #vsQuickAddPanel [style*="grid-template-columns:1fr 1fr"],
+  #wdQuickAddPanel [style*="grid-template-columns:1fr 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  /* wdQuickAddPanel form su mobile */
+  #wdQuickAddPanel > div[style*="grid-template-columns"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  /* Dashboard ROW 1 e ROW 2 su mobile: una colonna */
+  #sec-dashboard > div[style*="grid-template-columns:1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
   .income-table-wrap table th:nth-child(4),
   .income-table-wrap table td:nth-child(4) { display: none; }
+  /* Topbar Reset Anno / Reset Mese: testo corto */
+  .btn-danger .btn-txt, .btn-warning .btn-txt { display: none; }
+  /* Modal weekDetail su mobile: full width */
+  #weekDetailModal > div { max-width: 100% !important; border-radius: 14px 14px 0 0 !important; position: fixed; bottom: 0; top: auto; max-height: 85vh; }
 }
 
 .hamburger-btn {
@@ -5724,11 +5742,18 @@ function initFirebase() {
     let _fbLastConnected = false;
     db.ref('.info/connected').on('value', snap => {
       const connected = snap.val() === true;
+      // Ignora disconnessioni durante import PDF — è il thread bloccato, non la rete
+      if(!connected && _fbImporting) {
+        console.log('🔄 Disconnessione ignorata (import PDF in corso)');
+        return;
+      }
       // Ignora disconnessioni brevi (< 3s) — Firebase le fa normalmente
       if(!connected && _fbLastConnected) {
         setTimeout(() => {
-          db.ref('.info/connected').once('value').then(s => {
-            if(s.val() !== true) { fbReady = false; updateCloudBadge(false); }
+          const _dbr = safeDb();
+          if(!_dbr) return;
+          _dbr.ref('.info/connected').once('value').then(s => {
+            if(s.val() !== true && !_fbImporting) { fbReady = false; updateCloudBadge(false); }
           }).catch(() => {});
         }, 3000);
         return;
@@ -12475,6 +12500,7 @@ async function importSatispayPDF(event) {
   statusEl.textContent = '⏳ Lettura PDF in corso...';
   document.getElementById('satispayPreview').style.display = 'none';
   satispayParsed = [];
+  _fbImporting = true; // blocca disconnect durante parsing
 
   try {
     // Inizializza PDF.js se non ancora fatto
@@ -12736,6 +12762,7 @@ function confirmSatispayImport() { genericConfirmImport(satispayParsed, 'satispa
 function doSatispayImport() { confirmSatispayImport(); }
 
 function cancelSatispayImport() {
+  _fbImporting = false;
   satispayParsed = [];
   document.getElementById('satispayPreview').style.display = 'none';
   document.getElementById('satispayStatus').textContent = '';
@@ -12763,6 +12790,7 @@ async function importSellaPDF(event) {
   statusEl.textContent = '⏳ Lettura PDF in corso...';
   document.getElementById('sellaPreview').style.display = 'none';
   sellaParsed = [];
+  _fbImporting = true; // blocca disconnect durante parsing
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const pdf  = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
@@ -13373,6 +13401,7 @@ function confirmSellaImport() {
 }
 
 function cancelSellaImport() {
+  _fbImporting = false;
   sellaParsed = [];
   sellaIncomeParsed = [];
   sellaFixedParsed = [];
@@ -13396,6 +13425,7 @@ async function importRevolutPDF(event) {
   statusEl.textContent = '⏳ Lettura PDF in corso...';
   document.getElementById('revolutPreview').style.display = 'none';
   revolutParsed = [];
+  _fbImporting = true; // blocca disconnect durante parsing
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const pdf  = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
@@ -13552,7 +13582,8 @@ function parseRevolutText(text) {
 }
 
 function confirmRevolutImport()  { genericConfirmImport(revolutParsed, 'revolutPreview', 'revolutStatus', '💜 Revolut'); }
-function cancelRevolutImport()   { revolutParsed = []; document.getElementById('revolutPreview').style.display='none'; document.getElementById('revolutStatus').textContent=''; }
+function cancelRevolutImport()   {
+  _fbImporting = false; revolutParsed = []; document.getElementById('revolutPreview').style.display='none'; document.getElementById('revolutStatus').textContent=''; }
 
 // ═══════════════════════════════════════════════════════════
 // ── CSV IMPORT — BANCA SELLA ──
@@ -13938,6 +13969,7 @@ function genericConfirmImport(parsed, previewId, statusId, label) {
   // Auto-dedup cross-source dopo ogni importazione
   const dupsRemoved = deduplicateAllMonths();
   const dupMsg = dupsRemoved > 0 ? ` · 🧹 ${dupsRemoved} duplicati rimossi` : '';
+  _fbImporting = false; // import finito — riabilita controllo connessione
   showToast(`✅ Importate ${totalImported} uscite da ${label} in ${Object.keys(byMonth).length} mes${Object.keys(byMonth).length===1?'e':'i'}!${dupMsg}`);
 }
 
