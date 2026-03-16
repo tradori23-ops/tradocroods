@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260316-v87';
+  var BUILD = '20260316-v88';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5695,6 +5695,7 @@ function getAllExpensesAllTime() {
 
 // ===== FIREBASE CLOUD SYNC =====
 let db = null, storage = null, fbReady = false;
+let _fbImporting = false; // true durante import PDF — ignora disconnessioni brevi
 
 function getFirebaseConfig() {
   // Config sempre da codice, mai da localStorage
