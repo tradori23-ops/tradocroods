@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v84';
+  var BUILD = '20260315-v85';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5708,8 +5708,8 @@ function initFirebase() {
     if(firebase.apps.length) {
       const existingDb = firebase.apps[0].options.databaseURL || '';
       if(!existingDb.includes('europe-west1')) {
-        firebase.apps[0].delete().then(initFirebase);
-        return;
+        // URL errato ma app già attiva — riusa senza delete
+        console.warn('Firebase: URL non standard, uso comunque');
       }
     } else {
       firebase.initializeApp(cfg);
@@ -5778,22 +5778,25 @@ function initFirebase() {
     }
     setTimeout(_fbRetryCheck, _fbRetryDelays[0]);
 
-    // ── Helper: elimina Firebase in modo sicuro ──
+    // ── Helper: forza riconnessione SENZA eliminare Firebase ──
+    // NON usare mai firebase.apps[0].delete() — causa "Cannot call ref on deleted database"
+    // nei listener interni. Usare solo goOffline()+goOnline() per forzare la riconnessione.
     function _fbSafeReset(delay) {
-      // Null out PRIMA di delete — evita "Cannot call ref on deleted database"
-      const _db = db;
-      db = null; storage = null; fbReady = false;
+      fbReady = false;
+      updateCloudBadge(false);
       try {
-        if(_db) _db.goOffline();
+        if(db) db.goOffline();
       } catch(e) {}
-      try {
-        const apps = firebase.apps.slice();
-        Promise.all(apps.map(a => { try { return a.delete(); } catch(e) { return Promise.resolve(); } }))
-          .catch(() => {})
-          .finally(() => setTimeout(initFirebase, delay || 500));
-      } catch(e) {
-        setTimeout(initFirebase, delay || 500);
-      }
+      setTimeout(() => {
+        try {
+          if(db) {
+            db.goOnline();
+            console.log('🔄 Firebase: goOnline() invocato');
+          }
+        } catch(e) {
+          console.warn('Firebase goOnline error:', e);
+        }
+      }, delay || 500);
     }
 
     // ── WATCHDOG PERMANENTE: riprova ogni 30s finché non connesso ──
@@ -5896,10 +5899,11 @@ function fbRetryConnect() {
       if(fbReady) { showToast('✅ Firebase connesso!'); fbSyncFromCloud(currentUser?.email, refreshAll); }
       else {
         // Reinizializza completamente
-        try { firebase.apps.forEach(a=>a.delete()); } catch(e) {}
-        db = null; storage = null; fbReady = false;
-        setTimeout(initFirebase, 500);
-        showToast('🔄 Reinizializzazione Firebase...');
+        // Non eliminare Firebase — usa goOffline/goOnline
+        fbReady = false;
+        try { if(db) { db.goOffline(); setTimeout(() => { db.goOnline(); }, 500); } } catch(e) {}
+        updateCloudBadge(false);
+        showToast('🔄 Riconnessione Firebase...');
       }
     }).catch(() => {
       db = null; storage = null; fbReady = false;
@@ -6151,9 +6155,9 @@ function saveFirebaseConfig() {
   document.getElementById('fb-msg').textContent = '';
   closeFirebaseModal();
   // Re-init Firebase
-  if(typeof firebase !== 'undefined') {
-    firebase.apps.forEach(app => app.delete());
-  }
+  // Non eliminare Firebase — riconnetti con goOffline/goOnline
+  fbReady = false;
+  try { if(db) { db.goOffline(); } } catch(e) {}
   db = null; storage = null; fbReady = false;
   initFirebase();
   // Push current data if logged in
