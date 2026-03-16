@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v80';
+  var BUILD = '20260315-v82';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -2981,6 +2981,9 @@ input, select, textarea {
       <div class="nav-item" onclick="showSection('ai', this); closeSidebar()" style="background:linear-gradient(90deg,rgba(99,50,200,0.18),transparent);border-left:3px solid rgba(160,100,255,0.7);">
         <span class="icon">✨</span> <span style="background:linear-gradient(90deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;">AI Assistente</span>
       </div>
+      <div class="nav-item" onclick="triggerPwaInstall()" id="navPwaInstall" style="border-left:3px solid rgba(74,232,122,0.5);display:none;">
+        <span class="icon">📲</span> <span style="color:#4ae87a;font-weight:700;">Installa App</span>
+      </div>
     </div>
     <!-- SIDEBAR FOOTER -->
     <div style="padding:16px 24px 8px;border-top:1px solid var(--border);margin-top:auto;">
@@ -4379,6 +4382,21 @@ input, select, textarea {
         <div style="margin-top:16px;padding:12px;background:rgba(201,168,76,0.06);border:1px dashed rgba(201,168,76,0.25);border-radius:10px;font-size:12px;color:var(--text-muted);">
           💡 I movimenti vengono importati automaticamente dal <strong>PDF Banca Sella</strong> nella sezione <em>Aggiungi Spesa</em>. Non appaiono nelle spese settimanali.
         </div>
+      </div>
+
+      <!-- GIRI SELLA → SATISPAY / REVOLUT -->
+      <div class="card mt-20">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div>
+            <div class="card-title" style="margin:0;">🔄 Giri Sella → Satispay / Revolut</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Trasferimenti interni — non conteggiati nelle spese. Vengono spesi tramite Satispay/Revolut.</div>
+          </div>
+          <select id="giriSellaYearSel" onchange="renderGiriSella()" style="background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;"></select>
+        </div>
+        <!-- KPI -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;" id="giriSellaKpi"></div>
+        <!-- Lista -->
+        <div id="giriSellaList" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
       </div>
     </div>
 
@@ -7402,7 +7420,7 @@ function showSection(id, el) {
   if(id==='aggiungiSpesa') initBudgetUI();
   if(id==='documenti') { renderAllDocLists(); initDocDragDrop(); }
   if(id==='entrate') updateRimanenza();
-  if(id==='librietto') { setTimeout(() => renderLibrietto(), 50); }
+  if(id==='librietto') { setTimeout(() => { renderLibrietto(); renderGiriSella(); }, 50); }
   if(id==='ai') {
     aiLoadLocationAndWeather();
     aiUpdateWelcome();
@@ -9538,6 +9556,67 @@ function renderLibrietto() {
 
   renderLibChart();
   renderLibList();
+}
+
+function renderGiriSella() {
+  // Carica giri da localStorage
+  const allGiri = getGiri ? getGiri() : [];
+  const transferTypes = ['satispay', 'revolut_sella'];
+  const giri = allGiri.filter(g => transferTypes.includes(g.type));
+
+  // Anno selector
+  const sel = document.getElementById('giriSellaYearSel');
+  if(sel) {
+    const years = [...new Set(giri.map(g => g.date.substring(0,4)))].sort().reverse();
+    if(years.length && !sel.options.length) {
+      years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; sel.appendChild(o); });
+    }
+  }
+  const yr = sel ? (sel.value || new Date().getFullYear().toString()) : new Date().getFullYear().toString();
+  const filtered = giri.filter(g => g.date.startsWith(yr));
+
+  const totSat = filtered.filter(g=>g.type==='satispay').reduce((s,g)=>s+g.amount,0);
+  const totRev = filtered.filter(g=>g.type==='revolut_sella').reduce((s,g)=>s+g.amount,0);
+  const fmt = v => '€'+v.toFixed(2).replace('.',',');
+
+  // KPI
+  const kpi = document.getElementById('giriSellaKpi');
+  if(kpi) kpi.innerHTML = `
+    <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.25);border-radius:12px;padding:14px 16px;">
+      <div style="font-size:11px;color:#ff6b6b;font-weight:700;letter-spacing:1px;margin-bottom:4px;">📱 GIRI → SATISPAY ${yr}</div>
+      <div style="font-size:22px;font-weight:800;color:#ff6b6b;">${fmt(totSat)}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${filtered.filter(g=>g.type==='satispay').length} trasferimenti</div>
+    </div>
+    <div style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:12px;padding:14px 16px;">
+      <div style="font-size:11px;color:#a78bfa;font-weight:700;letter-spacing:1px;margin-bottom:4px;">💜 GIRI → REVOLUT ${yr}</div>
+      <div style="font-size:22px;font-weight:800;color:#a78bfa;">${fmt(totRev)}</div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${filtered.filter(g=>g.type==='revolut_sella').length} trasferimenti</div>
+    </div>`;
+
+  // Lista
+  const list = document.getElementById('giriSellaList');
+  if(!list) return;
+  if(!filtered.length) {
+    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Nessun trasferimento trovato per ' + yr + '.<br><span style="font-size:12px;">Importa il PDF Sella per vedere i giri automaticamente.</span></div>';
+    return;
+  }
+  const sorted = [...filtered].sort((a,b) => b.date.localeCompare(a.date));
+  list.innerHTML = sorted.map(g => {
+    const isSat = g.type === 'satispay';
+    const color = isSat ? '#ff6b6b' : '#a78bfa';
+    const icon = isSat ? '📱' : '💜';
+    const label = isSat ? 'Satispay' : 'Revolut';
+    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--dark3);border:1px solid rgba(${isSat?'255,107,107':'167,139,250'},0.15);border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <span style="font-size:18px;">${icon}</span>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:${color};">${label}</div>
+          <div style="font-size:11px;color:var(--text-muted);">${g.date} · ${(g.note||'').substring(0,40)}</div>
+        </div>
+      </div>
+      <div style="font-size:14px;font-weight:700;color:${color};">−${fmt(g.amount)}</div>
+    </div>`;
+  }).join('');
 }
 
 function renderLibChart() {
@@ -13541,7 +13620,18 @@ function parseSellaCSV(text) {
     const fullDesc = (desc || causale || '—').substring(0, 80);
 
     // Skip giroconti/trasferimenti interni
-    if(/giro al[l]?\s|libretto di risparmio|satispay europe|revolut\*+\d+\*|giroconto/i.test(fullDesc)) continue;
+    // Satispay: ricarica app (in tutte le varianti descrizione)
+    if(/satispay europe|satispay s\.?a\.|ricarica.*satispay|satispay.*ricarica/i.test(fullDesc)) {
+      saveGiro('satispay', dateStr, Math.abs(amount), fullDesc);
+      continue;
+    }
+    // Revolut: ricarica/trasferimento verso Revolut
+    if(/revolut\*+\d+\*|revolut.*dublin|revolut.*\d{4}/i.test(fullDesc)) {
+      saveGiro('revolut_sella', dateStr, Math.abs(amount), fullDesc);
+      continue;
+    }
+    // Altri giroconti interni
+    if(/giro al[l]?\s|libretto di risparmio|giroconto/i.test(fullDesc)) continue;
     if(/contributo.*da\s|stipendio|salario|\bsdd\b.*add\.diretto/i.test(fullDesc)) continue;
 
     const key = `${dateStr}_${absAmount.toFixed(2)}_${fullDesc.substring(0,10)}`;
@@ -16947,9 +17037,31 @@ function checkNotifPermission() {
 // ════════════════════════════════════
 let _pwaInstallPrompt = null;
 
+function triggerPwaInstall() {
+  if(_pwaInstallPrompt) {
+    _pwaInstallPrompt.prompt();
+    _pwaInstallPrompt.userChoice.then(r => {
+      _pwaInstallPrompt = null;
+      document.getElementById('navPwaInstall').style.display = 'none';
+    });
+  } else {
+    // Prompt non disponibile — mostra istruzioni manuali
+    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    if(isIOS || isSafari) {
+      showToast('📲 Su Safari: tasto Condividi → "Aggiungi a schermata Home"');
+    } else {
+      showToast('📲 Su Chrome: menu ⋮ → "Installa app" o icona nella barra URL');
+    }
+  }
+}
+
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   _pwaInstallPrompt = e;
+  // Mostra il pulsante nel menu laterale sempre quando il prompt è disponibile
+  const navBtn = document.getElementById('navPwaInstall');
+  if(navBtn) navBtn.style.display = 'flex';
   // Show banner only if not dismissed in last 7 days
   const dismissed = localStorage.getItem('pwa_dismissed_ts');
   if (!dismissed || Date.now() - parseInt(dismissed) > 7 * 86400 * 1000) {
