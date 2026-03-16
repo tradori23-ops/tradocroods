@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260315-v79';
+  var BUILD = '20260315-v80';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5734,16 +5734,16 @@ function initFirebase() {
       }
     });
 
-    // Retry progressivo: 3s → 8s → 20s (più aggressivo su mobile)
+    // Retry progressivo iniziale: 3s → 8s → 20s
     let _fbRetry = 0;
     const _isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
     const _fbRetryDelays = _isMobile ? [3000, 8000, 20000] : [5000, 12000, 25000];
     function _fbRetryCheck() {
       if(fbReady) return;
       if(_fbRetry >= _fbRetryDelays.length) {
-        console.warn('Firebase: impossibile connettersi dopo 3 tentativi');
+        console.warn('Firebase: avvio watchdog permanente');
         updateCloudBadge(false);
-        return;
+        return; // Il watchdog permanente prende il controllo
       }
       console.warn('Firebase timeout - retry #' + (_fbRetry+1));
       db.ref('.info/connected').once('value').then(snap => {
@@ -5759,6 +5759,72 @@ function initFirebase() {
       });
     }
     setTimeout(_fbRetryCheck, _fbRetryDelays[0]);
+
+    // ── WATCHDOG PERMANENTE: riprova ogni 30s finché non connesso ──
+    if(window._fbWatchdog) clearInterval(window._fbWatchdog);
+    window._fbWatchdog = setInterval(() => {
+      if(fbReady) return; // già connesso, non fare nulla
+      console.log('🔄 Watchdog: tentativo riconnessione Firebase...');
+      if(db) {
+        db.ref('.info/connected').once('value').then(snap => {
+          if(snap.val() === true) {
+            fbReady = true;
+            updateCloudBadge(true);
+            if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
+            console.log('✅ Watchdog: Firebase riconnesso!');
+          } else {
+            // Reinizializza completamente
+            try { firebase.apps.forEach(a => a.delete()); } catch(e) {}
+            db = null; storage = null; fbReady = false;
+            setTimeout(initFirebase, 500);
+          }
+        }).catch(() => {
+          try { firebase.apps.forEach(a => a.delete()); } catch(e) {}
+          db = null; storage = null; fbReady = false;
+          setTimeout(initFirebase, 500);
+        });
+      } else {
+        setTimeout(initFirebase, 100);
+      }
+    }, 30000);
+
+    // ── Riconnetti quando il browser torna online ──
+    if(!window._fbOnlineListener) {
+      window._fbOnlineListener = true;
+      window.addEventListener('online', () => {
+        console.log('🌐 Browser online — riconnessione Firebase...');
+        if(!fbReady) {
+          try { firebase.apps.forEach(a => a.delete()); } catch(e) {}
+          db = null; storage = null; fbReady = false;
+          setTimeout(initFirebase, 1000);
+        }
+      });
+      // Riconnetti quando si torna sulla tab
+      document.addEventListener('visibilitychange', () => {
+        if(document.visibilityState === 'visible' && !fbReady) {
+          console.log('👁 Tab visibile — riconnessione Firebase...');
+          if(db) {
+            db.ref('.info/connected').once('value').then(snap => {
+              if(snap.val() === true) {
+                fbReady = true;
+                updateCloudBadge(true);
+                if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
+              } else {
+                try { firebase.apps.forEach(a => a.delete()); } catch(e) {}
+                db = null; storage = null; fbReady = false;
+                setTimeout(initFirebase, 500);
+              }
+            }).catch(() => {
+              try { firebase.apps.forEach(a => a.delete()); } catch(e) {}
+              db = null; storage = null; fbReady = false;
+              setTimeout(initFirebase, 500);
+            });
+          } else {
+            setTimeout(initFirebase, 100);
+          }
+        }
+      });
+    }
   } catch(e) {
     console.error('Firebase init error:', e);
     fbReady = false;
@@ -5815,6 +5881,54 @@ function fbRetryConnect() {
     setTimeout(initFirebase, 100);
   }
 }
+
+// ── AUTO-RECONNECT PERMANENTE ──
+// Riconnette automaticamente ogni 30s se offline
+// + quando la tab torna visibile
+// + quando il browser torna online
+(function setupAutoReconnect() {
+  let _reconnectInterval = null;
+
+  function tryReconnect() {
+    if(fbReady) return;
+    console.log('🔄 Auto-reconnect attempt...');
+    fbRetryConnect();
+  }
+
+  // Riconnette ogni 30 secondi se offline
+  function startReconnectLoop() {
+    if(_reconnectInterval) return;
+    _reconnectInterval = setInterval(() => {
+      if(!fbReady) tryReconnect();
+      else stopReconnectLoop();
+    }, 30000);
+  }
+
+  function stopReconnectLoop() {
+    if(_reconnectInterval) { clearInterval(_reconnectInterval); _reconnectInterval = null; }
+  }
+
+  // Quando la tab torna in primo piano
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible' && !fbReady) {
+      setTimeout(tryReconnect, 1000);
+    }
+  });
+
+  // Quando il browser torna online (dopo disconnessione WiFi ecc.)
+  window.addEventListener('online', () => {
+    if(!fbReady) setTimeout(tryReconnect, 1500);
+  });
+
+  // Monitora lo stato e avvia/ferma il loop
+  setInterval(() => {
+    if(!fbReady) startReconnectLoop();
+    else stopReconnectLoop();
+  }, 5000);
+
+  // Avvia subito dopo 10s
+  setTimeout(() => { if(!fbReady) startReconnectLoop(); }, 10000);
+})();
 
 function fbKey(email, k) {
   // Firebase keys cannot have . / # $ [ ]
