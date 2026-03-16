@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260316-v88';
+  var BUILD = '20260316-v92';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5743,39 +5743,52 @@ function initFirebase() {
     let _fbLastConnected = false;
     db.ref('.info/connected').on('value', snap => {
       const connected = snap.val() === true;
-      // Ignora disconnessioni durante import PDF — è il thread bloccato, non la rete
-      if(!connected && _fbImporting) {
-        console.log('🔄 Disconnessione ignorata (import PDF in corso)');
+
+      if(connected) {
+        // Connesso — cancella eventuale timer di disconnessione in corso
+        clearTimeout(window._fbDisconnectTimer);
+        window._fbDisconnectTimer = null;
+        _fbLastConnected = true;
+        if(!fbReady) {
+          fbReady = true;
+          updateCloudBadge(true);
+          console.log('✅ Firebase connesso');
+          if(_fbFirstConnect && currentUser) {
+            _fbFirstConnect = false;
+            fbSyncFromCloud(currentUser.email, () => { renderSidebarAvatar(currentUser); refreshAll(); });
+          } else { _fbFirstConnect = false; }
+        }
         return;
       }
-      // Ignora disconnessioni brevi (< 3s) — Firebase le fa normalmente
-      if(!connected && _fbLastConnected) {
-        setTimeout(() => {
+
+      // DISCONNESSO — ma non reagire subito:
+      // aspetta 15s prima di mostrare offline (copre import PDF + jitter rete)
+      if(!window._fbDisconnectTimer) {
+        console.log('⚠️ Firebase: segnale disconnessione, attendo 15s prima di reagire...');
+        window._fbDisconnectTimer = setTimeout(() => {
+          window._fbDisconnectTimer = null;
+          if(_fbImporting) { console.log('🔄 Ancora in import, ignoro'); return; }
+          // Verifica lo stato reale
           const _dbr = safeDb();
           if(!_dbr) return;
           _dbr.ref('.info/connected').once('value').then(s => {
-            if(s.val() !== true && !_fbImporting) { fbReady = false; updateCloudBadge(false); }
-          }).catch(() => {});
-        }, 3000);
-        return;
-      }
-      _fbLastConnected = connected;
-      fbReady = connected;
-      updateCloudBadge(connected);
-      if(connected) {
-        console.log('✅ Firebase connesso');
-        // Se è il primo collegamento E l'utente è già loggato (es. su mobile che ci mette più tempo)
-        // sincronizza automaticamente i dati dal cloud
-        if(_fbFirstConnect && currentUser) {
-          _fbFirstConnect = false;
-          fbSyncFromCloud(currentUser.email, () => {
-            renderSidebarAvatar(currentUser);
-            refreshAll();
+            if(s.val() === true) {
+              // Nel frattempo si è riconnesso
+              fbReady = true; updateCloudBadge(true);
+            } else {
+              // Davvero offline — prova goOffline+goOnline
+              console.warn('🔌 Firebase davvero offline, forzo riconnessione...');
+              fbReady = false;
+              _fbLastConnected = false;
+              updateCloudBadge(false);
+              try { if(db) { db.goOffline(); setTimeout(() => { try { if(db) db.goOnline(); } catch(e){} }, 1000); } } catch(e) {}
+            }
+          }).catch(() => {
+            fbReady = false; _fbLastConnected = false; updateCloudBadge(false);
           });
-        } else {
-          _fbFirstConnect = false;
-        }
+        }, 60000); // 60 secondi di tolleranza
       }
+      return; // non aggiornare badge finché non scade il timer
     });
 
     // Retry progressivo iniziale: 3s → 8s → 20s
@@ -5907,7 +5920,7 @@ function updateCloudBadge(state) {
     badge.style.background='rgba(224,92,92,0.15)';
     badge.style.borderColor='rgba(224,92,92,0.4)';
     badge.style.color='#e05c5c';
-    badge.innerHTML='☁️ Offline <span onclick="fbRetryConnect()" style="cursor:pointer;font-size:10px;background:rgba(255,255,255,0.1);border-radius:4px;padding:1px 6px;margin-left:4px;" title="Riprova connessione">🔄 Riconnetti</span>';
+    badge.innerHTML='☁️ Offline <span onclick="fbRetryConnect()" style="cursor:pointer;font-size:10px;background:rgba(255,255,255,0.1);border-radius:4px;padding:1px 6px;margin-left:4px;" title="Riprova connessione">🔄 Riconnetti</span><span onclick="fbForceReconnect()" style="cursor:pointer;font-size:10px;background:rgba(255,80,80,0.2);border-radius:4px;padding:1px 6px;margin-left:3px;" title="Riconnessione forzata">⚡ Forza</span>';
     // Auto-retry dopo 5s se va offline
     clearTimeout(window._fbAutoRetry);
     window._fbAutoRetry = setTimeout(() => { if(!fbReady) fbRetryConnect(); }, 5000);
@@ -5917,28 +5930,79 @@ function updateCloudBadge(state) {
 function fbRetryConnect() {
   if(fbReady) { showToast('✅ Già connesso!'); return; }
   updateCloudBadge('syncing');
-  showToast('🔄 Tentativo di connessione...');
-  if(db) {
-    db.ref('.info/connected').once('value').then(snap => {
-      fbReady = snap.val() === true;
-      updateCloudBadge(fbReady);
-      if(fbReady) { showToast('✅ Firebase connesso!'); fbSyncFromCloud(currentUser?.email, refreshAll); }
-      else {
-        // Reinizializza completamente
-        // Non eliminare Firebase — usa goOffline/goOnline
-        fbReady = false;
-        try { if(db) { db.goOffline(); setTimeout(() => { db.goOnline(); }, 500); } } catch(e) {}
-        updateCloudBadge(false);
-        showToast('🔄 Riconnessione Firebase...');
+  showToast('🔄 Riconnessione in corso...');
+  // Cancella timer di disconnessione pendente
+  clearTimeout(window._fbDisconnectTimer);
+  window._fbDisconnectTimer = null;
+
+  // Step 1: goOnline per forzare riconnessione
+  try { if(db) { db.goOffline(); } } catch(e) {}
+  setTimeout(() => {
+    try { if(db) db.goOnline(); } catch(e) {}
+    // Step 2: verifica dopo 2s
+    setTimeout(() => {
+      const _dbr = safeDb();
+      if(!_dbr) { setTimeout(initFirebase, 100); return; }
+      _dbr.ref('.info/connected').once('value').then(snap => {
+        fbReady = snap.val() === true;
+        updateCloudBadge(fbReady);
+        if(fbReady) {
+          showToast('✅ Firebase riconnesso!');
+          if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
+        } else {
+          showToast('⚠️ Ancora offline — riprovo...');
+          setTimeout(fbRetryConnect, 3000);
+        }
+      }).catch(() => {
+        db = null; storage = null; fbReady = false;
+        setTimeout(initFirebase, 500);
+        showToast('🔄 Reinizializzazione Firebase...');
+      });
+    }, 2000);
+  }, 500);
+}
+
+// ── FORZA RICONNESSIONE AGGRESSIVA ──
+// Usare quando fbRetryConnect non basta
+function fbForceReconnect() {
+  showToast('⚡ Riconnessione forzata in corso...');
+  clearTimeout(window._fbDisconnectTimer);
+  clearInterval(window._fbWatchdog);
+  window._fbDisconnectTimer = null;
+  fbReady = false;
+
+  // Step 1: porta offline
+  try { if(db) db.goOffline(); } catch(e) {}
+
+  // Step 2: dopo 1s porta online
+  setTimeout(() => {
+    try { if(db) db.goOnline(); } catch(e) {}
+
+    // Step 3: dopo altri 3s verifica
+    setTimeout(() => {
+      const _dbr = safeDb();
+      if(_dbr) {
+        _dbr.ref('.info/connected').once('value').then(snap => {
+          if(snap.val() === true) {
+            fbReady = true;
+            updateCloudBadge(true);
+            showToast('✅ Riconnesso!');
+            if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
+          } else {
+            // Ultimo tentativo: reinizializza tutto tranne delete
+            db = null; storage = null; fbReady = false;
+            initFirebase();
+            showToast('🔄 Reinizializzazione completa...');
+          }
+        }).catch(() => {
+          db = null; storage = null; fbReady = false;
+          initFirebase();
+        });
+      } else {
+        initFirebase();
       }
-    }).catch(() => {
-      db = null; storage = null; fbReady = false;
-      setTimeout(initFirebase, 500);
-      showToast('🔄 Reinizializzazione...');
-    });
-  } else {
-    setTimeout(initFirebase, 100);
-  }
+    }, 3000);
+  }, 1000);
 }
 
 // ── AUTO-RECONNECT PERMANENTE ──
@@ -15801,8 +15865,8 @@ function doResetYear(mode, yr, overlay) {
           if(!k || !k.startsWith(prefix)) continue;
           // Spese fisse snapshot
           if(k.includes(`fixedSnapshot_${yr}`)) allKeys.push(k);
-          // Giri
-          if(k.includes('_giri_')) {
+          // Giri Satispay/Revolut — chiave è tc_EMAIL_giri (senza anno)
+          if(k.endsWith('_giri')) {
             try {
               const giri = JSON.parse(localStorage.getItem(k) || '[]');
               const filtered = giri.filter(g => !g.date?.startsWith(yr));
