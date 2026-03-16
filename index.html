@@ -5760,29 +5760,45 @@ function initFirebase() {
     }
     setTimeout(_fbRetryCheck, _fbRetryDelays[0]);
 
+    // ── Helper: elimina Firebase in modo sicuro ──
+    function _fbSafeReset(delay) {
+      // Null out PRIMA di delete — evita "Cannot call ref on deleted database"
+      const _db = db;
+      db = null; storage = null; fbReady = false;
+      try {
+        if(_db) _db.goOffline();
+      } catch(e) {}
+      try {
+        const apps = firebase.apps.slice();
+        Promise.all(apps.map(a => { try { return a.delete(); } catch(e) { return Promise.resolve(); } }))
+          .catch(() => {})
+          .finally(() => setTimeout(initFirebase, delay || 500));
+      } catch(e) {
+        setTimeout(initFirebase, delay || 500);
+      }
+    }
+
     // ── WATCHDOG PERMANENTE: riprova ogni 30s finché non connesso ──
     if(window._fbWatchdog) clearInterval(window._fbWatchdog);
     window._fbWatchdog = setInterval(() => {
-      if(fbReady) return; // già connesso, non fare nulla
+      if(fbReady) return;
       console.log('🔄 Watchdog: tentativo riconnessione Firebase...');
-      if(db) {
-        db.ref('.info/connected').once('value').then(snap => {
-          if(snap.val() === true) {
-            fbReady = true;
-            updateCloudBadge(true);
-            if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
-            console.log('✅ Watchdog: Firebase riconnesso!');
-          } else {
-            // Reinizializza completamente
-            try { firebase.apps.forEach(a => a.delete()); } catch(e) {}
-            db = null; storage = null; fbReady = false;
-            setTimeout(initFirebase, 500);
-          }
-        }).catch(() => {
-          try { firebase.apps.forEach(a => a.delete()); } catch(e) {}
-          db = null; storage = null; fbReady = false;
-          setTimeout(initFirebase, 500);
-        });
+      const _dbRef = db;
+      if(_dbRef) {
+        try {
+          _dbRef.ref('.info/connected').once('value').then(snap => {
+            if(snap.val() === true) {
+              fbReady = true;
+              updateCloudBadge(true);
+              if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
+              console.log('✅ Watchdog: Firebase riconnesso!');
+            } else {
+              _fbSafeReset(500);
+            }
+          }).catch(() => _fbSafeReset(500));
+        } catch(e) {
+          _fbSafeReset(500);
+        }
       } else {
         setTimeout(initFirebase, 100);
       }
@@ -5793,32 +5809,27 @@ function initFirebase() {
       window._fbOnlineListener = true;
       window.addEventListener('online', () => {
         console.log('🌐 Browser online — riconnessione Firebase...');
-        if(!fbReady) {
-          try { firebase.apps.forEach(a => a.delete()); } catch(e) {}
-          db = null; storage = null; fbReady = false;
-          setTimeout(initFirebase, 1000);
-        }
+        if(!fbReady) _fbSafeReset(1000);
       });
       // Riconnetti quando si torna sulla tab
       document.addEventListener('visibilitychange', () => {
         if(document.visibilityState === 'visible' && !fbReady) {
           console.log('👁 Tab visibile — riconnessione Firebase...');
-          if(db) {
-            db.ref('.info/connected').once('value').then(snap => {
-              if(snap.val() === true) {
-                fbReady = true;
-                updateCloudBadge(true);
-                if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
-              } else {
-                try { firebase.apps.forEach(a => a.delete()); } catch(e) {}
-                db = null; storage = null; fbReady = false;
-                setTimeout(initFirebase, 500);
-              }
-            }).catch(() => {
-              try { firebase.apps.forEach(a => a.delete()); } catch(e) {}
-              db = null; storage = null; fbReady = false;
-              setTimeout(initFirebase, 500);
-            });
+          const _dbRef = db;
+          if(_dbRef) {
+            try {
+              _dbRef.ref('.info/connected').once('value').then(snap => {
+                if(snap.val() === true) {
+                  fbReady = true;
+                  updateCloudBadge(true);
+                  if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
+                } else {
+                  _fbSafeReset(500);
+                }
+              }).catch(() => _fbSafeReset(500));
+            } catch(e) {
+              _fbSafeReset(500);
+            }
           } else {
             setTimeout(initFirebase, 100);
           }
