@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v103';
+  var BUILD = '20260317-v107';
   // Forza reset SW e cache ad ogni nuova build — funziona anche senza localStorage (iOS InPrivate)
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -641,7 +641,7 @@ body.light .footer-copy .copy-line.version {
 }
 /* password step */
 #profilePasswordStep {
-  display: flex;
+  display: none;
   flex-direction: column;
   align-items: center;
   gap: 16px;
@@ -2823,17 +2823,21 @@ input, select, textarea {
     </div>
 
     <!-- NETFLIX PROFILES -->
-    <div id="netflixProfiles">
-      <h2 id="loginTitle">Chi sei?</h2>
-      <div class="profiles-grid" id="profilesGrid"></div>
-      <div class="profiles-actions" id="profilesActions">
-        <button class="btn btn-outline" id="manageProfilesBtn" onclick="toggleManageProfiles()" style="font-size:13px;padding:8px 18px;">✏️ Gestisci profili</button>
+    <div id="netflixProfiles" style="display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;">
+      <!-- Vista griglia profili (quando esistono profili in locale) -->
+      <div id="profilesGridSection" style="display:none;width:100%;text-align:center;">
+        <h2 id="loginTitle">Chi sei?</h2>
+        <div class="profiles-grid" id="profilesGrid"></div>
+        <div class="profiles-actions" id="profilesActions">
+          <button class="btn btn-outline" id="manageProfilesBtn" onclick="toggleManageProfiles()" style="font-size:13px;padding:8px 18px;">✏️ Gestisci profili</button>
+        </div>
       </div>
 
-      <!-- Form accesso manuale (mostrato quando nessun profilo in localStorage) -->
-      <div id="manualLoginArea" style="display:none;width:100%;margin-top:4px;">
+      <!-- Form accesso manuale (primo accesso / nuovo dispositivo) -->
+      <div id="manualLoginArea" style="display:none;width:100%;">
+        <h2 style="text-align:center;margin-bottom:4px;">Bentornato!</h2>
+        <p style="text-align:center;font-size:13px;color:var(--text-muted);margin-bottom:20px;">Inserisci le tue credenziali</p>
         <form onsubmit="doManualLogin();return false;" autocomplete="on">
-        <div style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:14px;">Inserisci email e password del tuo profilo</div>
         <div class="form-group">
           <label>Email</label>
           <input type="email" id="manualEmail" placeholder="tuaemail@esempio.it" autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('manualPass').focus()">
@@ -2847,7 +2851,10 @@ input, select, textarea {
         </div>
         <div id="manualLoginErr" style="color:#e05c5c;font-size:12px;text-align:center;min-height:16px;margin-bottom:4px;"></div>
         <button class="btn-primary" onclick="doManualLogin()">Accedi</button>
-        <button onclick="showManualRegister()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:6px;padding:4px 8px;font-family:inherit;">Nuovo profilo →</button>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;">
+          <button type="button" onclick="showManualRegister()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;padding:4px 8px;font-family:inherit;">Nuovo profilo →</button>
+          <button type="button" onclick="showProfilesGrid()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;padding:4px 8px;font-family:inherit;">← Profili salvati</button>
+        </div>
         </form>
       </div>
     </div>
@@ -5672,6 +5679,239 @@ function saveUsers(u) { localStorage.setItem('tc_users', JSON.stringify(u)); }
 
 // ── LOGIN FUNCTIONS ──
 let selectedProfileEmail = null;
+let manageMode = false;
+
+function showMsg(msg, type) {
+  const el = document.getElementById('loginMsg');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.color = type === 'error' ? '#e05c5c' : type === 'success' ? '#4ae87a' : '#ffb400';
+}
+
+function enterApp(user) {
+  currentUser = user;
+  try { localStorage.setItem('tc_last_user', JSON.stringify({email: user.email, name: user.name})); } catch(e) {}
+  // Nascondi login, mostra app
+  const login = document.getElementById('loginScreen');
+  const app = document.getElementById('appWrapper');
+  if(login) login.style.display = 'none';
+  if(app) app.style.display = 'block';
+  migrateVSManualSources();
+  refreshAll();
+  renderSidebarAvatar(user);
+  // Avvia Gist sync
+  initGistSync().then(() => {
+    if(gistReady) gistSyncFromCloud(user.email, () => refreshAll());
+  });
+  showSection('dashboard');
+}
+
+function renderSidebarAvatar(user) {
+  const nm = document.getElementById('sidebarName');
+  const em = document.getElementById('sidebarEmail');
+  if(nm) nm.textContent = user.name || user.email;
+  if(em) em.textContent = user.email;
+  const photo = localStorage.getItem('tc_photo_' + user.email);
+  const av = document.getElementById('sidebarAvatar');
+  if(av) {
+    if(photo) av.innerHTML = '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">';
+    else av.textContent = (user.name || user.email).charAt(0).toUpperCase();
+  }
+}
+
+function showProfilesGrid() {
+  const s = document.getElementById('profilesGridSection');
+  const m = document.getElementById('manualLoginArea');
+  if(s) s.style.display = 'block';
+  if(m) m.style.display = 'none';
+}
+
+function renderProfilesGrid() {
+  const users = getUsers();
+  const grid = document.getElementById('profilesGrid');
+  if(!grid) return;
+  const section = document.getElementById('profilesGridSection');
+  if(section) section.style.display = users.length > 0 ? 'block' : 'none';
+  let html = users.map(u => {
+    const photo = localStorage.getItem('tc_photo_' + u.email);
+    const av = photo
+      ? '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">'
+      : '<span style="font-size:28px;font-weight:700;">' + (u.name || u.email).charAt(0).toUpperCase() + '</span>';
+    const letter = (u.name || u.email).charAt(0).toUpperCase();
+    const se = encodeURIComponent(u.email);
+    const sn = encodeURIComponent(u.name || '');
+    return `<div class="profile-card" onclick="selectProfile(decodeURIComponent('${se}'),decodeURIComponent('${sn}'),'${letter}')">` +
+      `<div class="profile-avatar" ${manageMode ? 'style="border-color:rgba(224,92,92,0.5)"' : ''}>` + av + '</div>' +
+      '<div class="profile-name">' + (u.name || u.email) + '</div>' +
+      (manageMode ? `<button class="profile-del-btn" onclick="event.stopPropagation();deleteProfile(decodeURIComponent('${se}'))">🗑</button>` : '') +
+      '</div>';
+  }).join('');
+  html += '<div class="profile-card" onclick="showRegisterStep()" style="opacity:0.6;"><div class="profile-avatar" style="border:2px dashed rgba(201,168,76,0.4);background:transparent;"><span style="font-size:28px;color:var(--gold);">+</span></div><div class="profile-name">Nuovo</div></div>';
+  grid.innerHTML = html;
+}
+
+function toggleManageProfiles() {
+  manageMode = !manageMode;
+  renderProfilesGrid();
+  const btn = document.getElementById('manageProfilesBtn');
+  if(btn) btn.innerHTML = manageMode ? '✅ Gestisci profili' : '✏️ Gestisci profili';
+}
+
+function deleteProfile(email) {
+  const users = getUsers();
+  const user = users.find(u => u.email === email);
+  const modal = document.getElementById('confirmDeleteModal');
+  document.getElementById('confirmDeleteTitle').textContent = 'Eliminare "' + (user ? user.name : email) + '"?';
+  modal.style.display = 'flex';
+  document.getElementById('confirmDeleteBtn').onclick = function() {
+    modal.style.display = 'none';
+    saveUsers(getUsers().filter(u => u.email !== email));
+    localStorage.removeItem('tc_last_user');
+    renderProfilesGrid();
+  };
+}
+
+function closeConfirmDelete() {
+  document.getElementById('confirmDeleteModal').style.display = 'none';
+}
+
+function showRegisterStep() {
+  if(manageMode) return;
+  document.getElementById('netflixProfiles').style.display = 'none';
+  document.getElementById('profilePasswordStep').style.display = 'none';
+  document.getElementById('registerStep').style.display = 'block';
+  document.getElementById('regName').value = '';
+  document.getElementById('regEmail').value = '';
+  document.getElementById('regPassword').value = '';
+  document.getElementById('loginMsg').textContent = '';
+}
+
+function showManualRegister() {
+  document.getElementById('netflixProfiles').style.display = 'none';
+  document.getElementById('profilePasswordStep').style.display = 'none';
+  document.getElementById('registerStep').style.display = 'block';
+}
+
+function doRegister() {
+  const name = document.getElementById('regName').value.trim();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('regPassword').value;
+  if(!name||!email||!pass) { showMsg('Compila tutti i campi.','error'); return; }
+  if(pass.length<6) { showMsg('Password minimo 6 caratteri.','error'); return; }
+  const emailRe = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  if(!emailRe.test(email)) { showMsg('Email non valida.','error'); return; }
+  const users = getUsers();
+  if(users.find(u=>u.email===email)) { showMsg('⚠️ Questa email esiste già! Accedi invece di registrarti.','error'); return; }
+  users.push({ name, email, pass });
+  saveUsers(users);
+  showMsg('Profilo creato! Accedi.','success');
+  renderProfilesGrid();
+  backToProfiles();
+}
+
+function clearLastUser() {
+  localStorage.removeItem('tc_last_user');
+  renderProfilesGrid();
+}
+
+function loadLastUser() {
+  renderProfilesGrid();
+  // Mostra griglia se ci sono profili, altrimenti form manuale
+  const users = getUsers();
+  const manualArea = document.getElementById('manualLoginArea');
+  const gridSection = document.getElementById('profilesGridSection');
+  if(users.length === 0) {
+    if(manualArea) manualArea.style.display = 'block';
+    if(gridSection) gridSection.style.display = 'none';
+  } else {
+    if(gridSection) gridSection.style.display = 'block';
+    if(manualArea) manualArea.style.display = 'none';
+  }
+  try {
+    const raw = localStorage.getItem('tc_last_user');
+    if(!raw) { document.getElementById('netflixProfiles').style.display = 'flex'; return; }
+    const lu = JSON.parse(raw);
+    if(!lu?.email) { document.getElementById('netflixProfiles').style.display = 'flex'; return; }
+    const users = getUsers();
+    const user = users.find(u => u.email === lu.email);
+    if(!user) { localStorage.removeItem('tc_last_user'); document.getElementById('netflixProfiles').style.display = 'flex'; return; }
+    // Mostra step password direttamente
+    selectProfile(lu.email, lu.name || lu.email, (lu.name || lu.email).charAt(0).toUpperCase());
+  } catch(e) {
+    document.getElementById('netflixProfiles').style.display = 'flex';
+  }
+}
+
+function showRecoverPassword() {
+  const modal = document.getElementById('recoverPwdModal');
+  if(modal) {
+    modal.style.display = 'flex';
+    document.getElementById('recoverEmail').value = selectedProfileEmail || '';
+    document.getElementById('recoverMsg').textContent = '';
+  }
+}
+
+function closeRecoverPassword() {
+  const modal = document.getElementById('recoverPwdModal');
+  if(modal) modal.style.display = 'none';
+}
+
+async function doRecoverPassword() {
+  const email = (document.getElementById('recoverEmail').value || '').trim().toLowerCase();
+  const msgEl = document.getElementById('recoverMsg');
+  if(!email) { msgEl.textContent = 'Inserisci la tua email.'; return; }
+  msgEl.style.color = '#ffb400';
+  msgEl.textContent = '⏳ Cercando nel Gist...';
+  const tryGist = async (attempt) => {
+    if(!_gistToken || !_gistId) {
+      if(attempt >= 5) { msgEl.style.color='#e05c5c'; msgEl.textContent = '⚠️ Configura prima il Cloud (☁️ Offline).'; return; }
+      setTimeout(() => tryGist(attempt+1), 1500);
+      return;
+    }
+    const result = await gistApiFetch('GET', '/gists/' + _gistId);
+    const uf = result?.files?.['tradocroods_users.json'];
+    if(!uf?.content) { msgEl.style.color='#e05c5c'; msgEl.textContent = '❌ Nessun dato nel Gist.'; return; }
+    try {
+      const users = JSON.parse(uf.content);
+      const user = Array.isArray(users) && users.find(u => u.email === email);
+      if(!user) { msgEl.style.color='#e05c5c'; msgEl.textContent = '❌ Email non trovata.'; return; }
+      msgEl.style.color = '#4ae87a';
+      msgEl.innerHTML = '✅ <b>' + user.name + '</b> — Password: <span style="background:rgba(255,255,255,0.1);padding:2px 8px;border-radius:6px;font-family:monospace;color:#ffb400;">' + user.pass + '</span>';
+      try { const local = getUsers(); if(!local.find(u=>u.email===email)) { local.push(user); saveUsers(local); renderProfilesGrid(); } } catch(e) {}
+    } catch(e) { msgEl.style.color='#e05c5c'; msgEl.textContent = 'Errore lettura dati.'; }
+  };
+  tryGist(0);
+}
+
+function doManualLogin() {
+  const email = (document.getElementById('manualEmail')?.value || '').trim().toLowerCase();
+  const pass = (document.getElementById('manualPass')?.value || '');
+  const errEl = document.getElementById('manualLoginErr');
+  if(errEl) errEl.textContent = '';
+  if(!email || !pass) { if(errEl) errEl.textContent = 'Inserisci email e password.'; return; }
+  const localUsers = getUsers();
+  const localUser = localUsers.find(u => u.email === email && u.pass === pass);
+  if(localUser) { enterApp(localUser); return; }
+  if(errEl) errEl.textContent = '⏳ Connessione cloud...';
+  const tryFb = (attempt) => {
+    if(!_gistToken || !_gistId) {
+      if(attempt >= 8) { if(errEl) errEl.textContent = '⚠️ Nessuna connessione. Riprova.'; return; }
+      setTimeout(() => tryFb(attempt+1), 1000); return;
+    }
+    gistApiFetch('GET', '/gists/' + _gistId).then(result => {
+      const uf = result?.files?.['tradocroods_users.json'];
+      if(!uf?.content) { if(errEl) errEl.textContent = 'Credenziali non valide.'; return; }
+      try {
+        const fbUsers = JSON.parse(uf.content);
+        const fbUser = Array.isArray(fbUsers) && fbUsers.find(u => u.email === email && u.pass === pass);
+        if(!fbUser) { if(errEl) errEl.textContent = 'Credenziali non valide.'; document.getElementById('manualPass').value = ''; return; }
+        try { localStorage.setItem('tc_users', JSON.stringify(fbUsers)); } catch(e) {}
+        enterApp(fbUser);
+      } catch(e) { if(errEl) errEl.textContent = 'Errore connessione.'; }
+    });
+  };
+  tryFb(0);
+}
 
 function doLoginProfile() {
   const pass = document.getElementById('loginPassword').value;
@@ -10045,5 +10285,59 @@ window.addEventListener('beforeprint', function() {
   ✨
 </button>
 
+
+<script>
+// ── AVVIO APP ──
+document.addEventListener('DOMContentLoaded', function() {
+  // Genera esagoni animati nello sfondo login
+  const hexContainer = document.getElementById('hexContainer');
+  if(hexContainer) {
+    hexContainer.innerHTML = '';
+    for(let i = 0; i < 20; i++) {
+      const el = document.createElement('div');
+      el.className = 'hex';
+      const size = 50 + Math.random() * 120;
+      el.style.width = size + 'px';
+      el.style.height = size + 'px';
+      el.style.left = (Math.random() * 110 - 5) + '%';
+      el.style.animationDuration = (8 + Math.random() * 16) + 's';
+      el.style.animationDelay = (Math.random() * -20) + 's';
+      el.style.background = 'rgba(201,168,76,' + (0.03 + Math.random() * 0.07) + ')';
+      hexContainer.appendChild(el);
+    }
+  }
+
+  // Cache bust per iOS / iPad
+  if(typeof caches !== 'undefined') {
+    caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+  }
+
+  // Registra Service Worker
+  registerSW();
+
+  // Imposta anno/mese corrente nei selettori
+  const now = new Date();
+  const ym = document.getElementById('globalYear');
+  const mm = document.getElementById('globalMonth');
+  if(ym) {
+    for(let y = now.getFullYear()-2; y <= now.getFullYear()+1; y++) {
+      const opt = document.createElement('option');
+      opt.value = y; opt.textContent = y;
+      if(y === now.getFullYear()) opt.selected = true;
+      ym.appendChild(opt);
+    }
+  }
+  if(mm) mm.value = now.getMonth() + 1;
+
+  // Migrazione source manuel→sella se necessario
+  if(typeof migrateVSManualSources === 'function') migrateVSManualSources();
+
+  // Avvia Gist sync in background
+  initGistSync();
+
+  // Carica ultimo utente / mostra login
+  loadLastUser();
+});
+</script>
 </body>
 </html>
