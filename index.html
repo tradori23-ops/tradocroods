@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v113';
+  var BUILD = '20260317-v114';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -6163,20 +6163,29 @@ function enterApp(user) {
     document.getElementById('loginPage').style.display = 'none';
     const appEl = document.getElementById('app');
     appEl.style.display = 'block';
+    // Forza il margin del main-content (fix layout dopo display:none→block)
+    const mc = appEl.querySelector('.main-content');
+    if(mc && window.innerWidth > 900) mc.style.marginLeft = 'var(--sidebar-w)';
     const nm = document.getElementById('userName');
     const em = document.getElementById('userEmail');
     if(nm) nm.textContent = user.name;
     if(em) em.textContent = user.email;
     renderSidebarAvatar(user);
     initApp();
-    // Forza la visualizzazione della dashboard
-    showSection('dashboard');
-    // Imposta nav item attivo
-    const navDash = document.querySelector('.nav-item[onclick*="dashboard"]');
-    if(navDash) {
-      document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-      navDash.classList.add('active');
+    // Reset sidebar to visible on desktop
+    const sb = document.getElementById('sidebar');
+    if(sb && window.innerWidth > 768) {
+      sb.style.transform = 'translateX(0)';
     }
+    // Forza la visualizzazione della dashboard dopo un tick
+    setTimeout(() => {
+      showSection('dashboard');
+      const navDash = document.querySelector('.nav-item[onclick*="dashboard"]');
+      if(navDash) {
+        document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+        navDash.classList.add('active');
+      }
+    }, 50);
   }
 
   function syncEAvvia() {
