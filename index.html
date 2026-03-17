@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v115';
+  var BUILD = '20260317-v116';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -6201,15 +6201,17 @@ function enterApp(user) {
     if(sb && window.innerWidth > 768) {
       sb.style.transform = 'translateX(0)';
     }
-    // Forza la visualizzazione della dashboard dopo un tick
-    setTimeout(() => {
+    // Forza la visualizzazione della dashboard - subito E dopo 100ms (sicurezza)
+    const goToDash = () => {
       showSection('dashboard');
       const navDash = document.querySelector('.nav-item[onclick*="dashboard"]');
       if(navDash) {
         document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
         navDash.classList.add('active');
       }
-    }, 50);
+    };
+    goToDash();
+    setTimeout(goToDash, 150);
   }
 
   function syncEAvvia() {
