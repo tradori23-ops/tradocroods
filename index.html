@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v97';
+  var BUILD = '20260317-v101';
   // Forza reset SW e cache ad ogni nuova build — funziona anche senza localStorage (iOS InPrivate)
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -2867,8 +2867,25 @@ input, select, textarea {
         </div>
       </div>
       <button class="btn-primary" onclick="doLoginProfile()">Accedi</button>
+      <button type="button" onclick="showRecoverPassword()" style="background:none;border:none;color:#4a90e8;font-size:12px;cursor:pointer;margin-top:2px;padding:4px 8px;font-family:inherit;">🔑 Password dimenticata?</button>
       <button type="button" onclick="backToProfiles()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:-4px;padding:4px 8px;font-family:inherit;">← Cambia profilo</button>
       </form>
+    </div>
+
+    <!-- RECUPERA PASSWORD MODAL -->
+    <div id="recoverPwdModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:99999;display:none;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:#1a1a2e;border:1.5px solid rgba(74,144,232,0.4);border-radius:20px;padding:28px;max-width:380px;width:100%;text-align:center;">
+        <div style="font-size:32px;margin-bottom:12px;">🔑</div>
+        <div style="font-size:17px;font-weight:700;color:#4a90e8;margin-bottom:8px;">Recupera Password</div>
+        <div style="font-size:13px;color:#aaa;margin-bottom:20px;">Inserisci la tua email — verificheremo nel cloud se esiste già un profilo.</div>
+        <input type="email" id="recoverEmail" placeholder="tuaemail@esempio.it"
+          style="width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(74,144,232,0.3);border-radius:10px;padding:12px;color:#fff;font-size:14px;box-sizing:border-box;outline:none;margin-bottom:10px;">
+        <div id="recoverMsg" style="font-size:12px;min-height:18px;margin-bottom:12px;color:#ffb400;"></div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="closeRecoverPassword()" style="flex:1;background:transparent;border:1px solid rgba(255,255,255,0.15);color:#aaa;border-radius:10px;padding:10px;cursor:pointer;font-size:13px;">Annulla</button>
+          <button onclick="doRecoverPassword()" style="flex:2;background:rgba(74,144,232,0.2);border:1px solid rgba(74,144,232,0.5);color:#4a90e8;border-radius:10px;padding:10px;cursor:pointer;font-size:13px;font-weight:700;">🔍 Cerca profilo</button>
+        </div>
+      </div>
     </div>
 
     <!-- STEP REGISTRAZIONE -->
@@ -6567,6 +6584,63 @@ function doManualLogin() {
   tryFb(0);
 }
 
+function showRecoverPassword() {
+  const modal = document.getElementById('recoverPwdModal');
+  modal.style.display = 'flex';
+  const emailVal = selectedProfileEmail || '';
+  document.getElementById('recoverEmail').value = emailVal;
+  document.getElementById('recoverMsg').textContent = '';
+}
+
+function closeRecoverPassword() {
+  document.getElementById('recoverPwdModal').style.display = 'none';
+}
+
+function doRecoverPassword() {
+  const email = (document.getElementById('recoverEmail').value || '').trim().toLowerCase();
+  const msgEl = document.getElementById('recoverMsg');
+  if(!email) { msgEl.textContent = 'Inserisci la tua email.'; return; }
+
+  msgEl.style.color = '#ffb400';
+  msgEl.textContent = '⏳ Cercando nel cloud…';
+
+  const tryRecover = (attempt) => {
+    const _sdb = safeDb();
+    if(!_sdb) {
+      if(attempt >= 5) { msgEl.style.color='#e05c5c'; msgEl.textContent = '⚠️ Nessuna connessione. Riprova.'; return; }
+      setTimeout(() => tryRecover(attempt+1), 1500);
+      return;
+    }
+    _sdb.ref('tc_users').once('value').then(snap => {
+      let users = snap.val();
+      if(users && !Array.isArray(users)) users = Object.values(users);
+      const user = users && users.find(u => u.email === email);
+      if(!user) {
+        msgEl.style.color = '#e05c5c';
+        msgEl.textContent = '❌ Nessun profilo trovato con questa email.';
+        return;
+      }
+      // Profilo trovato — mostra nome e password
+      msgEl.style.color = '#4ae87a';
+      msgEl.innerHTML = `✅ Profilo trovato!<br><b style="color:#fff">${user.name}</b><br>
+        Password: <span style="background:rgba(255,255,255,0.1);padding:3px 10px;border-radius:6px;font-family:monospace;color:#ffb400;">${user.pass}</span>`;
+      // Salva in localStorage per i prossimi accessi
+      try {
+        const local = getUsers();
+        if(!local.find(u => u.email === user.email)) {
+          local.push(user);
+          saveUsers(local);
+          renderProfilesGrid();
+        }
+      } catch(e) {}
+    }).catch(() => {
+      msgEl.style.color = '#e05c5c';
+      msgEl.textContent = 'Errore di connessione. Riprova.';
+    });
+  };
+  tryRecover(0);
+}
+
 function showManualRegister() {
   document.getElementById('netflixProfiles').style.display = 'none';
   document.getElementById('registerStep').style.display = 'block';
@@ -6681,7 +6755,7 @@ function doRegister() {
   if(parts[0].length < 2) { showMsg('La parte prima della @ deve avere almeno 2 caratteri.','error'); return; }
 
   const users = getUsers();
-  if(users.find(u=>u.email===email)) { showMsg('Email già registrata.','error'); return; }
+  if(users.find(u=>u.email===email)) { showMsg('⚠️ Questa email esiste già! Accedi invece di registrarti.','error'); return; }
 
   // Controlla anche su Firebase prima di registrare
   if(fbReady && db) {
@@ -6690,7 +6764,9 @@ function doRegister() {
       let fbUsers = snap.val();
       if(fbUsers && !Array.isArray(fbUsers)) fbUsers = Object.values(fbUsers);
       if(fbUsers && Array.isArray(fbUsers) && fbUsers.find(u => u.email === email)) {
-        showMsg('Email già registrata su un altro dispositivo.', 'error');
+        showMsg('⚠️ Questa email esiste già! Torna indietro e accedi con le tue credenziali.', 'error');
+        // Torna alla griglia profili dopo 2s
+        setTimeout(() => backToProfiles(), 2500);
         return;
       }
       _completeRegistration(name, email, pass);
@@ -14058,11 +14134,34 @@ const SOURCE_PRIORITY = { satispay: 3, sella: 2, revolut: 1, manual: 0 };
 
 function cleanDesc(desc) {
   if(!desc) return '';
-  return desc.toLowerCase()
-    .replace(/[^a-z0-9àèéìòù\s]/gi,'')
+  // Rimuovi prefisso orario Revolut (es. "07:36 NomeNegozio -2,30 € a ...")
+  let d = desc.replace(/^\d{2}:\d{2}\s+/,'');
+  // Rimuovi suffisso importo Revolut (es. " -2,30 € a un Negozio")
+  d = d.replace(/\s*[-+]?\d+[,.]\d+\s*€.*$/i,'');
+  // Rimuovi testo dopo "a un Negozio" o "a un"
+  d = d.replace(/\s+a\s+un\s+.*/i,'');
+  // Pulisci caratteri speciali
+  return d.toLowerCase()
+    .replace(/[^a-z0-9àèéìòù]/gi,' ')
     .replace(/\s+/g,' ')
     .trim()
-    .substring(0,12);
+    .substring(0,15);
+}
+
+function descSimilar(da, db) {
+  if(!da || !db) return true; // se manca una desc, non bloccare
+  if(da.length < 3 || db.length < 3) return true;
+  // Controlla se una contiene l'altra (almeno 5 char)
+  const minLen = Math.min(da.length, db.length);
+  const checkLen = Math.max(5, Math.floor(minLen * 0.6));
+  const shortKey = (da.length <= db.length ? da : db).substring(0, checkLen);
+  if(da.includes(shortKey) || db.includes(shortKey)) return true;
+  // Controlla prefisso comune di almeno 4 char
+  let common = 0;
+  for(let i = 0; i < Math.min(da.length, db.length); i++) {
+    if(da[i] === db[i]) common++; else break;
+  }
+  return common >= 4;
 }
 
 function isCrossSourceDuplicate(a, b) {
@@ -14074,22 +14173,25 @@ function isCrossSourceDuplicate(a, b) {
   const srcSet = new Set([a.source, b.source]);
   if(!srcSet.has('satispay') && !srcSet.has('revolut') && !srcSet.has('sella')) return false;
 
-  // Importi simili: stessa cifra o differenza ≤ €2 (fee Revolut)
+  // Importi simili: stessa cifra o differenza ≤ €2,50 (fee Revolut)
   const diff = Math.abs(a.amount - b.amount);
   const maxAmt = Math.max(a.amount, b.amount);
-  const withinTolerance = diff <= 2.5 || (maxAmt > 0 && diff/maxAmt <= 0.15);
+  const withinTolerance = diff <= 2.5 || (maxAmt > 0 && diff/maxAmt <= 0.12);
   if(!withinTolerance) return false;
 
-  // Descrizioni simili (primi 8 char puliti)
-  const da = cleanDesc(a.desc);
-  const db = cleanDesc(b.desc);
-  if(da.length >= 4 && db.length >= 4) {
-    const shorter = da.length < db.length ? da : db;
-    const longer  = da.length < db.length ? db : da;
-    if(!longer.startsWith(shorter.substring(0,6))) return false;
+  // Per piccoli importi (≤ €5): solo data + importo è sufficiente
+  // perché i negozi piccoli hanno tante transazioni simili
+  if(maxAmt <= 5) {
+    // Richiedi almeno descrizione non completamente diversa
+    const da = cleanDesc(a.desc);
+    const db = cleanDesc(b.desc);
+    return descSimilar(da, db);
   }
 
-  return true;
+  // Per importi medi/grandi: descrizione deve essere simile
+  const da = cleanDesc(a.desc);
+  const db = cleanDesc(b.desc);
+  return descSimilar(da, db);
 }
 
 function deduplicateMonth(expenses) {
@@ -17232,23 +17334,38 @@ function safeDb() {
 let _pwaInstallPrompt = null;
 
 function triggerPwaInstall() {
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const isEdge = /EdgA|EdgiOS/i.test(navigator.userAgent);
+
   if(_pwaInstallPrompt) {
     _pwaInstallPrompt.prompt();
     _pwaInstallPrompt.userChoice.then(r => {
       _pwaInstallPrompt = null;
-      document.getElementById('navPwaInstall').style.display = 'none';
     });
-  } else {
-    // Prompt non disponibile — mostra istruzioni manuali
-    const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-    if(isIOS || isSafari) {
-      showToast('📲 Su Safari: tasto Condividi → "Aggiungi a schermata Home"');
-    } else {
-      showToast('📲 Su Chrome: menu ⋮ → "Installa app" o icona nella barra URL');
-    }
+    return;
   }
+
+  // iOS: mostra modal con istruzioni visive
+  if(isIOS) {
+    const msg = isEdge
+      ? '📲 Su Edge iPad/iPhone:\n1. Tocca i tre puntini (···) in basso\n2. Tocca "Aggiungi a schermata Home"\n3. Conferma con "Aggiungi"'
+      : '📲 Su Safari:\n1. Tocca il tasto Condividi (□↑) in basso\n2. Scorri e tocca "Aggiungi a schermata Home"\n3. Conferma con "Aggiungi"';
+    alert(msg);
+    return;
+  }
+
+  // Android/Chrome/PC
+  showToast('📲 Menu ⋮ → "Installa app" o icona nella barra URL');
 }
+
+// Mostra sempre il pulsante su iOS (beforeinstallprompt non esiste su iOS)
+(function() {
+  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  if(isIOS) {
+    const btn = document.getElementById('navPwaInstall');
+    if(btn) btn.style.display = 'flex';
+  }
+})();
 
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
