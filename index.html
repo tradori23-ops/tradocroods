@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v102';
+  var BUILD = '20260317-v103';
   // Forza reset SW e cache ad ogni nuova build — funziona anche senza localStorage (iOS InPrivate)
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -5669,6 +5669,58 @@ function load(k, def) { const r = localStorage.getItem(getKey(k)); return r ? JS
 
 function getUsers() { return JSON.parse(localStorage.getItem('tc_users') || '[]'); }
 function saveUsers(u) { localStorage.setItem('tc_users', JSON.stringify(u)); }
+
+// ── LOGIN FUNCTIONS ──
+let selectedProfileEmail = null;
+
+function doLoginProfile() {
+  const pass = document.getElementById('loginPassword').value;
+  if(!pass) { showMsg('Inserisci la password.','error'); return; }
+  const users = getUsers();
+  const user = users.find(u => u.email === selectedProfileEmail && u.pass === pass);
+  if(user) { enterApp(user); return; }
+  // Prova anche su Gist se non trovato in locale
+  showMsg('⏳ Verifica in corso...','info');
+  (async () => {
+    if(gistReady && _gistToken && _gistId) {
+      const result = await gistApiFetch('GET', '/gists/' + _gistId);
+      const uf = result?.files?.['tradocroods_users.json'];
+      if(uf?.content) {
+        try {
+          const fbUsers = JSON.parse(uf.content);
+          const found = Array.isArray(fbUsers) && fbUsers.find(u => u.email === selectedProfileEmail && u.pass === pass);
+          if(found) {
+            try { localStorage.setItem('tc_users', JSON.stringify(fbUsers)); } catch(e) {}
+            enterApp(found); return;
+          }
+        } catch(e) {}
+      }
+    }
+    showMsg('Password non corretta.','error');
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginPassword').focus();
+  })();
+}
+
+function backToProfiles() {
+  selectedProfileEmail = null;
+  document.getElementById('profilePasswordStep').style.display = 'none';
+  document.getElementById('netflixProfiles').style.display = 'flex';
+  document.getElementById('loginMsg').textContent = '';
+}
+
+function selectProfile(email, name, avatarHtml) {
+  selectedProfileEmail = email;
+  const av = document.getElementById('selAvatar');
+  const nm = document.getElementById('selName');
+  if(av) av.innerHTML = avatarHtml || email.charAt(0).toUpperCase();
+  if(nm) nm.textContent = name || email;
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('netflixProfiles').style.display = 'none';
+  document.getElementById('profilePasswordStep').style.display = 'flex';
+  document.getElementById('loginMsg').textContent = '';
+  setTimeout(() => document.getElementById('loginPassword').focus(), 100);
+}
 
 function periodKey() {
   return `${document.getElementById('globalYear').value}_${document.getElementById('globalMonth').value}`;
