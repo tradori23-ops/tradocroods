@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v111';
+  var BUILD = '20260317-v113';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -2895,7 +2895,7 @@ input, select, textarea {
     </div>
     <!-- CLOUD BADGE in sidebar -->
     <div style="padding:0 16px 16px;">
-      <button id="cloudBadge" onclick="openFirebaseModal()" style="width:100%;border-radius:12px;padding:11px 14px;background:rgba(224,92,92,0.15);border:1.5px solid rgba(224,92,92,0.4);color:#e05c5c;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.2s;">
+      <button id="cloudBadge" onclick="openFirebaseModal()" style="width:100%;border-radius:12px;padding:11px 14px;background:rgba(224,92,92,0.15);border:1.5px solid rgba(224,92,92,0.4);color:#e05c5c;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.2s;text-align:center;flex-wrap:wrap;">
         ☁️ Offline — Configura Cloud
       </button>
     </div>
@@ -5659,23 +5659,43 @@ function closeFirebaseModal() {
   document.getElementById('firebaseModal').style.display = 'none';
 }
 async function saveGistConfig() {
-  const token = (document.getElementById('gist-token-input').value||'').trim();
-  const gistId = (document.getElementById('gist-id-input').value||'').trim();
+  // Strip whitespace and any accidental newlines from token
+  const token = (document.getElementById('gist-token-input').value||'').trim().replace(/\s+/g,'');
+  const gistId = (document.getElementById('gist-id-input').value||'').trim().replace(/\s+/g,'');
   const msg = document.getElementById('fb-msg');
   if(!token) { msg.style.color='#e05c5c'; msg.textContent='⚠️ Inserisci il token GitHub.'; return; }
-  msg.style.color='var(--gold)'; msg.textContent='⏳ Connessione...';
+  if(!token.startsWith('ghp_') && !token.startsWith('github_pat_') && !token.startsWith('gho_')) {
+    msg.style.color='#e05c5c'; msg.textContent='⚠️ Il token deve iniziare con ghp_ — rigenera il token.'; return;
+  }
+  msg.style.color='var(--gold)'; msg.textContent='⏳ Verifica token...';
   _gistToken = token;
+
+  // Verify token works first
+  const testRes = await fetch('https://api.github.com/user', {
+    headers:{ 'Authorization':'token '+token, 'Accept':'application/vnd.github.v3+json' }
+  }).catch(()=>null);
+  if(!testRes || !testRes.ok) {
+    const status = testRes?.status || 'network error';
+    msg.style.color='#e05c5c';
+    msg.textContent = status===401 ? '❌ Token non valido o scaduto. Rigenera il token.' :
+                      status===403 ? '❌ Token senza permessi Gist. Crea un nuovo token con scope "gist".' :
+                      '❌ Errore di rete ('+status+'). Controlla la connessione.';
+    _gistToken = null; return;
+  }
+
+  const user = await testRes.json();
+  msg.textContent = '✅ Token OK (' + (user.login||'utente') + '). ' + (gistId ? 'Verifico Gist...' : 'Creo Gist...');
+
   if(gistId) {
     const ok = await gistApiFetch('GET', '/gists/'+gistId);
-    if(!ok) { msg.style.color='#e05c5c'; msg.textContent='❌ Gist non trovato.'; return; }
+    if(!ok) { msg.style.color='#e05c5c'; msg.textContent='❌ Gist non trovato. Controlla ID o lascia vuoto per crearne uno.'; return; }
     _gistId = gistId; gistSaveConfig(token, gistId);
   } else {
-    msg.textContent='⏳ Creazione Gist...';
     const nid = await gistCreateNew(token);
-    if(!nid) { msg.style.color='#e05c5c'; msg.textContent='❌ Errore. Verifica il token.'; return; }
+    if(!nid) { msg.style.color='#e05c5c'; msg.textContent='❌ Errore creazione Gist. Assicurati che il token abbia il permesso "gist".'; return; }
     _gistId = nid; gistSaveConfig(token, nid);
   }
-  msg.style.color='#4ae87a'; msg.textContent='✅ Connesso! ID: '+_gistId;
+  msg.style.color='#4ae87a'; msg.textContent='✅ Connesso! Sincronizzazione...';
   gistReady = true; fbReady = true; updateCloudBadge(true);
   if(currentUser) await gistSyncFromCloud(currentUser.email, ()=>refreshAll());
   await gistPushToCloud();
@@ -6141,11 +6161,22 @@ function enterApp(user) {
     const el = document.getElementById('tc-loading-screen');
     if(el) el.remove();
     document.getElementById('loginPage').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('userName').textContent = user.name;
-    document.getElementById('userEmail').textContent = user.email;
+    const appEl = document.getElementById('app');
+    appEl.style.display = 'block';
+    const nm = document.getElementById('userName');
+    const em = document.getElementById('userEmail');
+    if(nm) nm.textContent = user.name;
+    if(em) em.textContent = user.email;
     renderSidebarAvatar(user);
     initApp();
+    // Forza la visualizzazione della dashboard
+    showSection('dashboard');
+    // Imposta nav item attivo
+    const navDash = document.querySelector('.nav-item[onclick*="dashboard"]');
+    if(navDash) {
+      document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+      navDash.classList.add('active');
+    }
   }
 
   function syncEAvvia() {
