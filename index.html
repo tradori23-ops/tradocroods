@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v114';
+  var BUILD = '20260317-v115';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -956,6 +956,17 @@ body.light .stat-mini .s-label { color:#44446a; }
 #app {
   display: none;
   min-height: 100vh;
+}
+/* Quando l'app è visibile, main-content rispetta la sidebar */
+#app[style*="display: block"] .main-content,
+#app[style*="display:block"] .main-content {
+  margin-left: 255px !important;
+}
+@media (max-width: 900px) {
+  #app[style*="display: block"] .main-content,
+  #app[style*="display:block"] .main-content {
+    margin-left: 0 !important;
+  }
 }
 
 /* ===== SIDEBAR ===== */
@@ -2966,7 +2977,7 @@ input, select, textarea {
     </div>
 
     <!-- FIREBASE SETUP MODAL -->
-    <div id="firebaseModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:10000;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;">
+    <div id="firebaseModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:10000;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;z-index:10000;">
       <div class="fb-modal">
         <div class="fb-title">☁️ Connetti GitHub Gist</div>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Sync stabile senza disconnessioni. Solo un token GitHub gratuito.</p>
@@ -6163,9 +6174,22 @@ function enterApp(user) {
     document.getElementById('loginPage').style.display = 'none';
     const appEl = document.getElementById('app');
     appEl.style.display = 'block';
-    // Forza il margin del main-content (fix layout dopo display:none→block)
+    // Force browser repaint to fix position:fixed children after display:none→block
+    appEl.style.transform = 'translateZ(0)';
+    void appEl.offsetHeight; // trigger reflow
+    appEl.style.transform = '';
+    // Ensure main-content has correct margin on desktop
     const mc = appEl.querySelector('.main-content');
-    if(mc && window.innerWidth > 900) mc.style.marginLeft = 'var(--sidebar-w)';
+    if(mc) {
+      if(window.innerWidth > 900) {
+        mc.style.marginLeft = '255px';
+      } else {
+        mc.style.marginLeft = '0';
+      }
+    }
+    // Close any open modal
+    const fm = document.getElementById('firebaseModal');
+    if(fm) fm.style.display = 'none';
     const nm = document.getElementById('userName');
     const em = document.getElementById('userEmail');
     if(nm) nm.textContent = user.name;
