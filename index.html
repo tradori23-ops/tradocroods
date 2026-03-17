@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v108';
+  var BUILD = '20260317-v109';
   // Forza reset SW e cache ad ogni nuova build — funziona anche senza localStorage (iOS InPrivate)
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -2863,7 +2863,7 @@ input, select, textarea {
     <div id="profilePasswordStep">
       <div class="sel-avatar" id="selAvatar">?</div>
       <div style="font-size:16px;font-weight:700;" id="selName">—</div>
-      <form onsubmit="doLoginProfile();return false;" autocomplete="on">
+      <form onsubmit="doLoginProfile();return false;" autocomplete="on"><input type="text" id="loginEmailHidden" autocomplete="username" style="display:none;" aria-hidden="true">
       <div class="form-group" style="width:100%;">
         <div style="position:relative;">
           <input type="password" id="loginPassword" placeholder="Password" style="padding-right:48px;" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLoginProfile()">
@@ -2907,7 +2907,7 @@ input, select, textarea {
       <div class="form-group">
         <label>Password</label>
         <div style="position:relative;">
-          <input type="password" id="regPassword" placeholder="Minimo 6 caratteri" style="padding-right:48px;">
+          <input type="password" id="regPassword" placeholder="Minimo 6 caratteri" style="padding-right:48px;" autocomplete="new-password">
           <button type="button" onclick="togglePwd('regPassword','eyeReg')" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;line-height:1;color:var(--text-muted);" id="eyeReg">👁️</button>
         </div>
       </div>
@@ -3068,7 +3068,7 @@ input, select, textarea {
         <div style="margin-top:16px;">
           <div class="fld" style="margin-bottom:12px;">
             <label>🔑 GitHub Token (ghp_...)</label>
-            <input class="fb-input" id="gist-token-input" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+            <input class="fb-input" id="gist-token-input" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="new-password">
           </div>
           <div class="fld" style="margin-bottom:4px;">
             <label>🗂 Gist ID (lascia vuoto per crearne uno nuovo)</label>
@@ -5295,7 +5295,7 @@ input, select, textarea {
           <div style="font-size:13px;font-weight:600;color:#a78bfa;margin-bottom:8px;">🔑 Inserisci la tua API Key di Anthropic</div>
           <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Ottienila gratis su <a href="https://console.anthropic.com" target="_blank" style="color:#a78bfa;">console.anthropic.com</a> → API Keys → Create Key</div>
           <div style="display:flex;gap:8px;">
-            <input type="password" id="ai-apikey-input" placeholder="sk-ant-api03-..." 
+            <input type="password" id="ai-apikey-input" placeholder="sk-ant-api03-..." autocomplete="off" 
               style="flex:1;font-size:13px;padding:8px 12px;border-radius:8px;font-family:monospace;"
               onkeydown="if(event.key==='Enter') aiSaveApiKey()">
             <button onclick="aiSaveApiKey()" style="padding:8px 16px;background:linear-gradient(135deg,#7c3aed,#db2777);border:none;border-radius:8px;color:#fff;font-size:12px;font-weight:700;cursor:pointer;">Salva</button>
@@ -5957,6 +5957,7 @@ function doLoginProfile() {
     }
     showMsg('Password non corretta.','error');
     document.getElementById('loginPassword').value = '';
+  const hid = document.getElementById('loginEmailHidden'); if(hid) hid.value = email;
     document.getElementById('loginPassword').focus();
   })();
 }
