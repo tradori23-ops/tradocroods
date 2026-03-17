@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v107';
+  var BUILD = '20260317-v108';
   // Forza reset SW e cache ad ogni nuova build — funziona anche senza localStorage (iOS InPrivate)
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -843,7 +843,7 @@ body.light .stat-mini .s-label { color:#44446a; }
   border: 1px solid var(--border);
   border-radius: 24px;
   padding: 48px 40px;
-  width: 420px;
+  width: min(460px, 92vw);
   box-shadow: 0 32px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(201,168,76,0.2);
   animation: cardIn 0.8s cubic-bezier(0.16,1,0.3,1) both;
 }
@@ -5732,22 +5732,41 @@ function renderProfilesGrid() {
   if(!grid) return;
   const section = document.getElementById('profilesGridSection');
   if(section) section.style.display = users.length > 0 ? 'block' : 'none';
-  let html = users.map(u => {
+  // Salva utenti in window per accesso da onclick con indice
+  window._tcUsers = users;
+  let html = users.map((u, i) => {
     const photo = localStorage.getItem('tc_photo_' + u.email);
     const av = photo
       ? '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:16px;">'
       : '<span style="font-size:28px;font-weight:700;">' + (u.name || u.email).charAt(0).toUpperCase() + '</span>';
-    const letter = (u.name || u.email).charAt(0).toUpperCase();
-    const se = encodeURIComponent(u.email);
-    const sn = encodeURIComponent(u.name || '');
-    return `<div class="profile-card" onclick="selectProfile(decodeURIComponent('${se}'),decodeURIComponent('${sn}'),'${letter}')">` +
-      `<div class="profile-avatar" ${manageMode ? 'style="border-color:rgba(224,92,92,0.5)"' : ''}>` + av + '</div>' +
+    return '<div class="profile-card" onclick="selectProfileByIndex(' + i + ')">' +
+      '<div class="profile-avatar"' + (manageMode ? ' style="border-color:rgba(224,92,92,0.5)"' : '') + '>' + av + '</div>' +
       '<div class="profile-name">' + (u.name || u.email) + '</div>' +
-      (manageMode ? `<button class="profile-del-btn" onclick="event.stopPropagation();deleteProfile(decodeURIComponent('${se}'))">🗑</button>` : '') +
+      (manageMode ? '<button class="profile-del-btn" onclick="event.stopPropagation();deleteProfileByIndex(' + i + ')">🗑</button>' : '') +
       '</div>';
   }).join('');
   html += '<div class="profile-card" onclick="showRegisterStep()" style="opacity:0.6;"><div class="profile-avatar" style="border:2px dashed rgba(201,168,76,0.4);background:transparent;"><span style="font-size:28px;color:var(--gold);">+</span></div><div class="profile-name">Nuovo</div></div>';
   grid.innerHTML = html;
+}
+
+function selectProfileByIndex(i) {
+  const users = window._tcUsers || getUsers();
+  const u = users[i];
+  if(!u) return;
+  // Aggiorna foto avatar nello step password
+  const photo = localStorage.getItem('tc_photo_' + u.email);
+  const av = document.getElementById('selAvatar');
+  if(av) {
+    if(photo) av.innerHTML = '<img src="' + photo + '" style="width:100%;height:100%;object-fit:cover;border-radius:9px;">';
+    else av.innerHTML = (u.name || u.email).charAt(0).toUpperCase();
+  }
+  selectProfile(u.email, u.name || '', '');
+}
+
+function deleteProfileByIndex(i) {
+  const users = window._tcUsers || getUsers();
+  const u = users[i];
+  if(u) deleteProfile(u.email);
 }
 
 function toggleManageProfiles() {
