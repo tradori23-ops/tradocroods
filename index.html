@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v109';
+  var BUILD = '20260317-v110';
   // Forza reset SW e cache ad ogni nuova build — funziona anche senza localStorage (iOS InPrivate)
   if('serviceWorker' in navigator) {
     navigator.serviceWorker.getRegistrations().then(function(regs) {
@@ -5975,11 +5975,17 @@ function selectProfile(email, name, avatarHtml) {
   const nm = document.getElementById('selName');
   if(av) av.innerHTML = avatarHtml || email.charAt(0).toUpperCase();
   if(nm) nm.textContent = name || email;
-  document.getElementById('loginPassword').value = '';
-  document.getElementById('netflixProfiles').style.display = 'none';
-  document.getElementById('profilePasswordStep').style.display = 'flex';
-  document.getElementById('loginMsg').textContent = '';
-  setTimeout(() => document.getElementById('loginPassword').focus(), 100);
+  const pwEl = document.getElementById('loginPassword');
+  if(pwEl) pwEl.value = '';
+  const nfEl = document.getElementById('netflixProfiles');
+  if(nfEl) nfEl.style.display = 'none';
+  const ppEl = document.getElementById('profilePasswordStep');
+  if(ppEl) ppEl.style.display = 'flex';
+  const msgEl = document.getElementById('loginMsg');
+  if(msgEl) msgEl.textContent = '';
+  const hid = document.getElementById('loginEmailHidden');
+  if(hid) hid.value = email;
+  setTimeout(() => { const p = document.getElementById('loginPassword'); if(p) p.focus(); }, 100);
 }
 
 function periodKey() {
