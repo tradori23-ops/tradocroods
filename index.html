@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v116';
+  var BUILD = '20260317-v117';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -7909,7 +7909,6 @@ function getTotalExpenses() { return getExpenses().reduce((s,e)=>s+e.amount,0); 
 // ===== DASHBOARD =====
 function renderDashboard() {
   if(!document.getElementById('sum-income')) return;
-  if(!document.getElementById('creditoRimanente')) return;
   if(!document.getElementById('latestExpenses')) return;
   const yr = parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear());
   const mo = parseInt(document.getElementById('globalMonth')?.value || new Date().getMonth()+1);
@@ -7954,8 +7953,8 @@ function renderDashboard() {
   // Chiama updateRimanenza per calcolare e mostrare la rimanenza reale corretta
   updateRimanenza();
 
-  document.getElementById('creditoRimanente').textContent = '€'+inc.toFixed(2).replace('.',',');
-  document.getElementById('creditoRimanente').className = 'positive';
+  const crEl = document.getElementById('creditoRimanente');
+  if(crEl) { crEl.textContent = '€'+inc.toFixed(2).replace('.',','); crEl.className = 'positive'; }
 
   // Latest expenses
   const exp = getExpenses().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
