@@ -1112,6 +1112,13 @@ body.light .stat-mini .s-label { color:#44446a; }
   letter-spacing: -0.5px;
 }
 
+.topbar-desktop-only { display: none !important; }
+.topbar-more-btn { display: flex !important; }
+@media (min-width: 768px) {
+  .topbar-desktop-only { display: inline-flex !important; }
+  .topbar-more-btn { display: none !important; }
+  #topbarMobileMenu { display: none !important; }
+}
 .topbar-actions {
   display: flex;
   gap: 8px;
@@ -3118,15 +3125,33 @@ body.ios-device .btn-gold:hover {
       <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
       <h1 class="page-title" id="pageTitle">Dashboard</h1>
       <div class="topbar-actions">
+        <!-- Bottoni sempre visibili -->
         <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"><span class="btn-emoji">🌙</span><span class="btn-txt"> Notte</span></button>
-        <button id="installAppBtn" class="btn btn-outline" onclick="handleInstallClick()" style="border-color:rgba(201,168,76,0.5);color:var(--gold);"><span class="btn-emoji">📲</span><span class="btn-txt"> Installa App</span></button>
-        <button class="btn btn-outline" onclick="printPage()"><span class="btn-emoji">🖨️</span><span class="btn-txt"> Stampa</span></button>
         <button class="btn btn-green" onclick="lockScreen()"><span class="btn-emoji">🔒</span><span class="btn-txt"> Blocca</span></button>
         <button class="btn btn-outline" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sincronizza</span></button>
-        <button class="btn btn-danger" onclick="resetMonth()"><span class="btn-emoji">♻️</span><span class="btn-txt"> Reset Mese</span></button>
-        <button class="btn btn-danger" onclick="resetYear()" style="background:linear-gradient(135deg,#7b2d2d,#5a1a1a);border-color:#8b3a3a;"><span class="btn-emoji">🗑️</span><span class="btn-txt"> Reset Anno</span></button>
-        <button class="btn btn-outline" onclick="cambiaUtente()"><span class="btn-emoji">👤</span><span class="btn-txt"> Cambia Utente</span></button>
         <button class="btn btn-danger" onclick="esci()"><span class="btn-emoji">🚪</span><span class="btn-txt"> Esci</span></button>
+        <!-- Bottone ⋯ menu per le azioni extra (visibile solo su mobile) -->
+        <button class="btn btn-outline topbar-more-btn" onclick="toggleTopbarMenu()" style="border-color:rgba(201,168,76,0.4);color:var(--gold);font-size:18px;padding:6px 12px;" title="Altre azioni">⋯</button>
+        <!-- Bottoni nascosti su mobile, visibili su desktop -->
+        <button id="installAppBtn" class="btn btn-outline topbar-desktop-only" onclick="handleInstallClick()" style="border-color:rgba(201,168,76,0.5);color:var(--gold);"><span class="btn-emoji">📲</span><span class="btn-txt"> Installa App</span></button>
+        <button class="btn btn-outline topbar-desktop-only" onclick="printPage()"><span class="btn-emoji">🖨️</span><span class="btn-txt"> Stampa</span></button>
+        <button class="btn btn-danger topbar-desktop-only" onclick="resetMonth()"><span class="btn-emoji">♻️</span><span class="btn-txt"> Reset Mese</span></button>
+        <button class="btn btn-danger topbar-desktop-only" onclick="resetYear()" style="background:linear-gradient(135deg,#7b2d2d,#5a1a1a);border-color:#8b3a3a;"><span class="btn-emoji">🗑️</span><span class="btn-txt"> Reset Anno</span></button>
+        <button class="btn btn-outline topbar-desktop-only" onclick="cambiaUtente()"><span class="btn-emoji">👤</span><span class="btn-txt"> Cambia Utente</span></button>
+      </div>
+    </div>
+
+    <!-- MENU EXTRA MOBILE (dropdown dal bottone ⋯) -->
+    <div id="topbarMobileMenu" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:8000;" onclick="closeTopbarMenu()">
+      <div style="position:absolute;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:8px;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:4px;" onclick="event.stopPropagation()">
+        <div style="font-size:10px;color:var(--text-muted);padding:4px 12px;letter-spacing:1px;font-weight:700;">AZIONI</div>
+        <button onclick="handleInstallClick();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--gold);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">📲 Installa App</button>
+        <button onclick="printPage();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">🖨️ Stampa</button>
+        <button onclick="cambiaUtente();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">👤 Cambia Utente</button>
+        <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+        <div style="font-size:10px;color:var(--text-muted);padding:4px 12px;letter-spacing:1px;font-weight:700;">RESET</div>
+        <button onclick="resetMonth();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">♻️ Reset Mese</button>
+        <button onclick="resetYear();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">🗑️ Reset Anno</button>
       </div>
     </div>
 
@@ -6459,14 +6484,18 @@ function enterApp(user) {
     }, _syncTimeout);
   } else {
     setLoader('Avvio…', 'Caricamento dati locali');
-    // Prova Gist in background, apri subito con dati locali
-    initGistSync().then(() => {
-      if(gistReady) { syncEAvvia(); } else { avviaApp(); }
-    });
-    // Fallback: su iOS apri entro 2s, su desktop entro 4s
+    // Fallback immediato: su iOS apri entro 1s senza aspettare il Gist
     setTimeout(() => {
       if(document.getElementById('tc-loading-screen')) avviaApp();
-    }, _isIOS ? 2000 : 4000);
+    }, _isIOS ? 1000 : 3000);
+    // Prova Gist in background, ma non bloccare l'avvio
+    initGistSync().then(() => {
+      if(!window._appAvviato) {
+        if(gistReady) { syncEAvvia(); } else { avviaApp(); }
+      }
+    }).catch(() => {
+      if(!window._appAvviato) avviaApp();
+    });
   }
 }
 
@@ -16713,6 +16742,15 @@ function checkIOSInstallPrompt() {
 }
 
 // Gestisce il click su "Installa App": nativo su Android/desktop, guida su iOS
+function toggleTopbarMenu() {
+  const m = document.getElementById('topbarMobileMenu');
+  if(m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+function closeTopbarMenu() {
+  const m = document.getElementById('topbarMobileMenu');
+  if(m) m.style.display = 'none';
+}
+
 function handleInstallClick() {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                 (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
