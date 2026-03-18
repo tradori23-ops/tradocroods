@@ -1517,7 +1517,8 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   position:relative;
 }
 
-.cal-day:hover { border-color: var(--gold); }
+.cal-day:hover { border-color: var(--gold); cursor: pointer; }
+.cal-day:hover .day-num { color: var(--gold); }
 .cal-day.today { border-color: var(--gold); background: rgba(201,168,76,0.08); }
 .cal-day.other-month { opacity:0.3; }
 .cal-day.has-reminder { border-color: var(--accent2); }
@@ -3118,7 +3119,7 @@ body.ios-device .btn-gold:hover {
       <h1 class="page-title" id="pageTitle">Dashboard</h1>
       <div class="topbar-actions">
         <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"><span class="btn-emoji">🌙</span><span class="btn-txt"> Notte</span></button>
-        <button id="installAppBtn" class="btn btn-outline" onclick="handleInstallClick()" style="display:none;border-color:rgba(201,168,76,0.5);color:var(--gold);"><span class="btn-emoji">📲</span><span class="btn-txt"> Installa App</span></button>
+        <button id="installAppBtn" class="btn btn-outline" onclick="handleInstallClick()" style="border-color:rgba(201,168,76,0.5);color:var(--gold);"><span class="btn-emoji">📲</span><span class="btn-txt"> Installa App</span></button>
         <button class="btn btn-outline" onclick="printPage()"><span class="btn-emoji">🖨️</span><span class="btn-txt"> Stampa</span></button>
         <button class="btn btn-green" onclick="lockScreen()"><span class="btn-emoji">🔒</span><span class="btn-txt"> Blocca</span></button>
         <button class="btn btn-outline" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sincronizza</span></button>
@@ -7095,9 +7096,11 @@ function initApp() {
   var ua = navigator.userAgent || '';
   if(/iPhone|iPad|iPod/.test(ua) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua))) {
     document.body.classList.add('ios-device');
-    // Mostra subito il bottone installa nella topbar su iOS
+  }
+  // Se già aperta come PWA standalone, nascondi il bottone installa
+  if(window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
     const instBtn = document.getElementById('installAppBtn');
-    if(instBtn) instBtn.style.display = '';
+    if(instBtn) instBtn.style.display = 'none';
   }
   // Controlla se mostrare guida iOS
   checkIOSInstallPrompt();
@@ -10802,33 +10805,142 @@ function renderCalendar() {
 
 function selectCalDay(ds) {
   selectedDay = ds;
+  // Aggiorna anche il pannello note (comportamento originale mantenuto)
   const notes = getNotes();
   const parts = ds.split('-');
   const label = parts[2]+'/'+parts[1]+'/'+parts[0];
-  document.getElementById('selectedDayLabel').textContent = '📅 '+label;
-  document.getElementById('noteText').value = notes[ds]||'';
+  const labelEl = document.getElementById('selectedDayLabel');
+  if(labelEl) labelEl.textContent = '📅 '+label;
+  const noteEl = document.getElementById('noteText');
+  if(noteEl) noteEl.value = notes[ds]||'';
+  const extra = document.getElementById('calDayFixed');
+  if(extra) extra.innerHTML = '';
 
-  // mostra spese fisse pagate quel giorno
-  const pagamenti = getPagamenti();
-  const customFixed = getCustomFixed();
-  const fixedPaid = FIXED.filter(f=>pagamenti[f.id]===ds);
-  const customPaid = customFixed.filter(f=>f.paid && f.paidDate===ds);
-  const customDue = customFixed.filter(f=>f.date===ds && !f.paid);
+  // Apri il modal dettaglio giorno
+  openCalDayModal(ds);
+}
 
-  let extra = document.getElementById('calDayFixed');
-  if(!extra) {
-    extra = document.createElement('div');
-    extra.id = 'calDayFixed';
-    document.getElementById('noteText').parentNode.insertBefore(extra, document.getElementById('noteText'));
-  }
-  if(fixedPaid.length || customPaid.length || customDue.length) {
-    extra.innerHTML = '<div style="margin-bottom:10px;">'
-      + fixedPaid.map(f=>`<div style="display:flex;justify-content:space-between;padding:7px 10px;background:rgba(76,175,130,0.12);border-radius:8px;margin-bottom:4px;font-size:13px;"><span>${f.icon} ${f.name} <span style="font-size:10px;color:var(--green);font-weight:700;">PAGATA</span></span><span style="color:var(--green);font-weight:700;">€${f.amount.toFixed(2).replace('.',',')}</span></div>`).join('')
-      + customPaid.map(f=>`<div style="display:flex;justify-content:space-between;padding:7px 10px;background:rgba(76,175,130,0.12);border-radius:8px;margin-bottom:4px;font-size:13px;"><span>📌 ${f.name} <span style="font-size:10px;color:var(--green);font-weight:700;">PAGATA</span></span><span style="color:var(--green);font-weight:700;">€${f.amount.toFixed(2).replace('.',',')}</span></div>`).join('')
-      + customDue.map(f=>`<div style="display:flex;justify-content:space-between;padding:7px 10px;background:rgba(201,168,76,0.12);border-radius:8px;margin-bottom:4px;font-size:13px;"><span>⏰ ${f.name} <span style="font-size:10px;color:var(--gold);font-weight:700;">IN SCADENZA</span></span><span style="color:var(--gold);font-weight:700;">€${f.amount.toFixed(2).replace('.',',')}</span></div>`).join('')
-      + '</div>';
-  } else {
-    extra.innerHTML = '';
+function openCalDayModal(ds) {
+  const modal = document.getElementById('weekDetailModal');
+  if(!modal) return;
+  modal.style.display = 'flex';
+  _weekDetailCurrentDs = ds;
+
+  // Reset form aggiungi se aperto
+  const addForm = document.getElementById('weekDetailAddForm');
+  const addBtn  = document.getElementById('weekDetailAddToggleBtn');
+  if(addForm) addForm.style.display = 'none';
+  if(addBtn)  addBtn.textContent = '➕ Aggiungi Spesa per questo giorno';
+
+  document.getElementById('weekDetailList').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);">Caricamento...</div>';
+
+  try {
+    const d   = new Date(ds + 'T12:00:00');
+    const key = d.getFullYear() + '_' + (d.getMonth()+1);
+    const ds2 = ds.split('-').reverse().join('/');
+    const allExp = (load('expenses_'+key, [])||[]).filter(e => e.date===ds || e.date===ds2);
+    const allInc = (load('income_'+key,   [])||[]).filter(x => (x.date===ds||x.date===ds2) && x.type!=='ferrino');
+
+    // Spese fisse pagate/in scadenza
+    const pagamenti  = getPagamenti();
+    const customFixed = getCustomFixed();
+    const fixedPaid  = FIXED.filter(f => pagamenti[f.id]===ds);
+    const customPaid = customFixed.filter(f => f.paid && f.paidDate===ds);
+    const customDue  = customFixed.filter(f => f.date===ds && !f.paid);
+
+    const libere   = allExp.filter(e => e.pay!=='bonifico' && e.cat!=='rata');
+    const bonifici = allExp.filter(e => e.pay==='bonifico' || e.cat==='rata');
+    const totAll   = allExp.reduce((s,e)=>s+e.amount, 0);
+    const totLib   = libere.reduce((s,e)=>s+e.amount, 0);
+    const totBon   = bonifici.reduce((s,e)=>s+e.amount, 0);
+    const totInc   = allInc.reduce((s,x)=>s+x.amount, 0);
+    const fmt = v => '€'+v.toFixed(2).replace('.',',');
+
+    // Intestazione modale
+    const DAYS_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+    const dayLabel = DAYS_FULL[d.getDay()] + ' ' + d.getDate() + ' ' + MESI[d.getMonth()] + ' ' + d.getFullYear();
+    document.getElementById('weekDetailTitle').textContent = dayLabel;
+    document.getElementById('weekDetailSubtitle').textContent = allExp.length + ' spese · ' + allInc.length + ' entrate';
+
+    // Stats KPI
+    document.getElementById('weekDetailStats').innerHTML = [
+      { label:'Totale spese', value: fmt(totAll),    c:'var(--red)'  },
+      { label:'Libere',       value: fmt(totLib),    c:'#4ae87a'     },
+      { label:'Bonifici',     value: fmt(totBon),    c:'#ffb400'     },
+      { label:'Entrate',      value:'+'+fmt(totInc), c:'#4ae87a'     },
+    ].map(s=>`<div style="padding:12px 16px;border-right:1px solid var(--border);text-align:center;">
+      <div style="font-size:18px;font-weight:700;color:${s.c};">${s.value}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.8px;">${s.label}</div>
+    </div>`).join('');
+
+    let html = '';
+
+    // Entrate
+    if(allInc.length) {
+      html += '<div style="font-size:11px;color:#4ae87a;font-weight:700;margin-bottom:8px;letter-spacing:0.5px;">💰 ENTRATE</div>';
+      html += allInc.map(x=>{
+        const desc = x.causale && x.causale!=='—' ? x.causale : (INCOME_LABELS[x.type]||x.type||'—');
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(74,232,122,0.07);border:1px solid rgba(74,232,122,0.2);border-radius:10px;margin-bottom:6px;">
+          <span style="font-size:13px;color:#4ae87a;font-weight:600;">${INCOME_ICONS[x.type]||'💸'} ${desc}</span>
+          <span style="font-size:14px;font-weight:700;color:#4ae87a;">+${fmt(x.amount)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // Spese fisse pagate
+    if(fixedPaid.length || customPaid.length) {
+      html += '<div style="font-size:11px;color:var(--green);font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">✅ SPESE FISSE PAGATE</div>';
+      html += [...fixedPaid.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(76,175,130,0.08);border:1px solid rgba(76,175,130,0.25);border-radius:10px;margin-bottom:5px;">
+        <span style="font-size:13px;">${f.icon} ${f.name}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--green);">€${f.amount.toFixed(2).replace('.',',')}</span>
+      </div>`),
+      ...customPaid.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(76,175,130,0.08);border:1px solid rgba(76,175,130,0.25);border-radius:10px;margin-bottom:5px;">
+        <span style="font-size:13px;">📌 ${f.name}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--green);">€${f.amount.toFixed(2).replace('.',',')}</span>
+      </div>`)].join('');
+    }
+
+    // Spese in scadenza
+    if(customDue.length) {
+      html += '<div style="font-size:11px;color:var(--gold);font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">⏰ IN SCADENZA</div>';
+      html += customDue.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;margin-bottom:5px;">
+        <span style="font-size:13px;">⏰ ${f.name}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--gold);">€${f.amount.toFixed(2).replace('.',',')}</span>
+      </div>`).join('');
+    }
+
+    // Spese variabili libere
+    if(libere.length) {
+      html += '<div style="font-size:11px;color:var(--text-muted);font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">🛒 SPESE LIBERE</div>';
+      html += _weekExpRows(libere, fmt);
+    }
+
+    // Bonifici/Rate
+    if(bonifici.length) {
+      html += '<div style="font-size:11px;color:#ffb400;font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">🏦 BONIFICI & RATE</div>';
+      html += _weekExpRows(bonifici, fmt);
+    }
+
+    // Stato vuoto
+    if(!allExp.length && !allInc.length && !fixedPaid.length && !customPaid.length && !customDue.length) {
+      html = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">📭 Nessuna spesa o entrata in questo giorno.</div>';
+    }
+
+    // Nota del giorno
+    const weekNotes = load('weekNotes', {});
+    const calNotes  = getNotes();
+    const nota = weekNotes[ds] || calNotes[ds];
+    if(nota) {
+      html += `<div style="margin-top:14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:10px;padding:10px 14px;">
+        <div style="font-size:10px;color:var(--gold);font-weight:700;margin-bottom:4px;">📝 NOTA</div>
+        <div style="font-size:13px;color:var(--text);">${nota}</div>
+      </div>`;
+    }
+
+    document.getElementById('weekDetailList').innerHTML = html;
+
+  } catch(err) {
+    document.getElementById('weekDetailList').innerHTML = '<div style="padding:24px;color:var(--red);">Errore: ' + err.message + '</div>';
   }
 }
 
@@ -16552,8 +16664,11 @@ window.addEventListener('beforeinstallprompt', e => {
 
 window.addEventListener('appinstalled', () => {
   _pwaInstallPrompt = null;
-  const installBtn = document.getElementById('installAppBtn');
-  if(installBtn) installBtn.style.display = 'none';
+  // Nascondi il bottone solo se standalone (app già aperta come PWA)
+  if(window.matchMedia('(display-mode: standalone)').matches) {
+    const installBtn = document.getElementById('installAppBtn');
+    if(installBtn) installBtn.style.display = 'none';
+  }
   const b = document.getElementById('pwaInstallBanner');
   if (b) b.style.display = 'none';
   showToast('🎉 TradoCroods installata! Aprila dalla schermata Home');
@@ -16601,6 +16716,13 @@ function checkIOSInstallPrompt() {
 function handleInstallClick() {
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
                 (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  const isStandalone = window.navigator.standalone === true ||
+                       window.matchMedia('(display-mode: standalone)').matches;
+
+  if (isStandalone) {
+    showToast('✅ App già installata! Aprila dalla schermata Home.');
+    return;
+  }
   if (isIOS) {
     // Mostra guida iOS
     const g = document.getElementById('iosInstallGuide');
@@ -16608,8 +16730,14 @@ function handleInstallClick() {
       g.style.display = 'block';
       g.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
-  } else {
+    return;
+  }
+  if (_pwaInstallPrompt) {
+    // Chrome/Edge: usa il prompt nativo
     installPWA();
+  } else {
+    // Browser non ha ancora il prompt (es. già installata, o non supportato)
+    showToast('💡 Per installare: clicca ⋮ nel browser → "Installa app" o "Aggiungi alla schermata Home"');
   }
 }
 
