@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v117';
+  var BUILD = '20260317-v118';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -6169,6 +6169,9 @@ function enterApp(user) {
   }
 
   function avviaApp() {
+    // Previeni doppia esecuzione
+    if(window._appAvviato) return;
+    window._appAvviato = true;
     const el = document.getElementById('tc-loading-screen');
     if(el) el.remove();
     document.getElementById('loginPage').style.display = 'none';
@@ -6211,7 +6214,7 @@ function enterApp(user) {
       }
     };
     goToDash();
-    setTimeout(goToDash, 150);
+    setTimeout(goToDash, 500);
   }
 
   function syncEAvvia() {
@@ -6238,6 +6241,7 @@ function enterApp(user) {
 }
 
 function cambiaUtente() {
+  window._appAvviato = false;
   currentUser = null;
   document.getElementById('loginPage').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
@@ -6276,6 +6280,7 @@ function aggiornaApp() {
 
 function esci() {
   if(!confirm('Sei sicuro di voler uscire?')) return;
+  window._appAvviato = false;
   const fab = document.getElementById('tc-ai-fab');
   if(fab) fab.style.display = 'none';
   currentUser = null;
