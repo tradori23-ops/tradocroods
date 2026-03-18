@@ -2881,6 +2881,35 @@ body.ios-device .btn-gold:hover {
         <button class="btn-primary" onclick="doManualLogin()">Accedi</button>
         <button onclick="showManualRegister()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:6px;padding:4px 8px;font-family:inherit;">Nuovo profilo →</button>
         </form>
+
+        <!-- SEZIONE TOKEN GIST — visibile solo se manca la configurazione -->
+        <div id="gistTokenLoginArea" style="display:none;margin-top:18px;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;">
+          <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:10px;line-height:1.6;">
+            ☁️ <strong style="color:var(--gold);">Primo accesso su questo dispositivo?</strong><br>
+            Inserisci il token GitHub per recuperare il tuo profilo dal cloud.
+          </div>
+          <div class="form-group">
+            <label style="font-size:10px;">🔑 GitHub Token (ghp_...)</label>
+            <input type="password" id="loginGistToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              autocomplete="off"
+              style="font-size:13px;"
+              onkeydown="if(event.key==='Enter')doManualLoginWithToken()">
+          </div>
+          <div class="form-group">
+            <label style="font-size:10px;">🗂 Gist ID</label>
+            <input type="text" id="loginGistId" placeholder="es. a1b2c3d4e5f6..."
+              autocomplete="off"
+              style="font-size:13px;"
+              onkeydown="if(event.key==='Enter')doManualLoginWithToken()">
+          </div>
+          <div id="gistTokenLoginErr" style="color:#e05c5c;font-size:12px;text-align:center;min-height:14px;margin-bottom:6px;"></div>
+          <button class="btn-primary" onclick="doManualLoginWithToken()" style="background:linear-gradient(135deg,#5a3a8a,#8a5ac8);">
+            ☁️ Accedi con Gist
+          </button>
+          <div style="font-size:10px;color:rgba(201,168,76,0.5);text-align:center;margin-top:8px;">
+            Trovi token e Gist ID nella schermata Cloud del PC
+          </div>
+        </div>
       </div>
     </div>
 
@@ -6063,9 +6092,20 @@ function doManualLogin() {
   if(errEl) errEl.textContent = '⏳ Verifico su cloud…';
   const tryGist = async (attempt) => {
     if(!_gistToken || !_gistId) {
-      // Aspetta max 3 tentativi (3s) che il token venga caricato
-      if(attempt >= 3) {
-        if(errEl) errEl.textContent = '❌ Cloud non configurato. Prova a ricaricare la pagina o configura il Gist.';
+      // Aspetta max 2 tentativi (2s) poi mostra il form token
+      if(attempt >= 2) {
+        if(errEl) errEl.textContent = '';
+        // Mostra sezione token Gist per recupero da cloud
+        const tokenArea = document.getElementById('gistTokenLoginArea');
+        if(tokenArea) {
+          tokenArea.style.display = 'block';
+          // Pre-compila email se già inserita
+          const emailVal = document.getElementById('manualEmail')?.value || email;
+          // Focus sul campo token
+          setTimeout(() => document.getElementById('loginGistToken')?.focus(), 100);
+        } else {
+          if(errEl) errEl.textContent = '❌ Cloud non configurato. Ricarica la pagina.';
+        }
         return;
       }
       setTimeout(()=>tryGist(attempt+1), 1000);
@@ -6093,6 +6133,68 @@ function doManualLogin() {
     } catch(e) { if(errEl) errEl.textContent = '❌ Errore lettura dati.'; }
   };
   tryGist(0);
+}
+
+// Login con token Gist inserito direttamente nella schermata di login (primo accesso iOS)
+async function doManualLoginWithToken() {
+  const email   = (document.getElementById('manualEmail')?.value || '').trim().toLowerCase();
+  const pass    = (document.getElementById('manualPass')?.value  || '');
+  const token   = (document.getElementById('loginGistToken')?.value || '').trim().replace(/\s+/g,'');
+  const gistId  = (document.getElementById('loginGistId')?.value   || '').trim().replace(/\s+/g,'');
+  const errEl   = document.getElementById('gistTokenLoginErr');
+
+  if(!email || !pass) { errEl.textContent = '⚠️ Inserisci email e password sopra.'; return; }
+  if(!token)          { errEl.textContent = '⚠️ Inserisci il token GitHub.'; return; }
+  if(!gistId)         { errEl.textContent = '⚠️ Inserisci il Gist ID.'; return; }
+  if(!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+    errEl.textContent = '⚠️ Il token deve iniziare con ghp_'; return;
+  }
+
+  errEl.style.color = 'var(--gold)';
+  errEl.textContent = '⏳ Connessione al cloud…';
+
+  // Salva temporaneamente il token per usare gistApiFetch
+  _gistToken = token;
+  _gistId    = gistId;
+
+  const r = await gistApiFetch('GET', '/gists/' + gistId, undefined, 6000);
+  if(!r || !r.files) {
+    errEl.style.color = '#e05c5c';
+    errEl.textContent = '❌ Gist non trovato. Controlla token e ID.';
+    _gistToken = null; _gistId = null;
+    return;
+  }
+
+  const uf = r.files['tradocroods_users.json'];
+  if(!uf?.content) {
+    errEl.style.color = '#e05c5c';
+    errEl.textContent = '❌ Nessun dato trovato nel Gist.';
+    _gistToken = null; _gistId = null;
+    return;
+  }
+
+  try {
+    const fbUsers = JSON.parse(uf.content);
+    const fbUser  = Array.isArray(fbUsers) && fbUsers.find(u => u.email===email && u.pass===pass);
+    if(!fbUser) {
+      errEl.style.color = '#e05c5c';
+      errEl.textContent = '❌ Credenziali non valide.';
+      document.getElementById('manualPass').value = '';
+      _gistToken = null; _gistId = null;
+      return;
+    }
+    // Salva configurazione Gist e utenti in localStorage
+    gistSaveConfig(token, gistId);
+    try { localStorage.setItem('tc_users', JSON.stringify(fbUsers)); } catch(e){}
+    errEl.style.color = 'var(--green)';
+    errEl.textContent = '✅ Connesso! Caricamento…';
+    // Inizializza sync e avvia app
+    await initGistSync();
+    enterApp(fbUser);
+  } catch(e) {
+    errEl.style.color = '#e05c5c';
+    errEl.textContent = '❌ Errore lettura dati: ' + e.message;
+  }
 }
 
 function showManualRegister() {
@@ -6132,6 +6234,11 @@ function backToProfiles() {
   document.getElementById('netflixProfiles').style.display = 'flex';
   document.getElementById('loginMsg').textContent = '';
   document.getElementById('loginPassword').value = '';
+  // Reset form token Gist
+  const ta = document.getElementById('gistTokenLoginArea');
+  if(ta) ta.style.display = 'none';
+  const te = document.getElementById('gistTokenLoginErr');
+  if(te) te.textContent = '';
 }
 
 function doLoginProfile() {
