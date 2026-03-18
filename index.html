@@ -3089,7 +3089,7 @@ body.ios-device .btn-gold:hover {
       <h1 class="page-title" id="pageTitle">Dashboard</h1>
       <div class="topbar-actions">
         <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"><span class="btn-emoji">🌙</span><span class="btn-txt"> Notte</span></button>
-        <button id="installAppBtn" class="btn btn-outline" onclick="installPWA()" style="display:none;border-color:rgba(201,168,76,0.5);color:var(--gold);"><span class="btn-emoji">⬇️</span><span class="btn-txt"> Installa App</span></button>
+        <button id="installAppBtn" class="btn btn-outline" onclick="handleInstallClick()" style="display:none;border-color:rgba(201,168,76,0.5);color:var(--gold);"><span class="btn-emoji">📲</span><span class="btn-txt"> Installa App</span></button>
         <button class="btn btn-outline" onclick="printPage()"><span class="btn-emoji">🖨️</span><span class="btn-txt"> Stampa</span></button>
         <button class="btn btn-green" onclick="lockScreen()"><span class="btn-emoji">🔒</span><span class="btn-txt"> Blocca</span></button>
         <button class="btn btn-outline" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sincronizza</span></button>
@@ -5605,16 +5605,25 @@ function gistSaveConfig(token, id) {
   if(token) { localStorage.setItem('tc_gist_token', token); _gistToken = token; }
   if(id)    { localStorage.setItem('tc_gist_id', id);       _gistId = id; }
 }
-async function gistApiFetch(method, path, body) {
+async function gistApiFetch(method, path, body, timeoutMs) {
   if(!_gistToken) return null;
+  timeoutMs = timeoutMs || 8000;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetch('https://api.github.com' + path, {
       method,
       headers: { 'Authorization':'token ' + _gistToken, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' },
-      body: body ? JSON.stringify(body) : undefined
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ctrl.signal
     });
+    clearTimeout(timer);
     return res.ok ? await res.json() : null;
-  } catch(e) { return null; }
+  } catch(e) {
+    clearTimeout(timer);
+    if(e.name === 'AbortError') console.warn('gistApiFetch timeout:', path);
+    return null;
+  }
 }
 async function gistCreateNew(token) {
   try {
@@ -5631,7 +5640,10 @@ async function initGistSync() {
   gistLoadConfig();
   if(!_gistToken || !_gistId) { fbReady = false; gistReady = false; updateCloudBadge(false); return; }
   updateCloudBadge('syncing');
-  const data = await gistApiFetch('GET', '/gists/' + _gistId);
+  // Timeout ridotto su iOS (5s) per non bloccare il caricamento
+  const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                 (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  const data = await gistApiFetch('GET', '/gists/' + _gistId, undefined, _isIOS ? 5000 : 10000);
   if(data && data.id) {
     fbReady = true; gistReady = true; updateCloudBadge(true);
     if(!window._gistAutoSync) window._gistAutoSync = setInterval(() => {
@@ -5694,7 +5706,9 @@ async function gistPushToCloud() {
 async function gistSyncFromCloud(email, onDone) {
   if(!gistReady || !_gistToken || !_gistId) { if(onDone) onDone(); return; }
   updateCloudBadge('syncing');
-  const r = await gistApiFetch('GET', '/gists/' + _gistId);
+  const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                 (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  const r = await gistApiFetch('GET', '/gists/' + _gistId, undefined, _isIOS ? 6000 : 12000);
   if(r && r.files) {
     const df = r.files['tradocroods_data.json'];
     if(df && df.content) {
@@ -6045,26 +6059,38 @@ function doManualLogin() {
   const localUser  = localUsers.find(u => u.email === email && u.pass === pass);
   if(localUser) { enterApp(localUser); return; }
 
-  // Se non trovato in locale, prova dal Gist
+  // Se non trovato in locale, prova dal Gist con timeout massimo 4s (iOS Safari)
   if(errEl) errEl.textContent = '⏳ Verifico su cloud…';
   const tryGist = async (attempt) => {
     if(!_gistToken || !_gistId) {
-      if(attempt >= 8) { if(errEl) errEl.textContent = 'Cloud non configurato. Accedi e configura il Gist.'; return; }
-      setTimeout(()=>tryGist(attempt+1), 1000); return;
+      // Aspetta max 3 tentativi (3s) che il token venga caricato
+      if(attempt >= 3) {
+        if(errEl) errEl.textContent = '❌ Cloud non configurato. Prova a ricaricare la pagina o configura il Gist.';
+        return;
+      }
+      setTimeout(()=>tryGist(attempt+1), 1000);
+      return;
     }
-    const r = await gistApiFetch('GET', '/gists/' + _gistId);
-    const uf = r?.files?.['tradocroods_users.json'];
-    if(!uf?.content) { if(errEl) errEl.textContent = 'Credenziali non valide.'; return; }
+    // Usa timeout breve (4s) per non bloccare su iOS
+    const r = await gistApiFetch('GET', '/gists/' + _gistId, undefined, 4000);
+    if(!r || !r.files) {
+      // Gist non raggiungibile: offri login offline se ci sono dati locali
+      if(errEl) errEl.textContent = '⚠️ Cloud non raggiungibile. Controlla la connessione.';
+      return;
+    }
+    const uf = r.files['tradocroods_users.json'];
+    if(!uf?.content) { if(errEl) errEl.textContent = '❌ Credenziali non valide.'; return; }
     try {
       const fbUsers = JSON.parse(uf.content);
       const fbUser = Array.isArray(fbUsers) && fbUsers.find(u=>u.email===email&&u.pass===pass);
       if(!fbUser) {
-        if(errEl) errEl.textContent = 'Credenziali non valide.';
+        if(errEl) errEl.textContent = '❌ Credenziali non valide.';
         if(pwEl) pwEl.value=''; return;
       }
+      // Salva utenti in locale per i prossimi login offline
       try { localStorage.setItem('tc_users', JSON.stringify(fbUsers)); } catch(e){}
       enterApp(fbUser);
-    } catch(e) { if(errEl) errEl.textContent = 'Errore lettura dati.'; }
+    } catch(e) { if(errEl) errEl.textContent = '❌ Errore lettura dati.'; }
   };
   tryGist(0);
 }
@@ -6312,18 +6338,27 @@ function enterApp(user) {
     });
   }
 
+  // Rileva iOS per timeout più aggressivi
+  const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                 (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  const _syncTimeout = _isIOS ? 4000 : 7000; // 4s su iOS, 7s su desktop
+
   if(gistReady) {
     syncEAvvia();
+    // Fallback sicurezza: se syncEAvvia non chiama avviaApp entro timeout, apri comunque
+    setTimeout(() => {
+      if(document.getElementById('tc-loading-screen')) avviaApp();
+    }, _syncTimeout);
   } else {
     setLoader('Avvio…', 'Caricamento dati locali');
     // Prova Gist in background, apri subito con dati locali
     initGistSync().then(() => {
       if(gistReady) { syncEAvvia(); } else { avviaApp(); }
     });
-    // Fallback: apri entro 3 secondi comunque
+    // Fallback: su iOS apri entro 2s, su desktop entro 4s
     setTimeout(() => {
       if(document.getElementById('tc-loading-screen')) avviaApp();
-    }, 3000);
+    }, _isIOS ? 2000 : 4000);
   }
 }
 
@@ -6953,7 +6988,12 @@ function initApp() {
   var ua = navigator.userAgent || '';
   if(/iPhone|iPad|iPod/.test(ua) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua))) {
     document.body.classList.add('ios-device');
+    // Mostra subito il bottone installa nella topbar su iOS
+    const instBtn = document.getElementById('installAppBtn');
+    if(instBtn) instBtn.style.display = '';
   }
+  // Controlla se mostrare guida iOS
+  checkIOSInstallPrompt();
   // Mostra FAB AI
   const fab = document.getElementById('tc-ai-fab');
   if(fab) fab.style.display = 'flex';
@@ -16430,14 +16470,39 @@ function dismissPWABanner() {
 }
 
 function checkIOSInstallPrompt() {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
   const isStandalone = window.navigator.standalone === true;
-  const dismissed = localStorage.getItem('pwa_ios_dismissed');
-  if (isIOS && !isStandalone && !dismissed) {
-    setTimeout(() => {
-      const g = document.getElementById('iosInstallGuide');
-      if (g) g.style.display = 'block';
-    }, 4000);
+
+  if (isIOS && !isStandalone) {
+    // Mostra sempre il bottone "Installa App" nella topbar su iOS
+    const btn = document.getElementById('installAppBtn');
+    if (btn) btn.style.display = '';
+
+    // Mostra il banner in basso solo se non già dismissato
+    const dismissed = localStorage.getItem('pwa_ios_dismissed');
+    if (!dismissed) {
+      setTimeout(() => {
+        const g = document.getElementById('iosInstallGuide');
+        if (g) g.style.display = 'block';
+      }, 3000);
+    }
+  }
+}
+
+// Gestisce il click su "Installa App": nativo su Android/desktop, guida su iOS
+function handleInstallClick() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  if (isIOS) {
+    // Mostra guida iOS
+    const g = document.getElementById('iosInstallGuide');
+    if (g) {
+      g.style.display = 'block';
+      g.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+  } else {
+    installPWA();
   }
 }
 
@@ -17139,18 +17204,29 @@ document.addEventListener('click', function(e) {
     </div>
 
     <!-- iOS INSTALL GUIDE (shown on iOS when not installed) -->
-    <div id="iosInstallGuide" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:0 0 env(safe-area-inset-bottom);background:linear-gradient(135deg,#1a1a2e,#0f0f1a);border-top:1px solid rgba(201,168,76,0.4);box-shadow:0 -4px 20px rgba(0,0,0,0.5);">
-      <div style="padding:16px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div style="font-size:14px;font-weight:700;color:var(--gold);">📲 Installa su iPhone/iPad</div>
-          <button onclick="document.getElementById('iosInstallGuide').style.display='none';localStorage.setItem('pwa_ios_dismissed','1')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    <div id="iosInstallGuide" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:0 0 env(safe-area-inset-bottom);background:linear-gradient(180deg,#1a1a2e,#0d0d1a);border-top:2px solid rgba(201,168,76,0.5);box-shadow:0 -8px 32px rgba(0,0,0,0.6);">
+      <div style="padding:18px 20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-size:15px;font-weight:800;color:var(--gold);">📲 Installa TradoCroods</div>
+          <button onclick="document.getElementById('iosInstallGuide').style.display='none';localStorage.setItem('pwa_ios_dismissed','1')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-muted);font-size:16px;cursor:pointer;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">✕</button>
         </div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.8;">
-          1. Tocca <strong style="color:var(--text);">□↑</strong> (Condividi) nella barra del browser<br>
-          2. Scorri e tocca <strong style="color:var(--gold);">"Aggiungi a schermata Home"</strong><br>
-          3. Conferma con <strong style="color:var(--text);">Aggiungi</strong>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.05);border-radius:12px;padding:10px 14px;">
+            <div style="font-size:22px;flex-shrink:0;">1️⃣</div>
+            <div style="font-size:13px;color:var(--text);">Tocca <strong style="color:var(--gold);">
+              <svg style="width:14px;height:14px;vertical-align:middle;margin:0 2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              Condividi</strong> nella barra di Safari (in basso su iPhone)</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.05);border-radius:12px;padding:10px 14px;">
+            <div style="font-size:22px;flex-shrink:0;">2️⃣</div>
+            <div style="font-size:13px;color:var(--text);">Scorri il menu e tocca <strong style="color:var(--gold);">Aggiungi a schermata Home</strong></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.05);border-radius:12px;padding:10px 14px;">
+            <div style="font-size:22px;flex-shrink:0;">3️⃣</div>
+            <div style="font-size:13px;color:var(--text);">Tocca <strong style="color:var(--gold);">Aggiungi</strong> in alto a destra — fatto! 🎉</div>
+          </div>
         </div>
-        <div style="margin-top:10px;font-size:11px;color:rgba(201,168,76,0.7);">⚡ Dopo l'installazione riceverai notifiche anche con l'app chiusa</div>
+        <div style="margin-top:12px;font-size:11px;color:rgba(201,168,76,0.6);text-align:center;">⚡ L'app funzionerà offline e si aprirà come una vera app nativa</div>
       </div>
     </div>
 
