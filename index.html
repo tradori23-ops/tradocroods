@@ -1726,6 +1726,23 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   .day-item { font-size: 10px; padding: 2px 0; }
 }
 
+@media(max-width:600px) {
+  /* Dashboard: rimanenza a colonna intera, entrate sotto */
+  [style*="grid-template-columns:1fr 1fr"][style*="margin-bottom:14px"],
+  [style*="grid-template-columns: 1fr 1fr"][style*="margin-bottom:14px"] {
+    grid-template-columns: 1fr !important;
+  }
+  #sum-balance { font-size: 42px !important; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #dash-rim-box { overflow: hidden !important; }
+  /* FAB non copra contenuto */
+  #tc-ai-fab { bottom: 70px !important; right: 16px !important; }
+  /* Padding generale ridotto */
+  .main-content { padding: 12px !important; }
+  /* Topbar: nascondi testi bottoni */
+  .topbar-actions .btn-txt,
+  .theme-toggle .btn-txt { display: none; }
+}
+
 @media(max-width:480px) {
   .week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 6px !important; }
   .summary-cards { grid-template-columns: 1fr 1fr; }
@@ -1743,6 +1760,37 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   }
   .income-table-wrap table th:nth-child(4),
   .income-table-wrap table td:nth-child(4) { display: none; }
+
+  /* ── DASHBOARD: griglia 2 colonne → 1 colonna su schermi stretti ── */
+  [style*="grid-template-columns:1fr 1fr"][style*="margin-bottom:14px"],
+  [style*="grid-template-columns: 1fr 1fr"][style*="margin-bottom:14px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── RIMANENZA: font scalato per non uscire dalla card ── */
+  #sum-balance { font-size: 38px !important; }
+  #dash-rim-box { padding: 16px 18px !important; }
+
+  /* ── FAB ✨: sposta più in basso per non coprire contenuto ── */
+  #tc-ai-fab {
+    bottom: 80px !important;
+    right: 16px !important;
+    width: 50px !important;
+    height: 50px !important;
+    font-size: 20px !important;
+  }
+
+  /* ── Month selector: più compatto ── */
+  .month-selector { padding: 8px 12px !important; gap: 8px !important; }
+  .month-selector select { font-size: 15px !important; padding: 6px 8px !important; }
+  .month-selector label { font-size: 13px !important; }
+
+  /* ── Spese Fisse: form a 1 colonna ── */
+  #rataFormGrid { grid-template-columns: 1fr 1fr !important; }
+  .new-fixed-form { grid-template-columns: 1fr !important; }
+
+  /* ── Topbar: testo titolo più piccolo ── */
+  .page-title { font-size: 17px !important; }
 }
 
 .hamburger-btn {
