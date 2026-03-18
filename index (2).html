@@ -4,18 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v98';
-  // Forza reset SW e cache ad ogni nuova build — funziona anche senza localStorage (iOS InPrivate)
-  if('serviceWorker' in navigator) {
-    navigator.serviceWorker.getRegistrations().then(function(regs) {
-      regs.forEach(function(r) { r.unregister(); });
-    });
-  }
-  if('caches' in window) {
-    caches.keys().then(function(keys) {
-      keys.forEach(function(k) { caches.delete(k); });
-    });
-  }
+  var BUILD = '20260317-v118';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -34,6 +23,30 @@
         });
       }).catch(function(){ window.location.reload(true); });
     }
+  }
+})();
+</script>
+
+<!-- DEVICE PERFORMANCE: rileva iOS/iPad e disabilita effetti pesanti -->
+<script>
+(function(){
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPhone|iPad|iPod/.test(ua);
+  // iPad con iPadOS 13+ si identifica come Mac con touch
+  var isIPadOS = navigator.maxTouchPoints > 1 && /Macintosh/.test(ua);
+  var isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+  // Rileva anche Android basso profilo e vecchi browser
+  var isLowEnd = isIOS || isIPadOS || (isSafari && !isIOS);
+  if(isIOS || isIPadOS) {
+    document.documentElement.classList.add('ios-device');
+    // Applica subito la classe anche al body non appena esiste
+    document.addEventListener('DOMContentLoaded', function(){
+      document.body.classList.add('ios-device');
+    });
+    // Ferma subito l'animazione meshDrift aggiungendo uno style inline
+    var s = document.createElement('style');
+    s.textContent = 'body::before{animation:none!important}';
+    document.head.appendChild(s);
   }
 })();
 </script>
@@ -61,9 +74,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://apis.google.com/js/api.js" async defer></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 <style>
 :root {
   --gold: #d4a843;
@@ -92,7 +102,8 @@
 }
 
 * { margin:0; padding:0; box-sizing:border-box; }
-html { height: 100%; -webkit-text-size-adjust: 100%; }
+html { height: 100%; -webkit-text-size-adjust: 100%; overflow-x: hidden; }
+#app { overflow-x: hidden; width: 100%; }
 body {
   font-family: var(--font);
   background: var(--dark);
@@ -971,6 +982,17 @@ body.light .stat-mini .s-label { color:#44446a; }
   display: none;
   min-height: 100vh;
 }
+/* Quando l'app è visibile, main-content rispetta la sidebar */
+#app[style*="display: block"] .main-content,
+#app[style*="display:block"] .main-content {
+  margin-left: 255px !important;
+}
+@media (max-width: 900px) {
+  #app[style*="display: block"] .main-content,
+  #app[style*="display:block"] .main-content {
+    margin-left: 0 !important;
+  }
+}
 
 /* ===== SIDEBAR ===== */
 .sidebar {
@@ -1091,6 +1113,13 @@ body.light .stat-mini .s-label { color:#44446a; }
   letter-spacing: -0.5px;
 }
 
+.topbar-desktop-only { display: none !important; }
+.topbar-more-btn { display: flex !important; }
+@media (min-width: 768px) {
+  .topbar-desktop-only { display: inline-flex !important; }
+  .topbar-more-btn { display: none !important; }
+  #topbarMobileMenu { display: none !important; }
+}
 .topbar-actions {
   display: flex;
   gap: 8px;
@@ -1218,40 +1247,6 @@ body.light .stat-mini .s-label { color:#44446a; }
 .summary-card.expense .value { color: var(--red); }
 .summary-card.fixed .value { color: var(--gold); }
 .summary-card.balance .value { color: var(--accent2); }
-
-/* ===== RIMANENZA LABEL NEON ===== */
-.rim-label-title {
-  font-size: 13px;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 2px;
-  color: #4ae87a;
-  text-shadow:
-    0 0 6px rgba(74,232,122,0.9),
-    0 0 14px rgba(74,232,122,0.6),
-    0 0 28px rgba(74,232,122,0.3);
-  margin-bottom: 4px;
-}
-.rim-label-sub {
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  color: #c9a84c;
-  text-shadow:
-    0 0 5px rgba(201,168,76,0.8),
-    0 0 12px rgba(201,168,76,0.4);
-  margin-bottom: 10px;
-}
-body.light .rim-label-title {
-  color: #0a7a32;
-  text-shadow: none;
-  font-weight: 900;
-}
-body.light .rim-label-sub {
-  color: #7a5200;
-  text-shadow: none;
-  font-weight: 800;
-}
 
 /* ===== SPESE FISSE ===== */
 .fixed-expenses-grid {
@@ -1530,7 +1525,8 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   position:relative;
 }
 
-.cal-day:hover { border-color: var(--gold); }
+.cal-day:hover { border-color: var(--gold); cursor: pointer; }
+.cal-day:hover .day-num { color: var(--gold); }
 .cal-day.today { border-color: var(--gold); background: rgba(201,168,76,0.08); }
 .cal-day.other-month { opacity:0.3; }
 .cal-day.has-reminder { border-color: var(--accent2); }
@@ -1731,6 +1727,288 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   .day-item { font-size: 10px; padding: 2px 0; }
 }
 
+/* ═══════════════════════════════════════════════════
+   iPhone 12 / 13 / 14 — 390px larghezza logica
+   Layout compatto, spazi uniformi, font scalati
+   ═══════════════════════════════════════════════════ */
+@media(max-width:440px) {
+
+  /* ── Base: blocca overflow orizzontale ── */
+  html, body, #app, .main-content, [id^="sec-"] {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── Spaziatura contenuto principale ── */
+  .main-content { padding: 10px !important; }
+
+  /* ── Topbar: compatta ── */
+  .topbar {
+    margin-bottom: 10px !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+  }
+  .topbar-actions {
+    gap: 5px !important;
+    flex-wrap: nowrap !important;
+  }
+  /* Bottoni topbar: solo emoji, no testo, più piccoli */
+  .topbar-actions .btn,
+  .topbar-actions .btn-outline,
+  .topbar-actions .btn-green,
+  .topbar-actions .btn-danger,
+  .theme-toggle {
+    padding: 6px 8px !important;
+    font-size: 15px !important;
+    min-height: 36px !important;
+    border-radius: 10px !important;
+  }
+  .topbar-actions .btn-txt,
+  .theme-toggle .btn-txt { display: none !important; }
+  .page-title { font-size: 15px !important; font-weight: 700 !important; }
+  .hamburger-btn { width: 34px !important; height: 34px !important; font-size: 16px !important; }
+
+  /* ── Month selector ── */
+  .month-selector {
+    padding: 7px 10px !important;
+    gap: 6px !important;
+    margin-bottom: 10px !important;
+  }
+  .month-selector label { font-size: 12px !important; }
+  .month-selector select {
+    font-size: 14px !important;
+    padding: 5px 8px !important;
+    border-radius: 10px !important;
+  }
+
+  /* ── Card generali ── */
+  .card { padding: 12px !important; border-radius: 14px !important; }
+
+  /* ── Font globale ridotto del 10% ── */
+  body { font-size: 13px !important; }
+
+  /* ── Dashboard: tutte le griglie → 1 colonna ── */
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* ── Importi grandi: scala uniforme ── */
+  #sum-balance { font-size: 34px !important; }
+  [style*="font-size:52px"] { font-size: 32px !important; }
+  [style*="font-size:42px"] { font-size: 28px !important; }
+  [style*="font-size:38px"] { font-size: 26px !important; }
+  [style*="font-size:28px"] { font-size: 20px !important; }
+  [style*="font-size:26px"] { font-size: 18px !important; }
+  [style*="font-size:22px"] { font-size: 17px !important; }
+
+  /* ── Cards dashboard: padding compatto ── */
+  #dash-rim-box,
+  [style*="border-radius:18px"],
+  [style*="border-radius: 18px"] {
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  /* ── Spese Settimanali: 2 colonne ── */
+  .week-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 5px !important;
+  }
+  .day-card { min-height: 75px !important; border-radius: 10px !important; }
+  .day-header { font-size: 9px !important; padding: 5px 6px !important; }
+  .day-items { padding: 2px 4px !important; }
+  .day-item { font-size: 9px !important; }
+
+  /* ── Sezione pianificazione vistaSpese ── */
+  #vs-totale-card [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  /* Nascondi operatori ÷ e = inline */
+  #vs-totale-card > div > div[style*="font-size:20px"] { display: none !important; }
+  #vs-rim-reale-banner {
+    flex-direction: column !important;
+    padding: 12px !important;
+    gap: 4px !important;
+  }
+  #vs-rim-reale-val { font-size: 26px !important; }
+
+  /* ── AI Assistente ── */
+  #ai-messages {
+    height: 44vh !important;
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+  .ai-bubble {
+    max-width: 82% !important;
+    font-size: 12px !important;
+    padding: 9px 12px !important;
+    border-radius: 12px 12px 12px 4px !important;
+    line-height: 1.55 !important;
+  }
+  .ai-bubble-user { border-radius: 12px 12px 4px 12px !important; }
+  .ai-avatar { width: 26px !important; height: 26px !important; font-size: 13px !important; border-radius: 8px !important; }
+  .ai-msg { gap: 7px !important; }
+  .ai-quick-btn { font-size: 11px !important; padding: 5px 10px !important; }
+  #ai-input { font-size: 14px !important; }
+
+  /* ── FAB AI: non copre testo ── */
+  #tc-ai-fab {
+    bottom: 76px !important;
+    right: 12px !important;
+    width: 46px !important;
+    height: 46px !important;
+    font-size: 19px !important;
+    border-radius: 14px !important;
+  }
+
+  /* ── Spese Fisse form ── */
+  .new-fixed-form { grid-template-columns: 1fr !important; }
+  #rataFormGrid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+
+  /* ── Totale settimana header ── */
+  #sec-settimanale [style*="justify-content:space-between"][style*="flex-wrap:wrap"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  #weekTotalAmount { font-size: 18px !important; }
+
+  /* ── Modali ── */
+  .modal-box, [id="weekDetailModal"] > div {
+    padding: 14px !important;
+    border-radius: 16px !important;
+    max-height: 85vh !important;
+  }
+  #weekDetailStats > div { padding: 8px 6px !important; }
+  #weekDetailStats > div > div:first-child { font-size: 14px !important; }
+
+  /* ── Form aggiungi spesa nel modal ── */
+  #weekDetailAddPanel { padding: 10px 12px !important; }
+  #weekDetailAddForm > div { gap: 7px !important; margin-bottom: 7px !important; }
+
+  /* ── Sezione AI header card ── */
+  #sec-ai .card:first-child { padding: 14px !important; }
+}
+
+@media(max-width:600px) {
+
+  /* ═══ STRUTTURA BASE ═══ */
+  html, body { overflow-x: hidden !important; }
+  .main-content {
+    padding: 12px !important;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ═══ TUTTE LE CARD ═══ */
+  .card, [style*="border-radius:18px"], [style*="border-radius: 18px"] {
+    padding: 14px 14px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  /* ═══ GRIGLIA 2 COLONNE → 1 COLONNA ═══ */
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ═══ GRIGLIA PIANIFICAZIONE (1fr auto 1fr auto 1fr) → VERTICALE ═══ */
+  #vs-totale-card [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+  #vs-totale-card [style*="font-size:20px"][style*="font-weight:700"] {
+    display: none !important; /* nasconde ÷ e = su mobile */
+  }
+
+  /* ═══ GRIGLIA 3 COLONNE ROW 2 vistaSpese ═══ */
+  #vs-totale-card [style*="grid-template-columns:1fr 1fr 1fr"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* ═══ IMPORTI GRANDI ═══ */
+  #sum-balance {
+    font-size: 36px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  #dash-rim-box { overflow: hidden !important; }
+  [style*="font-size:52px"] { font-size: 36px !important; }
+  [style*="font-size:42px"] { font-size: 32px !important; }
+  [style*="font-size:38px"] { font-size: 30px !important; }
+  [style*="font-size:28px"] { font-size: 22px !important; }
+  [style*="font-size:26px"] { font-size: 20px !important; }
+
+  /* ═══ TOPBAR ═══ */
+  .topbar {
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+  }
+  .topbar-actions .btn-txt,
+  .theme-toggle .btn-txt { display: none !important; }
+  .topbar-actions { gap: 6px !important; }
+  .page-title { font-size: 16px !important; }
+
+  /* ═══ MONTH SELECTOR ═══ */
+  .month-selector {
+    padding: 8px 10px !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+  }
+  .month-selector label { font-size: 12px !important; }
+  .month-selector select { font-size: 14px !important; padding: 5px 6px !important; }
+
+  /* ═══ FAB ═══ */
+  #tc-ai-fab {
+    bottom: 80px !important;
+    right: 14px !important;
+    width: 48px !important;
+    height: 48px !important;
+    font-size: 20px !important;
+  }
+
+  /* ═══ RIMANENZA REALE BANNER (vistaSpese) ═══ */
+  #vs-rim-reale-banner {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 6px !important;
+    padding: 14px !important;
+  }
+  #vs-rim-reale-val { font-size: 28px !important; }
+
+  /* ═══ BUDGET SETTIMANA ═══ */
+  #vs-rimanenza-box, #vs-budget-display-val { font-size: 28px !important; }
+
+  /* ═══ WEEK GRID (spese settimanali) ═══ */
+  .week-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
+  .day-card { min-height: 80px !important; }
+  .day-header { font-size: 9px !important; padding: 5px 7px !important; }
+  .day-items { padding: 2px 5px !important; }
+  .day-item { font-size: 9px !important; }
+
+  /* ═══ SEZIONE SPESE FISSE ═══ */
+  #rataFormGrid { grid-template-columns: 1fr 1fr !important; }
+  .new-fixed-form { grid-template-columns: 1fr !important; }
+
+  /* ═══ TOTALE SETTIMANA HEADER ═══ */
+  #sec-settimanale [style*="display:flex"][style*="justify-content:space-between"][style*="flex-wrap:wrap"] {
+    flex-direction: column !important;
+    gap: 8px !important;
+  }
+  #weekTotalAmount { font-size: 16px !important; }
+
+}
+
 @media(max-width:480px) {
   .week-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 6px !important; }
   .summary-cards { grid-template-columns: 1fr 1fr; }
@@ -1746,26 +2024,39 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   [style*="grid-template-columns: 1fr 1fr 1fr 1fr 1fr 1fr"] {
     grid-template-columns: 1fr 1fr !important;
   }
-  /* Quick-add forms su mobile: colonne singole */
-  #quickAddDayPanel [style*="grid-template-columns:1fr 1fr"],
-  #vsQuickAddPanel [style*="grid-template-columns:1fr 1fr"],
-  #wdQuickAddPanel [style*="grid-template-columns:1fr 1fr 1fr 1fr"] {
-    grid-template-columns: 1fr !important;
-  }
-  /* wdQuickAddPanel form su mobile */
-  #wdQuickAddPanel > div[style*="grid-template-columns"] {
-    grid-template-columns: 1fr 1fr !important;
-  }
-  /* Dashboard ROW 1 e ROW 2 su mobile: una colonna */
-  #sec-dashboard > div[style*="grid-template-columns:1fr 1fr"] {
-    grid-template-columns: 1fr !important;
-  }
   .income-table-wrap table th:nth-child(4),
   .income-table-wrap table td:nth-child(4) { display: none; }
-  /* Topbar Reset Anno / Reset Mese: testo corto */
-  .btn-danger .btn-txt, .btn-warning .btn-txt { display: none; }
-  /* Modal weekDetail su mobile: full width */
-  #weekDetailModal > div { max-width: 100% !important; border-radius: 14px 14px 0 0 !important; position: fixed; bottom: 0; top: auto; max-height: 85vh; }
+
+  /* ── DASHBOARD: griglia 2 colonne → 1 colonna su schermi stretti ── */
+  [style*="grid-template-columns:1fr 1fr"][style*="margin-bottom:14px"],
+  [style*="grid-template-columns: 1fr 1fr"][style*="margin-bottom:14px"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* ── RIMANENZA: font scalato per non uscire dalla card ── */
+  #sum-balance { font-size: 38px !important; }
+  #dash-rim-box { padding: 16px 18px !important; }
+
+  /* ── FAB ✨: sposta più in basso per non coprire contenuto ── */
+  #tc-ai-fab {
+    bottom: 80px !important;
+    right: 16px !important;
+    width: 50px !important;
+    height: 50px !important;
+    font-size: 20px !important;
+  }
+
+  /* ── Month selector: più compatto ── */
+  .month-selector { padding: 8px 12px !important; gap: 8px !important; }
+  .month-selector select { font-size: 15px !important; padding: 6px 8px !important; }
+  .month-selector label { font-size: 13px !important; }
+
+  /* ── Spese Fisse: form a 1 colonna ── */
+  #rataFormGrid { grid-template-columns: 1fr 1fr !important; }
+  .new-fixed-form { grid-template-columns: 1fr !important; }
+
+  /* ── Topbar: testo titolo più piccolo ── */
+  .page-title { font-size: 17px !important; }
 }
 
 .hamburger-btn {
@@ -2174,6 +2465,7 @@ body { background: #09090f !important; }
 body::before {
   content: '';
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  will-change: filter;
   background:
     radial-gradient(ellipse 90% 70% at 8%  12%, rgba(88, 40,200,0.50) 0%, transparent 55%),
     radial-gradient(ellipse 65% 55% at 92% 8%,  rgba(24, 80,210,0.40) 0%, transparent 55%),
@@ -2181,12 +2473,12 @@ body::before {
     radial-gradient(ellipse 60% 50% at  8% 92%, rgba(15,125, 95,0.28) 0%, transparent 55%),
     radial-gradient(ellipse 55% 55% at 50% 50%, rgba(50, 30,130,0.22) 0%, transparent 65%),
     #09090f;
-  animation: meshDrift 20s ease-in-out infinite alternate;
+  animation: meshDrift 40s ease-in-out infinite alternate;
 }
 @keyframes meshDrift {
   0%   { filter: hue-rotate(0deg)   brightness(1.00); }
-  50%  { filter: hue-rotate(12deg)  brightness(1.05); }
-  100% { filter: hue-rotate(-8deg)  brightness(0.97); }
+  50%  { filter: hue-rotate(8deg)   brightness(1.03); }
+  100% { filter: hue-rotate(-5deg)  brightness(0.98); }
 }
 body > * { position: relative; z-index: 1; }
 
@@ -2462,6 +2754,38 @@ body.light select option {
   color: #1a1830 !important;
 }
 
+/* ── Testo light mode: forza colori scuri su iOS ── */
+body.light,
+body.light.ios-device {
+  color: #1a1830 !important;
+}
+body.light p, body.light span, body.light div,
+body.light label, body.light h1, body.light h2,
+body.light h3, body.light h4, body.light li,
+body.light.ios-device p, body.light.ios-device span,
+body.light.ios-device div, body.light.ios-device label {
+  color: #1a1830 !important;
+}
+body.light .text-muted, body.light .label,
+body.light [style*="color:var(--text-muted)"],
+body.light [style*="color: var(--text-muted)"] {
+  color: #5a5880 !important;
+}
+body.light [style*="color:var(--gold)"],
+body.light [style*="color: var(--gold)"] {
+  color: #8a6500 !important;
+}
+body.light [style*="color:var(--red)"],
+body.light [style*="color: var(--red)"] {
+  color: #c0392b !important;
+}
+body.light [style*="color:var(--green)"],
+body.light [style*="color: var(--green)"] {
+  color: #1e8a5c !important;
+}
+body.light .negative { color: #c0392b !important; }
+body.light .positive { color: #1e8a5c !important; }
+
 
 /* ═══ AI ASSISTENTE ═══ */
 .ai-msg { display:flex; gap:10px; align-items:flex-start; }
@@ -2726,10 +3050,69 @@ input, select, textarea {
   right: calc(24px + env(safe-area-inset-right));
 }
 
-/* Fix backdrop-filter su Safari (prefisso già presente, ma forziamo) */
-.card, .sidebar, .summary-card, .day-card,
-.login-card, .profile-card, .modal-box, .fb-modal {
-  -webkit-backdrop-filter: var(--lg-blur) !important;
+/* ══════════════════════════════════════════════════════
+   PERFORMANCE iOS / iPhone / iPad / Safari
+   Riduce drasticamente backdrop-filter e animazioni pesanti
+   su dispositivi mobile per evitare lag e freeze.
+   ══════════════════════════════════════════════════════ */
+body.ios-device body::before {
+  animation: none !important;
+}
+body.ios-device .hex {
+  display: none !important;
+}
+/* Su iOS: blur ridotto al minimo, solo dove serve davvero */
+body.ios-device .card,
+body.ios-device .summary-card,
+body.ios-device .day-card,
+body.ios-device .profile-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(20,20,38,0.96) !important;
+}
+body.ios-device .sidebar {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+body.ios-device .modal-box,
+body.ios-device .fb-modal,
+body.ios-device [id="weekDetailModal"] > div,
+body.ios-device [id="catDetailModal"] > div,
+body.ios-device [id="payDetailModal"] > div,
+body.ios-device [id="firebaseModal"] > div,
+body.ios-device [id="confirmDeleteModal"] > div {
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+body.ios-device .login-card {
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+body.ios-device .btn-gold,
+body.ios-device .btn-primary,
+body.ios-device .btn-outline {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+body.ios-device input,
+body.ios-device select,
+body.ios-device textarea {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Disabilita hover transform su touch (causa janky su iOS) */
+body.ios-device .card:hover,
+body.ios-device .summary-card:hover,
+body.ios-device .day-card:hover,
+body.ios-device .profile-card:hover,
+body.ios-device .btn-gold:hover {
+  transform: none !important;
+}
+/* prefers-reduced-motion — rispetta l'impostazione accessibilità */
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none !important; }
+  .hex { animation-duration: 0.01ms !important; }
+  * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 
 /* Fix scroll momentum su iOS */
@@ -2852,6 +3235,35 @@ input, select, textarea {
         <button class="btn-primary" onclick="doManualLogin()">Accedi</button>
         <button onclick="showManualRegister()" style="background:none;border:none;color:var(--text-muted);font-size:12px;cursor:pointer;margin-top:6px;padding:4px 8px;font-family:inherit;">Nuovo profilo →</button>
         </form>
+
+        <!-- SEZIONE TOKEN GIST — visibile solo se manca la configurazione -->
+        <div id="gistTokenLoginArea" style="display:none;margin-top:18px;border-top:1px solid rgba(255,255,255,0.08);padding-top:16px;">
+          <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:10px;line-height:1.6;">
+            ☁️ <strong style="color:var(--gold);">Primo accesso su questo dispositivo?</strong><br>
+            Inserisci il token GitHub per recuperare il tuo profilo dal cloud.
+          </div>
+          <div class="form-group">
+            <label style="font-size:10px;">🔑 GitHub Token (ghp_...)</label>
+            <input type="password" id="loginGistToken" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+              autocomplete="off"
+              style="font-size:13px;"
+              onkeydown="if(event.key==='Enter')doManualLoginWithToken()">
+          </div>
+          <div class="form-group">
+            <label style="font-size:10px;">🗂 Gist ID</label>
+            <input type="text" id="loginGistId" placeholder="es. a1b2c3d4e5f6..."
+              autocomplete="off"
+              style="font-size:13px;"
+              onkeydown="if(event.key==='Enter')doManualLoginWithToken()">
+          </div>
+          <div id="gistTokenLoginErr" style="color:#e05c5c;font-size:12px;text-align:center;min-height:14px;margin-bottom:6px;"></div>
+          <button class="btn-primary" onclick="doManualLoginWithToken()" style="background:linear-gradient(135deg,#5a3a8a,#8a5ac8);">
+            ☁️ Accedi con Gist
+          </button>
+          <div style="font-size:10px;color:rgba(201,168,76,0.5);text-align:center;margin-top:8px;">
+            Trovi token e Gist ID nella schermata Cloud del PC
+          </div>
+        </div>
       </div>
     </div>
 
@@ -2961,7 +3373,7 @@ input, select, textarea {
     </div>
     <!-- CLOUD BADGE in sidebar -->
     <div style="padding:0 16px 16px;">
-      <button id="cloudBadge" onclick="openFirebaseModal()" style="width:100%;border-radius:12px;padding:11px 14px;background:rgba(224,92,92,0.15);border:1.5px solid rgba(224,92,92,0.4);color:#e05c5c;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.2s;">
+      <button id="cloudBadge" onclick="openFirebaseModal()" style="width:100%;border-radius:12px;padding:11px 14px;background:rgba(224,92,92,0.15);border:1.5px solid rgba(224,92,92,0.4);color:#e05c5c;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.2s;text-align:center;flex-wrap:wrap;">
         ☁️ Offline — Configura Cloud
       </button>
     </div>
@@ -3010,9 +3422,6 @@ input, select, textarea {
       <div class="nav-item" onclick="showSection('ai', this); closeSidebar()" style="background:linear-gradient(90deg,rgba(99,50,200,0.18),transparent);border-left:3px solid rgba(160,100,255,0.7);">
         <span class="icon">✨</span> <span style="background:linear-gradient(90deg,#a78bfa,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;">AI Assistente</span>
       </div>
-      <div class="nav-item" onclick="triggerPwaInstall()" id="navPwaInstall" style="border-left:3px solid rgba(74,232,122,0.5);display:none;">
-        <span class="icon">📲</span> <span style="color:#4ae87a;font-weight:700;">Installa App</span>
-      </div>
     </div>
     <!-- SIDEBAR FOOTER -->
     <div style="padding:16px 24px 8px;border-top:1px solid var(--border);margin-top:auto;">
@@ -3035,51 +3444,25 @@ input, select, textarea {
     </div>
 
     <!-- FIREBASE SETUP MODAL -->
-    <div id="firebaseModal">
+    <div id="firebaseModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:10000;background:rgba(0,0,0,0.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;z-index:10000;">
       <div class="fb-modal">
-        <div class="fb-title">☁️ Configura Cloud Sync</div>
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">Connetti TradoCroods a Firebase per sincronizzare i dati su tutti i tuoi dispositivi. È gratuito!</p>
-
-        <div class="fb-step">
-          <strong>1.</strong> Vai su <code>console.firebase.google.com</code> e crea un nuovo progetto (es. <em>tradocroods</em>)
+        <div class="fb-title">☁️ Connetti GitHub Gist</div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Sync stabile senza disconnessioni. Solo un token GitHub gratuito.</p>
+        <div class="fb-step"><strong>1.</strong> Vai su <code>github.com/settings/tokens</code> → <strong>Generate new token (classic)</strong></div>
+        <div class="fb-step"><strong>2.</strong> Spunta solo <code>gist</code> → clicca <strong>Generate token</strong> → copia</div>
+        <div class="fb-step"><strong>3.</strong> Incolla qui sotto e clicca Connetti:</div>
+        <div style="margin-top:16px;">
+          <label style="font-size:11px;color:var(--gold);font-weight:700;display:block;margin-bottom:6px;">🔑 GitHub Token (ghp_...)</label>
+          <input class="fb-input" id="gist-token-input" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" autocomplete="new-password">
+          <label style="font-size:11px;color:var(--gold);font-weight:700;display:block;margin:12px 0 6px;">🗂 Gist ID (lascia vuoto per crearne uno nuovo)</label>
+          <input class="fb-input" id="gist-id-input" placeholder="opzionale — per usare un Gist esistente">
+          <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Se hai già un Gist su un altro dispositivo, incolla l'ID per sincronizzare.</div>
         </div>
-        <div class="fb-step">
-          <strong>2.</strong> Nel progetto clicca <code>Aggiungi app</code> → scegli <code>&lt;/&gt; Web</code> → registra l'app
-        </div>
-        <div class="fb-step">
-          <strong>3.</strong> Vai in <code>Build → Realtime Database</code> → crea database → scegli <code>Test mode</code>
-        </div>
-        <div class="fb-step">
-          <strong>4.</strong> Vai in <code>Build → Storage</code> → inizializza → scegli <code>Test mode</code>
-        </div>
-        <div class="fb-step">
-          <strong>5.</strong> Torna in <code>Impostazioni progetto</code> e copia la configurazione qui sotto:
-        </div>
-
-        <!-- Incolla config Firebase -->
-        <div style="margin-top:16px;margin-bottom:14px;">
-          <label style="font-size:11px;color:var(--gold);font-weight:700;display:block;margin-bottom:6px;">⚡ INCOLLA CONFIGURAZIONE (metodo rapido)</label>
-          <textarea id="fb-paste" rows="5" placeholder="Incolla qui l'intero blocco firebaseConfig = { ... } copiato da Firebase Console" style="width:100%;box-sizing:border-box;background:rgba(255,255,255,0.05);border:1.5px solid var(--gold);border-radius:10px;padding:10px;font-size:11px;color:var(--text);font-family:'DM Mono',monospace;resize:vertical;outline:none;"></textarea>
-          <button onclick="parseFBPaste()" style="margin-top:6px;width:100%;padding:8px;background:rgba(201,168,76,0.15);border:1.5px solid var(--gold);border-radius:8px;color:var(--gold);font-size:12px;font-weight:700;cursor:pointer;">🔍 Leggi configurazione automaticamente</button>
-          <div id="fb-paste-msg" style="font-size:11px;margin-top:4px;text-align:center;"></div>
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);text-align:center;margin-bottom:10px;">— oppure inserisci i campi manualmente —</div>
-
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:0px;">
-          <div class="fld"><label>API Key</label><input class="fb-input" id="fb-apiKey" placeholder="AIzaSy..."></div>
-          <div class="fld"><label>Auth Domain</label><input class="fb-input" id="fb-authDomain" placeholder="progetto.firebaseapp.com"></div>
-          <div class="fld"><label>Database URL</label><input class="fb-input" id="fb-databaseURL" placeholder="https://progetto-default-rtdb.firebaseio.com"></div>
-          <div class="fld"><label>Project ID</label><input class="fb-input" id="fb-projectId" placeholder="progetto-abc123"></div>
-          <div class="fld"><label>Storage Bucket</label><input class="fb-input" id="fb-storageBucket" placeholder="progetto.appspot.com"></div>
-          <div class="fld"><label>Messaging Sender ID</label><input class="fb-input" id="fb-messagingSenderId" placeholder="123456789"></div>
-          <div class="fld" style="grid-column:span 2;"><label>App ID</label><input class="fb-input" id="fb-appId" placeholder="1:123:web:abc..."></div>
-        </div>
-
         <div style="display:flex;gap:10px;margin-top:20px;">
           <button class="btn btn-outline" onclick="closeFirebaseModal()" style="flex:1;">Annulla</button>
-          <button class="btn btn-gold" onclick="saveFirebaseConfig()" style="flex:2;">☁️ Connetti e Sincronizza</button>
+          <button class="btn btn-gold" onclick="saveGistConfig()" style="flex:2;">☁️ Connetti Gist</button>
         </div>
-        <p id="fb-msg" style="font-size:12px;color:var(--red);margin-top:10px;text-align:center;"></p>
+        <p id="fb-msg" style="font-size:12px;color:#4ae87a;margin-top:10px;text-align:center;"></p>
       </div>
     </div>
 
@@ -3088,14 +3471,33 @@ input, select, textarea {
       <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
       <h1 class="page-title" id="pageTitle">Dashboard</h1>
       <div class="topbar-actions">
+        <!-- Bottoni sempre visibili -->
         <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"><span class="btn-emoji">🌙</span><span class="btn-txt"> Notte</span></button>
-        <button class="btn btn-outline" onclick="printPage()"><span class="btn-emoji">🖨️</span><span class="btn-txt"> Stampa</span></button>
         <button class="btn btn-green" onclick="lockScreen()"><span class="btn-emoji">🔒</span><span class="btn-txt"> Blocca</span></button>
         <button class="btn btn-outline" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sincronizza</span></button>
-        <button class="btn btn-danger" onclick="resetMonth()"><span class="btn-emoji">♻️</span><span class="btn-txt"> Reset Mese</span></button>
-        <button class="btn btn-danger" onclick="resetYear()" style="background:linear-gradient(135deg,#7b2d2d,#5a1a1a);border-color:#8b3a3a;"><span class="btn-emoji">🗑️</span><span class="btn-txt"> Reset Anno</span></button>
-        <button class="btn btn-outline" onclick="cambiaUtente()"><span class="btn-emoji">👤</span><span class="btn-txt"> Cambia Utente</span></button>
         <button class="btn btn-danger" onclick="esci()"><span class="btn-emoji">🚪</span><span class="btn-txt"> Esci</span></button>
+        <!-- Bottone ⋯ menu per le azioni extra (visibile solo su mobile) -->
+        <button class="btn btn-outline topbar-more-btn" onclick="toggleTopbarMenu()" style="border-color:rgba(201,168,76,0.4);color:var(--gold);font-size:18px;padding:6px 12px;" title="Altre azioni">⋯</button>
+        <!-- Bottoni nascosti su mobile, visibili su desktop -->
+        <button id="installAppBtn" class="btn btn-outline topbar-desktop-only" onclick="handleInstallClick()" style="border-color:rgba(201,168,76,0.5);color:var(--gold);"><span class="btn-emoji">📲</span><span class="btn-txt"> Installa App</span></button>
+        <button class="btn btn-outline topbar-desktop-only" onclick="printPage()"><span class="btn-emoji">🖨️</span><span class="btn-txt"> Stampa</span></button>
+        <button class="btn btn-danger topbar-desktop-only" onclick="resetMonth()"><span class="btn-emoji">♻️</span><span class="btn-txt"> Reset Mese</span></button>
+        <button class="btn btn-danger topbar-desktop-only" onclick="resetYear()" style="background:linear-gradient(135deg,#7b2d2d,#5a1a1a);border-color:#8b3a3a;"><span class="btn-emoji">🗑️</span><span class="btn-txt"> Reset Anno</span></button>
+        <button class="btn btn-outline topbar-desktop-only" onclick="cambiaUtente()"><span class="btn-emoji">👤</span><span class="btn-txt"> Cambia Utente</span></button>
+      </div>
+    </div>
+
+    <!-- MENU EXTRA MOBILE (dropdown dal bottone ⋯) -->
+    <div id="topbarMobileMenu" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:8000;" onclick="closeTopbarMenu()">
+      <div style="position:absolute;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:8px;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:4px;" onclick="event.stopPropagation()">
+        <div style="font-size:10px;color:var(--text-muted);padding:4px 12px;letter-spacing:1px;font-weight:700;">AZIONI</div>
+        <button onclick="handleInstallClick();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--gold);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">📲 Installa App</button>
+        <button onclick="printPage();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">🖨️ Stampa</button>
+        <button onclick="cambiaUtente();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">👤 Cambia Utente</button>
+        <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+        <div style="font-size:10px;color:var(--text-muted);padding:4px 12px;letter-spacing:1px;font-weight:700;">RESET</div>
+        <button onclick="resetMonth();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">♻️ Reset Mese</button>
+        <button onclick="resetYear();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">🗑️ Reset Anno</button>
       </div>
     </div>
 
@@ -3125,8 +3527,8 @@ input, select, textarea {
         <!-- RIMANENZA -->
         <div style="background:var(--card);border-radius:18px;padding:22px 26px;border:2px solid rgba(74,232,122,0.35);position:relative;overflow:hidden;" id="dash-rim-box">
           <!-- label -->
-          <div class="rim-label-title">💰 Rimanenza Reale ad Oggi</div>
-          <div class="rim-label-sub">📅 Rimanenza Mensile</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:2px;">💰 Rimanenza Reale ad Oggi</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Stipendio − spese fisse − spese variabili</div>
           <!-- importo grande -->
           <div style="font-size:52px;font-weight:900;font-family:'Playfair Display',serif;line-height:1;" id="sum-balance">€0,00</div>
           <!-- sub-info al giorno -->
@@ -3216,7 +3618,7 @@ input, select, textarea {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
             <button class="btn btn-outline" onclick="resetPagamenti()" style="font-size:12px;">🔄 Reset Pagamenti Mese</button>
-            <button class="btn btn-gold" onclick="saveCurrentFixedAsSnapshot()" style="font-size:12px;background:rgba(74,184,232,0.2);border-color:rgba(74,184,232,0.6);color:#ffffff;font-weight:700;">📸 Salva come spese fisse anno <span id="snapBtnYear" style="color:#7dd8f8;"></span></button>
+            <button class="btn btn-gold" onclick="saveCurrentFixedAsSnapshot()" style="font-size:12px;background:rgba(74,184,232,0.15);border-color:rgba(74,184,232,0.4);color:#4ab8e8;">📸 Salva come spese fisse anno <span id="snapBtnYear"></span></button>
           </div>
         </div>
 
@@ -3625,7 +4027,7 @@ input, select, textarea {
         <!-- Pulizia automatica dati vecchi -->
         <div style="background:rgba(224,92,92,0.06);border:1px solid rgba(224,92,92,0.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;">
           <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">🗑️ Pulizia automatica dati vecchi</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Imposta un promemoria annuale — quando scatta ti chiede conferma e cancella i dati più vecchi di 2 anni (localStorage + Firebase).</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Imposta un promemoria annuale — quando scatta ti chiede conferma e cancella i dati più vecchi di 2 anni (localStorage + Gist).</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <input type="date" id="cleanupDate" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text);font-family:inherit;">
             <button onclick="pianificaCleanup()" style="background:rgba(224,92,92,0.15);border:1px solid rgba(224,92,92,0.35);color:#e05c5c;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600;">📅 Pianifica pulizia</button>
@@ -3924,57 +4326,9 @@ input, select, textarea {
 
       <!-- NOTE SETTIMANALI -->
       <div class="card mt-20" id="weekNotePanel" style="display:none;">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-          <div class="card-title" style="margin:0;">📅 <span id="weekNoteDay" style="color:var(--text);font-size:16px;"></span></div>
-          <button class="btn btn-gold" onclick="toggleQuickAddDay()" id="quickAddDayBtn" style="font-size:13px;padding:8px 16px;">➕ Aggiungi Spesa</button>
-        </div>
-
-        <!-- QUICK ADD SPESA -->
-        <div id="quickAddDayPanel" style="display:none;background:var(--dark3);border:1px solid rgba(201,168,76,0.3);border-radius:14px;padding:16px;margin-bottom:16px;">
-          <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:12px;">➕ Nuova Spesa — <span id="quickAddDayLabel" style="color:var(--text);font-weight:400;"></span></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-            <div class="fld" style="margin:0;">
-              <label>Categoria</label>
-              <select id="quickAddCat">
-                <option value="bar">☕ Bar</option>
-                <option value="ristorante">🍽️ Ristorante</option>
-                <option value="supermercato">🛒 Supermercato</option>
-                <option value="svago">🎭 Svago</option>
-                <option value="viaggi">✈️ Viaggi</option>
-                <option value="hotel">🏨 Hotel</option>
-                <option value="musei">🏛️ Musei</option>
-                <option value="extra">💡 Extra</option>
-                <option value="rata">📦 Rata</option>
-              </select>
-            </div>
-            <div class="fld" style="margin:0;">
-              <label>Metodo Pagamento</label>
-              <select id="quickAddPay">
-                <option value="satispay">📱 Satispay</option>
-                <option value="bancomat">💳 Bancomat</option>
-                <option value="contanti">💵 Contanti</option>
-                <option value="tickets">🎫 Tickets</option>
-                <option value="bonifico">🏦 Bonifico</option>
-              </select>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-            <div class="fld" style="margin:0;">
-              <label>Importo (€)</label>
-              <input type="number" id="quickAddAmount" step="0.01" min="0" placeholder="0,00" style="font-size:16px;font-weight:700;">
-            </div>
-            <div class="fld" style="margin:0;">
-              <label>Descrizione (opzionale)</label>
-              <input type="text" id="quickAddDesc" placeholder="es. Caffè, Spesa...">
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;">
-            <button class="btn btn-outline" onclick="toggleQuickAddDay()" style="flex:1;">Annulla</button>
-            <button class="btn btn-gold" onclick="saveQuickAddDay()" style="flex:2;">💾 Salva Spesa</button>
-          </div>
-        </div>
-
+        <div class="card-title">📝 Note & Modifica — <span id="weekNoteDay" style="color:var(--text);font-size:16px;"></span></div>
         <div class="grid-2" style="gap:20px;">
+
           <!-- NOTE -->
           <div>
             <div class="fld" style="margin-bottom:14px;">
@@ -3984,9 +4338,9 @@ input, select, textarea {
             <button class="btn btn-gold" onclick="saveWeekNote()" style="width:100%;">💾 Salva Nota</button>
           </div>
 
-          <!-- SPESE DEL GIORNO -->
+          <!-- MODIFICA SPESA -->
           <div>
-            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">✏️ Spese del Giorno</div>
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;">✏️ Modifica Spesa del Giorno</div>
             <div id="weekDayExpList" style="display:flex;flex-direction:column;gap:8px;max-height:220px;overflow-y:auto;"></div>
           </div>
         </div>
@@ -4412,21 +4766,6 @@ input, select, textarea {
           💡 I movimenti vengono importati automaticamente dal <strong>PDF Banca Sella</strong> nella sezione <em>Aggiungi Spesa</em>. Non appaiono nelle spese settimanali.
         </div>
       </div>
-
-      <!-- GIRI SELLA → SATISPAY / REVOLUT -->
-      <div class="card mt-20">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-          <div>
-            <div class="card-title" style="margin:0;">🔄 Giri Sella → Satispay / Revolut</div>
-            <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Trasferimenti interni — non conteggiati nelle spese. Vengono spesi tramite Satispay/Revolut.</div>
-          </div>
-          <select id="giriSellaYearSel" onchange="renderGiriSella()" style="background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;"></select>
-        </div>
-        <!-- KPI -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;" id="giriSellaKpi"></div>
-        <!-- Lista -->
-        <div id="giriSellaList" style="max-height:400px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;"></div>
-      </div>
     </div>
 
     <!-- ===== EMERGENZA ===== -->
@@ -4517,15 +4856,6 @@ input, select, textarea {
           <div style="font-size:17px;font-weight:700;color:var(--gold);">Documenti & Fatture</div>
           <div style="font-size:13px;color:var(--text-muted);" id="docStorageDesc">Archivia le tue fatture divise per categoria.</div>
         </div>
-      </div>
-
-      <!-- DEDUP BUTTON -->
-      <div style="background:linear-gradient(135deg,rgba(74,232,122,0.08),rgba(74,232,122,0.02));border:1.5px solid rgba(74,232,122,0.25);border-radius:14px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
-        <div>
-          <div style="font-size:14px;font-weight:700;color:#4ae87a;">🧹 Rimuovi Duplicati Cross-Carta</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">Elimina automaticamente le spese importate da più carte nello stesso giorno (es. Satispay + Revolut stesso pagamento)</div>
-        </div>
-        <button class="btn btn-gold" onclick="runManualDedup()" style="background:rgba(74,232,122,0.15);border-color:rgba(74,232,122,0.4);color:#4ae87a;white-space:nowrap;">🧹 Esegui ora</button>
       </div>
 
       <!-- GOOGLE DRIVE PANEL -->
@@ -5105,55 +5435,9 @@ input, select, textarea {
             <div style="font-size:15px;font-weight:700;color:var(--gold);" id="vsDayDetailTitle">—</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Dettaglio spese · clicca ✏️ per modificare</div>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <div style="display:flex;gap:8px;align-items:center;">
             <div id="vsDayDetailKPI" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
-            <button onclick="toggleVsQuickAdd()" id="vsQuickAddBtn" class="btn btn-gold" style="font-size:12px;padding:7px 14px;">➕ Aggiungi Spesa</button>
             <button onclick="vsCloseDayDetail()" style="background:rgba(255,255,255,0.07);border:1px solid var(--border);color:var(--text-muted);border-radius:8px;padding:6px 12px;cursor:pointer;">✕ Chiudi</button>
-          </div>
-        </div>
-
-        <!-- QUICK ADD nel popup VS -->
-        <div id="vsQuickAddPanel" style="display:none;background:var(--dark3);border:1px solid rgba(201,168,76,0.3);border-radius:14px;padding:16px;margin-bottom:14px;">
-          <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:12px;">➕ Nuova Spesa — <span id="vsQuickAddLabel" style="color:var(--text);font-weight:400;"></span></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
-            <div class="fld" style="margin:0;">
-              <label>Categoria</label>
-              <select id="vsQuickAddCat">
-                <option value="bar">☕ Bar</option>
-                <option value="ristorante">🍽️ Ristorante</option>
-                <option value="supermercato">🛒 Supermercato</option>
-                <option value="svago">🎭 Svago</option>
-                <option value="viaggi">✈️ Viaggi</option>
-                <option value="hotel">🏨 Hotel</option>
-                <option value="musei">🏛️ Musei</option>
-                <option value="extra">💡 Extra</option>
-                <option value="rata">📦 Rata</option>
-              </select>
-            </div>
-            <div class="fld" style="margin:0;">
-              <label>Metodo Pagamento</label>
-              <select id="vsQuickAddPay">
-                <option value="satispay">📱 Satispay</option>
-                <option value="bancomat">💳 Bancomat</option>
-                <option value="contanti">💵 Contanti</option>
-                <option value="tickets">🎫 Tickets</option>
-                <option value="bonifico">🏦 Bonifico</option>
-              </select>
-            </div>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
-            <div class="fld" style="margin:0;">
-              <label>Importo (€)</label>
-              <input type="number" id="vsQuickAddAmount" step="0.01" min="0" placeholder="0,00" style="font-size:16px;font-weight:700;">
-            </div>
-            <div class="fld" style="margin:0;">
-              <label>Descrizione (opzionale)</label>
-              <input type="text" id="vsQuickAddDesc" placeholder="es. Caffè, Spesa...">
-            </div>
-          </div>
-          <div style="display:flex;gap:10px;">
-            <button class="btn btn-outline" onclick="toggleVsQuickAdd()" style="flex:1;">Annulla</button>
-            <button class="btn btn-gold" onclick="saveVsQuickAdd()" style="flex:2;">💾 Salva Spesa</button>
           </div>
         </div>
 
@@ -5357,7 +5641,7 @@ input, select, textarea {
     <h3>🔄 Sincronizza su Altro Dispositivo</h3>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">
       Genera un codice <b>4 cifre</b> su questo dispositivo, poi inseriscilo sull'altro per trasferire tutti i tuoi dati.
-      <br><small style="color:var(--gold);">⚠️ Richiede Cloud (Firebase) configurato per funzionare.</small>
+      <br><small style="color:var(--gold);">⚠️ Richiede Cloud (GitHub Gist) configurato per funzionare.</small>
     </p>
 
     <div style="display:flex;gap:12px;margin-bottom:20px;">
@@ -5435,8 +5719,8 @@ function bumpVersion() {
   v++;
   localStorage.setItem('tc_version', v);
   renderVersion();
-  // Push to Firebase automatically on every change
-  if(fbReady && db && currentUser) {
+  // Push to Gist on every change
+  if(gistReady && currentUser) {
     clearTimeout(bumpVersion._timer);
     bumpVersion._timer = setTimeout(() => fbPushToCloud(), 1500);
   }
@@ -5705,586 +5989,237 @@ function getAllExpensesAllTime() {
 }
 
 // ===== FIREBASE CLOUD SYNC =====
-let db = null, storage = null, fbReady = false;
-let _fbImporting = false; // true durante import PDF — ignora disconnessioni brevi
+// ── GITHUB GIST CLOUD (sostituisce Firebase) ──
+let db = null, storage = null; // legacy stubs
+let fbReady = false;           // alias per gistReady
+let gistReady = false;
+let _gistToken = null;
+let _gistId = null;
+let _gistSyncing = false;
+let _fbImporting = false;
 
-function getFirebaseConfig() {
-  // Config sempre da codice, mai da localStorage
-  localStorage.removeItem('tc_firebase_config');
-  return null;
+function gistLoadConfig() {
+  _gistToken = localStorage.getItem('tc_gist_token') || null;
+  _gistId    = localStorage.getItem('tc_gist_id')    || null;
 }
-
-const TC_FIREBASE_DEFAULT = {
-  apiKey: "AIzaSyADLTeuYNY9EKg9ZDApSDUS49P-xeedk5s",
-  authDomain: "tradocroods.firebaseapp.com",
-  databaseURL: "https://tradocroods-default-rtdb.europe-west1.firebasedatabase.app",
-  projectId: "tradocroods",
-  storageBucket: "tradocroods.firebasestorage.app",
-  messagingSenderId: "483144193003",
-  appId: "1:483144193003:web:f6a5670061ed42ad8f7fae",
-  measurementId: "G-4CHXRHTD7K"
-};
-
-function initFirebase() {
-  // Se firebase non è ancora caricato (defer), riprova dopo un attimo
-  if(typeof firebase === 'undefined') {
-    setTimeout(initFirebase, 100);
-    return;
-  }
-  // Usa sempre la config hardcoded — mai localStorage
-  const cfg = TC_FIREBASE_DEFAULT;
+function gistSaveConfig(token, id) {
+  if(token) { localStorage.setItem('tc_gist_token', token); _gistToken = token; }
+  if(id)    { localStorage.setItem('tc_gist_id', id);       _gistId = id; }
+}
+async function gistApiFetch(method, path, body, timeoutMs) {
+  if(!_gistToken) return null;
+  timeoutMs = timeoutMs || 8000;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
-    // Se esiste già un'app Firebase ma con URL sbagliato, eliminala e ricrea
-    if(firebase.apps.length) {
-      const existingDb = firebase.apps[0].options.databaseURL || '';
-      if(!existingDb.includes('europe-west1')) {
-        // URL errato ma app già attiva — riusa senza delete
-        console.warn('Firebase: URL non standard, uso comunque');
-      }
-    } else {
-      firebase.initializeApp(cfg);
-    }
-    db = firebase.database();
-    storage = firebase.storage();
-    fbReady = false; // diventa true solo quando la connessione è confermata
-    updateCloudBadge('syncing');
-    // Mantieni la connessione sempre attiva
-    try { db.ref('.info/connected').keepSynced(true); } catch(e) {}
-    let _fbFirstConnect = true;
-    let _fbLastConnected = false;
-    db.ref('.info/connected').on('value', snap => {
-      const connected = snap.val() === true;
-
-      if(connected) {
-        // Connesso — cancella eventuale timer di disconnessione in corso
-        clearTimeout(window._fbDisconnectTimer);
-        window._fbDisconnectTimer = null;
-        _fbLastConnected = true;
-        if(!fbReady) {
-          fbReady = true;
-          updateCloudBadge(true);
-          console.log('✅ Firebase connesso');
-          if(_fbFirstConnect && currentUser) {
-            _fbFirstConnect = false;
-            fbSyncFromCloud(currentUser.email, () => { renderSidebarAvatar(currentUser); refreshAll(); });
-          } else { _fbFirstConnect = false; }
-        }
-        return;
-      }
-
-      // DISCONNESSO — ma non reagire subito:
-      // aspetta 15s prima di mostrare offline (copre import PDF + jitter rete)
-      if(!window._fbDisconnectTimer) {
-        console.log('⚠️ Firebase: segnale disconnessione, attendo 15s prima di reagire...');
-        window._fbDisconnectTimer = setTimeout(() => {
-          window._fbDisconnectTimer = null;
-          if(_fbImporting) { console.log('🔄 Ancora in import, ignoro'); return; }
-          // Verifica lo stato reale
-          const _dbr = safeDb();
-          if(!_dbr) return;
-          _dbr.ref('.info/connected').once('value').then(s => {
-            if(s.val() === true) {
-              // Nel frattempo si è riconnesso
-              fbReady = true; updateCloudBadge(true);
-            } else {
-              // Davvero offline — prova goOffline+goOnline
-              console.warn('🔌 Firebase davvero offline, forzo riconnessione...');
-              fbReady = false;
-              _fbLastConnected = false;
-              updateCloudBadge(false);
-              try { if(db) { db.goOffline(); setTimeout(() => { try { if(db) db.goOnline(); } catch(e){} }, 1000); } } catch(e) {}
-            }
-          }).catch(() => {
-            fbReady = false; _fbLastConnected = false; updateCloudBadge(false);
-          });
-        }, 60000); // 60 secondi di tolleranza
-      }
-      return; // non aggiornare badge finché non scade il timer
+    const res = await fetch('https://api.github.com' + path, {
+      method,
+      headers: { 'Authorization':'token ' + _gistToken, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+      signal: ctrl.signal
     });
-
-    // Retry progressivo iniziale: 3s → 8s → 20s
-    let _fbRetry = 0;
-    const _isMobile = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent);
-    const _fbRetryDelays = _isMobile ? [3000, 8000, 20000] : [5000, 12000, 25000];
-    function _fbRetryCheck() {
-      if(fbReady) return;
-      if(_fbRetry >= _fbRetryDelays.length) {
-        console.warn('Firebase: avvio watchdog permanente');
-        updateCloudBadge(false);
-        return; // Il watchdog permanente prende il controllo
-      }
-      console.warn('Firebase timeout - retry #' + (_fbRetry+1));
-      db.ref('.info/connected').once('value').then(snap => {
-        fbReady = snap.val() === true;
-        updateCloudBadge(fbReady);
-        if(!fbReady) {
-          _fbRetry++;
-          setTimeout(_fbRetryCheck, _fbRetryDelays[_fbRetry] || 25000);
-        }
-      }).catch(() => {
-        _fbRetry++;
-        setTimeout(_fbRetryCheck, _fbRetryDelays[_fbRetry] || 25000);
-      });
-    }
-    setTimeout(_fbRetryCheck, _fbRetryDelays[0]);
-
-    // ── Helper: forza riconnessione SENZA eliminare Firebase ──
-    // NON usare mai firebase.apps[0].delete() — causa "Cannot call ref on deleted database"
-    // nei listener interni. Usare solo goOffline()+goOnline() per forzare la riconnessione.
-    function _fbSafeReset(delay) {
-      fbReady = false;
-      updateCloudBadge(false);
-      try {
-        if(db) db.goOffline();
-      } catch(e) {}
-      setTimeout(() => {
-        try {
-          if(db) {
-            db.goOnline();
-            console.log('🔄 Firebase: goOnline() invocato');
-          }
-        } catch(e) {
-          console.warn('Firebase goOnline error:', e);
-        }
-      }, delay || 500);
-    }
-
-    // ── WATCHDOG PERMANENTE: riprova ogni 30s finché non connesso ──
-    if(window._fbWatchdog) clearInterval(window._fbWatchdog);
-    window._fbWatchdog = setInterval(() => {
-      if(fbReady) return;
-      console.log('🔄 Watchdog: tentativo riconnessione Firebase...');
-      const _dbRef = db;
-      if(_dbRef) {
-        try {
-          _dbRef.ref('.info/connected').once('value').then(snap => {
-            if(snap.val() === true) {
-              fbReady = true;
-              updateCloudBadge(true);
-              if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
-              console.log('✅ Watchdog: Firebase riconnesso!');
-            } else {
-              _fbSafeReset(500);
-            }
-          }).catch(() => _fbSafeReset(500));
-        } catch(e) {
-          _fbSafeReset(500);
-        }
-      } else {
-        setTimeout(initFirebase, 100);
-      }
-    }, 30000);
-
-    // ── Riconnetti quando il browser torna online ──
-    if(!window._fbOnlineListener) {
-      window._fbOnlineListener = true;
-      window.addEventListener('online', () => {
-        console.log('🌐 Browser online — riconnessione Firebase...');
-        if(!fbReady) _fbSafeReset(1000);
-      });
-      // Riconnetti quando si torna sulla tab
-      document.addEventListener('visibilitychange', () => {
-        if(document.visibilityState === 'visible' && !fbReady) {
-          console.log('👁 Tab visibile — riconnessione Firebase...');
-          const _dbRef = db;
-          if(_dbRef) {
-            try {
-              _dbRef.ref('.info/connected').once('value').then(snap => {
-                if(snap.val() === true) {
-                  fbReady = true;
-                  updateCloudBadge(true);
-                  if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
-                } else {
-                  _fbSafeReset(500);
-                }
-              }).catch(() => _fbSafeReset(500));
-            } catch(e) {
-              _fbSafeReset(500);
-            }
-          } else {
-            setTimeout(initFirebase, 100);
-          }
-        }
-      });
-    }
+    clearTimeout(timer);
+    return res.ok ? await res.json() : null;
   } catch(e) {
-    console.error('Firebase init error:', e);
-    fbReady = false;
-    updateCloudBadge(false);
+    clearTimeout(timer);
+    if(e.name === 'AbortError') console.warn('gistApiFetch timeout:', path);
+    return null;
   }
 }
+async function gistCreateNew(token) {
+  try {
+    const res = await fetch('https://api.github.com/gists', {
+      method:'POST',
+      headers: { 'Authorization':'token ' + token, 'Accept':'application/vnd.github.v3+json', 'Content-Type':'application/json' },
+      body: JSON.stringify({ description:'TradoCroods Family Budget', public:false,
+        files:{ 'tradocroods_data.json':{content:'{}'},'tradocroods_users.json':{content:'[]'} } })
+    });
+    const d = await res.json(); return d.id || null;
+  } catch(e) { return null; }
+}
+async function initGistSync() {
+  gistLoadConfig();
+  if(!_gistToken || !_gistId) { fbReady = false; gistReady = false; updateCloudBadge(false); return; }
+  updateCloudBadge('syncing');
+  // Timeout ridotto su iOS (5s) per non bloccare il caricamento
+  const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                 (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  const data = await gistApiFetch('GET', '/gists/' + _gistId, undefined, _isIOS ? 5000 : 10000);
+  if(data && data.id) {
+    fbReady = true; gistReady = true; updateCloudBadge(true);
+    if(!window._gistAutoSync) window._gistAutoSync = setInterval(() => {
+      if(gistReady && currentUser && !_gistSyncing && !_fbImporting) gistPushToCloud();
+    }, 180000);
+    if(!window._gistVisSetup) {
+      window._gistVisSetup = true;
+      document.addEventListener('visibilitychange', () => {
+        if(document.visibilityState==='visible' && gistReady && currentUser) gistSyncFromCloud(currentUser.email, refreshAll);
+      });
+      window.addEventListener('online', () => { if(!gistReady) initGistSync(); });
+    }
+  } else { fbReady = false; gistReady = false; updateCloudBadge(false); }
+}
+function initFirebase() { initGistSync(); }
 
 function updateCloudBadge(state) {
-  const badge = document.getElementById('cloudBadge');
-  if(!badge) return;
-  if(state === 'syncing') {
-    badge.style.background='rgba(201,168,76,0.15)';
-    badge.style.borderColor='rgba(201,168,76,0.4)';
-    badge.style.color='var(--gold)';
-    badge.innerHTML='☁️ Connessione...';
-  } else if(state === true) {
-    badge.style.background='rgba(76,175,130,0.15)';
-    badge.style.borderColor='rgba(76,175,130,0.4)';
-    badge.style.color='var(--green)';
-    badge.innerHTML='☁️ Cloud Sync ON';
+  const b = document.getElementById('cloudBadge');
+  if(!b) return;
+  if(state === true) {
+    b.style.background='rgba(76,175,130,0.15)'; b.style.borderColor='rgba(76,175,130,0.4)'; b.style.color='var(--green)';
+    b.innerHTML='☁️ Cloud Sync ON';
+  } else if(state === 'syncing') {
+    b.style.background='rgba(201,168,76,0.15)'; b.style.borderColor='rgba(201,168,76,0.4)'; b.style.color='var(--gold)';
+    b.innerHTML='☁️ Connessione...';
   } else {
-    badge.style.background='rgba(224,92,92,0.15)';
-    badge.style.borderColor='rgba(224,92,92,0.4)';
-    badge.style.color='#e05c5c';
-    badge.innerHTML='☁️ Offline <span onclick="fbRetryConnect()" style="cursor:pointer;font-size:10px;background:rgba(255,255,255,0.1);border-radius:4px;padding:1px 6px;margin-left:4px;" title="Riprova connessione">🔄 Riconnetti</span><span onclick="fbForceReconnect()" style="cursor:pointer;font-size:10px;background:rgba(255,80,80,0.2);border-radius:4px;padding:1px 6px;margin-left:3px;" title="Riconnessione forzata">⚡ Forza</span>';
-    // Auto-retry dopo 5s se va offline
-    clearTimeout(window._fbAutoRetry);
-    window._fbAutoRetry = setTimeout(() => { if(!fbReady) fbRetryConnect(); }, 5000);
+    b.style.background='rgba(224,92,92,0.15)'; b.style.borderColor='rgba(224,92,92,0.4)'; b.style.color='#e05c5c';
+    b.innerHTML='☁️ Offline <span onclick="fbRetryConnect()" style="cursor:pointer;font-size:11px;background:rgba(255,255,255,0.1);border-radius:4px;padding:1px 7px;margin-left:5px;">🔄</span><span onclick="openFirebaseModal()" style="cursor:pointer;font-size:11px;background:rgba(201,168,76,0.15);border-radius:4px;padding:1px 7px;margin-left:3px;">⚙️</span>';
+    clearTimeout(window._gistAutoRetry);
+    window._gistAutoRetry = setTimeout(()=>{ if(!gistReady && _gistToken) fbRetryConnect(); }, 8000);
   }
 }
 
-function fbRetryConnect() {
-  if(fbReady) { showToast('✅ Già connesso!'); return; }
-  updateCloudBadge('syncing');
-  showToast('🔄 Riconnessione in corso...');
-  // Cancella timer di disconnessione pendente
-  clearTimeout(window._fbDisconnectTimer);
-  window._fbDisconnectTimer = null;
-
-  // Step 1: goOnline per forzare riconnessione
-  try { if(db) { db.goOffline(); } } catch(e) {}
-  setTimeout(() => {
-    try { if(db) db.goOnline(); } catch(e) {}
-    // Step 2: verifica dopo 2s
-    setTimeout(() => {
-      const _dbr = safeDb();
-      if(!_dbr) { setTimeout(initFirebase, 100); return; }
-      _dbr.ref('.info/connected').once('value').then(snap => {
-        fbReady = snap.val() === true;
-        updateCloudBadge(fbReady);
-        if(fbReady) {
-          showToast('✅ Firebase riconnesso!');
-          if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
-        } else {
-          showToast('⚠️ Ancora offline — riprovo...');
-          setTimeout(fbRetryConnect, 3000);
-        }
-      }).catch(() => {
-        db = null; storage = null; fbReady = false;
-        setTimeout(initFirebase, 500);
-        showToast('🔄 Reinizializzazione Firebase...');
-      });
-    }, 2000);
-  }, 500);
-}
-
-// ── FORZA RICONNESSIONE AGGRESSIVA ──
-// Usare quando fbRetryConnect non basta
-function fbForceReconnect() {
-  showToast('⚡ Riconnessione forzata in corso...');
-  clearTimeout(window._fbDisconnectTimer);
-  clearInterval(window._fbWatchdog);
-  window._fbDisconnectTimer = null;
-  fbReady = false;
-
-  // Step 1: porta offline
-  try { if(db) db.goOffline(); } catch(e) {}
-
-  // Step 2: dopo 1s porta online
-  setTimeout(() => {
-    try { if(db) db.goOnline(); } catch(e) {}
-
-    // Step 3: dopo altri 3s verifica
-    setTimeout(() => {
-      const _dbr = safeDb();
-      if(_dbr) {
-        _dbr.ref('.info/connected').once('value').then(snap => {
-          if(snap.val() === true) {
-            fbReady = true;
-            updateCloudBadge(true);
-            showToast('✅ Riconnesso!');
-            if(currentUser) fbSyncFromCloud(currentUser.email, refreshAll);
-          } else {
-            // Ultimo tentativo: reinizializza tutto tranne delete
-            db = null; storage = null; fbReady = false;
-            initFirebase();
-            showToast('🔄 Reinizializzazione completa...');
-          }
-        }).catch(() => {
-          db = null; storage = null; fbReady = false;
-          initFirebase();
-        });
-      } else {
-        initFirebase();
-      }
-    }, 3000);
-  }, 1000);
-}
-
-// ── AUTO-RECONNECT PERMANENTE ──
-// Riconnette automaticamente ogni 30s se offline
-// + quando la tab torna visibile
-// + quando il browser torna online
-(function setupAutoReconnect() {
-  let _reconnectInterval = null;
-
-  function tryReconnect() {
-    if(fbReady) return;
-    console.log('🔄 Auto-reconnect attempt...');
-    fbRetryConnect();
-  }
-
-  // Riconnette ogni 30 secondi se offline
-  function startReconnectLoop() {
-    if(_reconnectInterval) return;
-    _reconnectInterval = setInterval(() => {
-      if(!fbReady) tryReconnect();
-      else stopReconnectLoop();
-    }, 30000);
-  }
-
-  function stopReconnectLoop() {
-    if(_reconnectInterval) { clearInterval(_reconnectInterval); _reconnectInterval = null; }
-  }
-
-  // Quando la tab torna in primo piano
-  document.addEventListener('visibilitychange', () => {
-    if(document.visibilityState === 'visible' && !fbReady) {
-      setTimeout(tryReconnect, 1000);
-    }
-  });
-
-  // Quando il browser torna online (dopo disconnessione WiFi ecc.)
-  window.addEventListener('online', () => {
-    if(!fbReady) setTimeout(tryReconnect, 1500);
-  });
-
-  // Monitora lo stato e avvia/ferma il loop
-  setInterval(() => {
-    if(!fbReady) startReconnectLoop();
-    else stopReconnectLoop();
-  }, 5000);
-
-  // Avvia subito dopo 10s
-  setTimeout(() => { if(!fbReady) startReconnectLoop(); }, 10000);
-})();
-
-function fbKey(email, k) {
-  // Firebase keys cannot have . / # $ [ ]
-  const safeEmail = email.replace(/[.#$\[\]]/g, '_');
-  return `users/${safeEmail}/${k}`;
-}
-
-// Override save/load to also sync with Firebase
-const _origSave = window._origSave || null;
-
-function fbSave(email, k, v) {
-  if(!fbReady || !db) return;
-  const _sdb = safeDb(); if(!_sdb) return;
-  const ref = _sdb.ref(fbKey(email, k));
-  ref.set(v).catch(e => console.warn('FB save error:', e));
-}
-
-function fbLoad(email, k, callback) {
-  if(!fbReady || !db) { callback(null); return; }
-  const _sdb2 = safeDb(); if(!_sdb2) { if(cb) cb(); return; }
-  _sdb2.ref(fbKey(email, k)).once('value')
-    .then(snap => callback(snap.val()))
-    .catch(() => callback(null));
-}
-
-// Upload photo to Firebase Storage
-function fbSavePhoto(email, dataUrl) {
-  // Salva la foto nel Realtime Database (no CORS issues)
-  if(!fbReady || !db) return;
-  const safeEmail = email.replace(/[.#$\[\]]/g, '_');
-  // Comprimi leggermente la foto prima di salvare
-  try {
-    const img = new Image();
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const MAX = 200;
-      const ratio = Math.min(MAX/img.width, MAX/img.height, 1);
-      canvas.width = img.width * ratio;
-      canvas.height = img.height * ratio;
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      const compressed = canvas.toDataURL('image/jpeg', 0.7);
-      safeDb()?.ref(`photos/${safeEmail}`).set({ data: compressed })
-        .catch(e => console.warn('FB photo save error:', e));
-    };
-    img.src = dataUrl;
-  } catch(e) {
-    // fallback: salva diretta
-    safeDb()?.ref(`photos/${safeEmail}`).set({ data: dataUrl })
-      .catch(err => console.warn('FB photo save error:', err));
-  }
-}
-
-function fbLoadPhoto(email, callback) {
-  if(!fbReady || !db) { callback(null); return; }
-  const safeEmail = email.replace(/[.#$\[\]]/g, '_');
-  safeDb()?.ref(`photos/${safeEmail}`).once('value')
-    .then(snap => {
-      const val = snap.val();
-      callback(val && val.data ? val.data : null);
-    })
-    .catch(() => callback(null));
-}
-
-// Sync ALL user data from Firebase to localStorage (on login)
-function fbSyncFromCloud(email, onDone) {
-  if(!fbReady || !db) { if(onDone) onDone(); return; }
-  updateCloudBadge('syncing');
-  const safeEmail = email.replace(/[.#$\[\]]/g, '_');
-  // Sync dati + foto in parallelo
-  const dataPromise = safeDb()?.ref(`users/${safeEmail}`).once('value').then(snap => {
-    const cloudData = snap.val();
-    if(cloudData) {
-      Object.entries(cloudData).forEach(([k, v]) => {
-        // Non ripristinare mai token Drive dal cloud — sono device-specific
-        if(k === 'gdriveToken' || k === 'gdriveTokenExp' || k === 'docMode' || k === 'gdriveClientId') return;
-        const fullKey = `tc_${email}_${k}`;
-        localStorage.setItem(fullKey, JSON.stringify(v));
-      });
-    }
-  });
-  const photoPromise = new Promise(resolve => {
-    fbLoadPhoto(email, dataUrl => {
-      if(dataUrl) localStorage.setItem('tc_photo_' + email, dataUrl);
-      resolve();
-    });
-  });
-  Promise.all([dataPromise, photoPromise])
-    .then(() => { updateCloudBadge(true); if(onDone) onDone(); })
-    .catch(() => { updateCloudBadge(true); if(onDone) onDone(); });
-}
-
-// Push ALL user data to Firebase (full sync)
-function fbPushToCloud() {
-  if(!fbReady || !db || !currentUser) return;
+// ── GIST PUSH / PULL ──
+async function gistPushToCloud() {
+  if(!gistReady || !_gistToken || !_gistId || !currentUser || _gistSyncing) return;
+  _gistSyncing = true;
   const email = currentUser.email;
-  const safeEmail = email.replace(/[.#$\[\]]/g, '_');
-  const prefix = `tc_${email}_`;
+  const prefix = 'tc_' + email + '_';
   const batch = {};
-  for(let i=0; i<localStorage.length; i++) {
+  for(let i=0;i<localStorage.length;i++) {
     const k = localStorage.key(i);
     if(k && k.startsWith(prefix)) {
-      const shortKey = k.substring(prefix.length);
-      try { batch[shortKey] = JSON.parse(localStorage.getItem(k)); } catch(e) {
-        batch[shortKey] = localStorage.getItem(k);
-      }
+      const sk = k.substring(prefix.length);
+      try { batch[sk] = JSON.parse(localStorage.getItem(k)); } catch(e) { batch[sk] = localStorage.getItem(k); }
     }
   }
-  // Salva dati su Firebase
-  safeDb()?.ref(`users/${safeEmail}`).set(batch)
-    .then(() => updateCloudBadge(true))
-    .catch(e => { console.warn('FB push error:', e); updateCloudBadge(false); });
-  // Salva foto separatamente (compressa)
   const photo = localStorage.getItem('tc_photo_' + email);
-  if(photo) fbSavePhoto(email, photo);
+  if(photo) batch['__photo__'] = photo;
+  const files = {
+    'tradocroods_data.json': { content: JSON.stringify(batch) },
+    'tradocroods_users.json': { content: JSON.stringify(getUsers()) }
+  };
+  const r = await gistApiFetch('PATCH', '/gists/' + _gistId, { files });
+  _gistSyncing = false;
+  if(r) { updateCloudBadge(true); }
+  else { gistReady = false; fbReady = false; updateCloudBadge(false); }
 }
 
-// Firebase modal functions
+async function gistSyncFromCloud(email, onDone) {
+  if(!gistReady || !_gistToken || !_gistId) { if(onDone) onDone(); return; }
+  updateCloudBadge('syncing');
+  const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                 (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  const r = await gistApiFetch('GET', '/gists/' + _gistId, undefined, _isIOS ? 6000 : 12000);
+  if(r && r.files) {
+    const df = r.files['tradocroods_data.json'];
+    if(df && df.content) {
+      try {
+        const b = JSON.parse(df.content);
+        Object.entries(b).forEach(([k,v]) => {
+          if(k==='__photo__') { try{localStorage.setItem('tc_photo_'+email,v);}catch(e){} return; }
+          if(k==='gdriveToken'||k==='gdriveTokenExp') return;
+          try{localStorage.setItem('tc_'+email+'_'+k, JSON.stringify(v));}catch(e){}
+        });
+      } catch(e) {}
+    }
+    const uf = r.files['tradocroods_users.json'];
+    if(uf && uf.content) {
+      try {
+        const us = JSON.parse(uf.content);
+        if(Array.isArray(us) && us.length) try{localStorage.setItem('tc_users', JSON.stringify(us));}catch(e){}
+      } catch(e) {}
+    }
+  }
+  updateCloudBadge(true);
+  if(onDone) onDone();
+}
+
+// Compatibilità con codice esistente
+function fbSyncFromCloud(email, onDone) { gistSyncFromCloud(email, onDone); }
+function fbPushToCloud() {
+  if(_fbImporting) return;
+  clearTimeout(window._gistPushTimer);
+  window._gistPushTimer = setTimeout(() => gistPushToCloud(), 1500);
+}
+function fbSavePhoto(email, dataUrl) { fbPushToCloud(); }
+function fbLoadPhoto(email, callback) { callback(localStorage.getItem('tc_photo_'+email)||null); }
+function fbLoad(email, k, cb) { if(cb) cb(null); }
+function fbSave(email, k, v) { fbPushToCloud(); }
+function safeDb() { return null; }
+function fbKey(email, k) { return k; }
+function getFirebaseConfig() { return null; }
+
+function fbRetryConnect() {
+  if(gistReady) { showToast('✅ Già connesso!'); return; }
+  updateCloudBadge('syncing'); showToast('🔄 Connessione Gist...');
+  initGistSync();
+}
+function fbForceReconnect() {
+  gistReady = false; fbReady = false; updateCloudBadge(false);
+  showToast('⚡ Riconnessione forzata...'); setTimeout(()=>initGistSync(), 500);
+}
+
 function openFirebaseModal() {
-  const cfg = getFirebaseConfig() || TC_FIREBASE_DEFAULT;
-  document.getElementById('fb-apiKey').value = cfg.apiKey || '';
-  document.getElementById('fb-authDomain').value = cfg.authDomain || '';
-  document.getElementById('fb-databaseURL').value = cfg.databaseURL || '';
-  document.getElementById('fb-projectId').value = cfg.projectId || '';
-  document.getElementById('fb-storageBucket').value = cfg.storageBucket || '';
-  document.getElementById('fb-messagingSenderId').value = cfg.messagingSenderId || '';
-  document.getElementById('fb-appId').value = cfg.appId || '';
+  document.getElementById('gist-token-input').value = _gistToken || '';
+  document.getElementById('gist-id-input').value = _gistId || '';
+  document.getElementById('fb-msg').textContent = '';
   document.getElementById('firebaseModal').style.display = 'flex';
 }
-
 function closeFirebaseModal() {
   document.getElementById('firebaseModal').style.display = 'none';
 }
+async function saveGistConfig() {
+  // Strip whitespace and any accidental newlines from token
+  const token = (document.getElementById('gist-token-input').value||'').trim().replace(/\s+/g,'');
+  const gistId = (document.getElementById('gist-id-input').value||'').trim().replace(/\s+/g,'');
+  const msg = document.getElementById('fb-msg');
+  if(!token) { msg.style.color='#e05c5c'; msg.textContent='⚠️ Inserisci il token GitHub.'; return; }
+  if(!token.startsWith('ghp_') && !token.startsWith('github_pat_') && !token.startsWith('gho_')) {
+    msg.style.color='#e05c5c'; msg.textContent='⚠️ Il token deve iniziare con ghp_ — rigenera il token.'; return;
+  }
+  msg.style.color='var(--gold)'; msg.textContent='⏳ Verifica token...';
+  _gistToken = token;
 
-function parseFBPaste() {
-  const raw = (document.getElementById('fb-paste').value || '').trim();
-  const msg = document.getElementById('fb-paste-msg');
-  if(!raw) { msg.style.color='#e05c5c'; msg.textContent='⚠️ Incolla il blocco firebaseConfig prima.'; return; }
-
-  // Estrae coppie key: "value" dal testo
-  const extract = (key) => {
-    const idx = raw.indexOf(key + ':');
-    if(idx < 0) return '';
-    const after = raw.slice(idx + key.length + 1).trim();
-    const q = after[0];
-    if(q !== '"' && q !== "'") return '';
-    const end = after.indexOf(q, 1);
-    return end > 0 ? after.slice(1, end) : '';
-  };
-
-  const apiKey           = extract('apiKey');
-  const authDomain       = extract('authDomain');
-  const databaseURL      = extract('databaseURL');
-  const projectId        = extract('projectId');
-  const storageBucket    = extract('storageBucket');
-  const messagingSenderId= extract('messagingSenderId');
-  const appId            = extract('appId');
-
-  if(!apiKey || !databaseURL) {
+  // Verify token works first
+  const testRes = await fetch('https://api.github.com/user', {
+    headers:{ 'Authorization':'token '+token, 'Accept':'application/vnd.github.v3+json' }
+  }).catch(()=>null);
+  if(!testRes || !testRes.ok) {
+    const status = testRes?.status || 'network error';
     msg.style.color='#e05c5c';
-    msg.textContent='❌ Config non riconosciuta. Copia il blocco completo firebaseConfig = { ... }';
-    return;
+    msg.textContent = status===401 ? '❌ Token non valido o scaduto. Rigenera il token.' :
+                      status===403 ? '❌ Token senza permessi Gist. Crea un nuovo token con scope "gist".' :
+                      '❌ Errore di rete ('+status+'). Controlla la connessione.';
+    _gistToken = null; return;
   }
 
-  document.getElementById('fb-apiKey').value            = apiKey;
-  document.getElementById('fb-authDomain').value        = authDomain;
-  document.getElementById('fb-databaseURL').value       = databaseURL;
-  document.getElementById('fb-projectId').value         = projectId;
-  document.getElementById('fb-storageBucket').value     = storageBucket;
-  document.getElementById('fb-messagingSenderId').value = messagingSenderId;
-  document.getElementById('fb-appId').value             = appId;
+  const user = await testRes.json();
+  msg.textContent = '✅ Token OK (' + (user.login||'utente') + '). ' + (gistId ? 'Verifico Gist...' : 'Creo Gist...');
 
-  msg.style.color='#4ae87a';
-  msg.textContent='✅ Campi compilati! Clicca "Connetti e Sincronizza" per salvare.';
+  if(gistId) {
+    const ok = await gistApiFetch('GET', '/gists/'+gistId);
+    if(!ok) { msg.style.color='#e05c5c'; msg.textContent='❌ Gist non trovato. Controlla ID o lascia vuoto per crearne uno.'; return; }
+    _gistId = gistId; gistSaveConfig(token, gistId);
+  } else {
+    const nid = await gistCreateNew(token);
+    if(!nid) { msg.style.color='#e05c5c'; msg.textContent='❌ Errore creazione Gist. Assicurati che il token abbia il permesso "gist".'; return; }
+    _gistId = nid; gistSaveConfig(token, nid);
+  }
+  msg.style.color='#4ae87a'; msg.textContent='✅ Connesso! Sincronizzazione...';
+  gistReady = true; fbReady = true; updateCloudBadge(true);
+  if(currentUser) await gistSyncFromCloud(currentUser.email, ()=>refreshAll());
+  await gistPushToCloud();
+  setTimeout(()=>closeFirebaseModal(), 1500);
 }
+function saveFirebaseConfig() { saveGistConfig(); }
+function parseFBPaste() {}
 
-function saveFirebaseConfig() {
-  const cfg = {
-    apiKey: document.getElementById('fb-apiKey').value.trim(),
-    authDomain: document.getElementById('fb-authDomain').value.trim(),
-    databaseURL: document.getElementById('fb-databaseURL').value.trim(),
-    projectId: document.getElementById('fb-projectId').value.trim(),
-    storageBucket: document.getElementById('fb-storageBucket').value.trim(),
-    messagingSenderId: document.getElementById('fb-messagingSenderId').value.trim(),
-    appId: document.getElementById('fb-appId').value.trim()
-  };
-  if(!cfg.apiKey || !cfg.databaseURL || !cfg.projectId) {
-    document.getElementById('fb-msg').textContent = 'Compila almeno API Key, Database URL e Project ID.';
-    return;
-  }
-  localStorage.setItem('tc_firebase_config', JSON.stringify(cfg));
-  document.getElementById('fb-msg').textContent = '';
-  closeFirebaseModal();
-  // Re-init Firebase
-  // Non eliminare Firebase — riconnetti con goOffline/goOnline
-  fbReady = false;
-  try { if(db) { db.goOffline(); } } catch(e) {}
-  db = null; storage = null; fbReady = false;
-  initFirebase();
-  // Push current data if logged in
-  setTimeout(() => { if(currentUser) fbPushToCloud(); }, 2000);
-}
-
-// Hook into save to automatically sync with Firebase
-const _origSaveRef = save;
-save = function(k, v) {
-  localStorage.setItem(getKey(k), JSON.stringify(v));
-  if(fbReady && currentUser) {
-    fbSave(currentUser.email, k, v);
-  }
-};
-
-// Also sync users list
-const _origSaveUsersRef = saveUsers;
-saveUsers = function(u) {
-  localStorage.setItem('tc_users', JSON.stringify(u));
-  if(fbReady && db) {
-    safeDb()?.ref('tc_users').set(u).catch(()=>{});
-  }
-};
 
 // ===== HEXAGONS =====
 function createHexagons() {
+  // Su iOS non creiamo esagoni — troppo pesanti per il GPU
+  var ua = navigator.userAgent || '';
+  if(/iPhone|iPad|iPod/.test(ua) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua))) return;
   const c = document.getElementById('hexContainer');
   for(let i=0;i<12;i++) {
     const h = document.createElement('div');
@@ -6512,6 +6447,7 @@ function renderProfilesGrid() {
 function doManualLogin() {
   const email = (document.getElementById('manualEmail')?.value || '').trim().toLowerCase();
   const pass  = (document.getElementById('manualPass')?.value  || '');
+  const pwEl  = document.getElementById('manualPass');
   const errEl = document.getElementById('manualLoginErr');
   if(errEl) errEl.textContent = '';
   if(!email || !pass) {
@@ -6524,47 +6460,113 @@ function doManualLogin() {
   const localUser  = localUsers.find(u => u.email === email && u.pass === pass);
   if(localUser) { enterApp(localUser); return; }
 
-  // Login via Firebase (funziona anche in InPrivate su iOS)
-  if(errEl) errEl.textContent = '⏳ Connessione cloud in corso…';
-
-  const tryFb = (attempt) => {
-    const _sdb = safeDb();
-    if(!_sdb) {
-      if(attempt >= 8) {
-        if(errEl) errEl.textContent = '⚠️ Nessuna connessione. Controlla internet e riprova.';
+  // Se non trovato in locale, prova dal Gist con timeout massimo 4s (iOS Safari)
+  if(errEl) errEl.textContent = '⏳ Verifico su cloud…';
+  const tryGist = async (attempt) => {
+    if(!_gistToken || !_gistId) {
+      // Aspetta max 2 tentativi (2s) poi mostra il form token
+      if(attempt >= 2) {
+        if(errEl) errEl.textContent = '';
+        // Mostra sezione token Gist per recupero da cloud
+        const tokenArea = document.getElementById('gistTokenLoginArea');
+        if(tokenArea) {
+          tokenArea.style.display = 'block';
+          // Pre-compila email se già inserita
+          const emailVal = document.getElementById('manualEmail')?.value || email;
+          // Focus sul campo token
+          setTimeout(() => document.getElementById('loginGistToken')?.focus(), 100);
+        } else {
+          if(errEl) errEl.textContent = '❌ Cloud non configurato. Ricarica la pagina.';
+        }
         return;
       }
-      setTimeout(() => tryFb(attempt + 1), 1000);
+      setTimeout(()=>tryGist(attempt+1), 1000);
       return;
     }
-    _sdb.ref('tc_users').once('value').then(snap => {
-      let fbUsers = snap.val();
-      if(fbUsers && !Array.isArray(fbUsers) && typeof fbUsers === 'object') {
-        fbUsers = Object.values(fbUsers);
-      }
-      if(!fbUsers || !Array.isArray(fbUsers)) {
-        if(errEl) errEl.textContent = 'Credenziali non valide.';
-        return;
-      }
-      const fbUser = fbUsers.find(u => u.email === email && u.pass === pass);
+    // Usa timeout breve (4s) per non bloccare su iOS
+    const r = await gistApiFetch('GET', '/gists/' + _gistId, undefined, 4000);
+    if(!r || !r.files) {
+      // Gist non raggiungibile: offri login offline se ci sono dati locali
+      if(errEl) errEl.textContent = '⚠️ Cloud non raggiungibile. Controlla la connessione.';
+      return;
+    }
+    const uf = r.files['tradocroods_users.json'];
+    if(!uf?.content) { if(errEl) errEl.textContent = '❌ Credenziali non valide.'; return; }
+    try {
+      const fbUsers = JSON.parse(uf.content);
+      const fbUser = Array.isArray(fbUsers) && fbUsers.find(u=>u.email===email&&u.pass===pass);
       if(!fbUser) {
-        if(errEl) errEl.textContent = 'Credenziali non valide.';
-        document.getElementById('manualPass').value = '';
-        document.getElementById('manualPass').focus();
-        return;
+        if(errEl) errEl.textContent = '❌ Credenziali non valide.';
+        if(pwEl) pwEl.value=''; return;
       }
-      try { localStorage.setItem('tc_users', JSON.stringify(fbUsers)); } catch(e) {}
+      // Salva utenti in locale per i prossimi login offline
+      try { localStorage.setItem('tc_users', JSON.stringify(fbUsers)); } catch(e){}
       enterApp(fbUser);
-    }).catch(() => {
-      if(attempt >= 3) {
-        if(errEl) errEl.textContent = 'Errore connessione. Riprova.';
-      } else {
-        setTimeout(() => tryFb(attempt + 1), 2000);
-      }
-    });
+    } catch(e) { if(errEl) errEl.textContent = '❌ Errore lettura dati.'; }
   };
+  tryGist(0);
+}
 
-  tryFb(0);
+// Login con token Gist inserito direttamente nella schermata di login (primo accesso iOS)
+async function doManualLoginWithToken() {
+  const email   = (document.getElementById('manualEmail')?.value || '').trim().toLowerCase();
+  const pass    = (document.getElementById('manualPass')?.value  || '');
+  const token   = (document.getElementById('loginGistToken')?.value || '').trim().replace(/\s+/g,'');
+  const gistId  = (document.getElementById('loginGistId')?.value   || '').trim().replace(/\s+/g,'');
+  const errEl   = document.getElementById('gistTokenLoginErr');
+
+  if(!email || !pass) { errEl.textContent = '⚠️ Inserisci email e password sopra.'; return; }
+  if(!token)          { errEl.textContent = '⚠️ Inserisci il token GitHub.'; return; }
+  if(!gistId)         { errEl.textContent = '⚠️ Inserisci il Gist ID.'; return; }
+  if(!token.startsWith('ghp_') && !token.startsWith('github_pat_')) {
+    errEl.textContent = '⚠️ Il token deve iniziare con ghp_'; return;
+  }
+
+  errEl.style.color = 'var(--gold)';
+  errEl.textContent = '⏳ Connessione al cloud…';
+
+  // Salva temporaneamente il token per usare gistApiFetch
+  _gistToken = token;
+  _gistId    = gistId;
+
+  const r = await gistApiFetch('GET', '/gists/' + gistId, undefined, 6000);
+  if(!r || !r.files) {
+    errEl.style.color = '#e05c5c';
+    errEl.textContent = '❌ Gist non trovato. Controlla token e ID.';
+    _gistToken = null; _gistId = null;
+    return;
+  }
+
+  const uf = r.files['tradocroods_users.json'];
+  if(!uf?.content) {
+    errEl.style.color = '#e05c5c';
+    errEl.textContent = '❌ Nessun dato trovato nel Gist.';
+    _gistToken = null; _gistId = null;
+    return;
+  }
+
+  try {
+    const fbUsers = JSON.parse(uf.content);
+    const fbUser  = Array.isArray(fbUsers) && fbUsers.find(u => u.email===email && u.pass===pass);
+    if(!fbUser) {
+      errEl.style.color = '#e05c5c';
+      errEl.textContent = '❌ Credenziali non valide.';
+      document.getElementById('manualPass').value = '';
+      _gistToken = null; _gistId = null;
+      return;
+    }
+    // Salva configurazione Gist e utenti in localStorage
+    gistSaveConfig(token, gistId);
+    try { localStorage.setItem('tc_users', JSON.stringify(fbUsers)); } catch(e){}
+    errEl.style.color = 'var(--green)';
+    errEl.textContent = '✅ Connesso! Caricamento…';
+    // Inizializza sync e avvia app
+    await initGistSync();
+    enterApp(fbUser);
+  } catch(e) {
+    errEl.style.color = '#e05c5c';
+    errEl.textContent = '❌ Errore lettura dati: ' + e.message;
+  }
 }
 
 function showManualRegister() {
@@ -6604,6 +6606,11 @@ function backToProfiles() {
   document.getElementById('netflixProfiles').style.display = 'flex';
   document.getElementById('loginMsg').textContent = '';
   document.getElementById('loginPassword').value = '';
+  // Reset form token Gist
+  const ta = document.getElementById('gistTokenLoginArea');
+  if(ta) ta.style.display = 'none';
+  const te = document.getElementById('gistTokenLoginErr');
+  if(te) te.textContent = '';
 }
 
 function doLoginProfile() {
@@ -6683,15 +6690,19 @@ function doRegister() {
   const users = getUsers();
   if(users.find(u=>u.email===email)) { showMsg('Email già registrata.','error'); return; }
 
-  // Controlla anche su Firebase prima di registrare
-  if(fbReady && db) {
+  // Controlla anche su Gist prima di registrare
+  if(gistReady && _gistToken && _gistId) {
     showMsg('⏳ Verifica in corso…', 'info');
-    safeDb()?.ref('tc_users').once('value').then(snap => {
-      let fbUsers = snap.val();
-      if(fbUsers && !Array.isArray(fbUsers)) fbUsers = Object.values(fbUsers);
-      if(fbUsers && Array.isArray(fbUsers) && fbUsers.find(u => u.email === email)) {
-        showMsg('Email già registrata su un altro dispositivo.', 'error');
-        return;
+    gistApiFetch('GET', '/gists/' + _gistId).then(r => {
+      const uf = r?.files?.['tradocroods_users.json'];
+      if(uf?.content) {
+        try {
+          const fbUsers = JSON.parse(uf.content);
+          if(Array.isArray(fbUsers) && fbUsers.find(u => u.email === email)) {
+            showMsg('⚠️ Email già registrata su un altro dispositivo.', 'error');
+            return;
+          }
+        } catch(e) {}
       }
       _completeRegistration(name, email, pass);
     }).catch(() => { _completeRegistration(name, email, pass); });
@@ -6750,14 +6761,52 @@ function enterApp(user) {
   }
 
   function avviaApp() {
+    // Previeni doppia esecuzione
+    if(window._appAvviato) return;
+    window._appAvviato = true;
     const el = document.getElementById('tc-loading-screen');
     if(el) el.remove();
     document.getElementById('loginPage').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    document.getElementById('userName').textContent = user.name;
-    document.getElementById('userEmail').textContent = user.email;
+    const appEl = document.getElementById('app');
+    appEl.style.display = 'block';
+    // Force browser repaint to fix position:fixed children after display:none→block
+    appEl.style.transform = 'translateZ(0)';
+    void appEl.offsetHeight; // trigger reflow
+    appEl.style.transform = '';
+    // Ensure main-content has correct margin on desktop
+    const mc = appEl.querySelector('.main-content');
+    if(mc) {
+      if(window.innerWidth > 900) {
+        mc.style.marginLeft = '255px';
+      } else {
+        mc.style.marginLeft = '0';
+      }
+    }
+    // Close any open modal
+    const fm = document.getElementById('firebaseModal');
+    if(fm) fm.style.display = 'none';
+    const nm = document.getElementById('userName');
+    const em = document.getElementById('userEmail');
+    if(nm) nm.textContent = user.name;
+    if(em) em.textContent = user.email;
     renderSidebarAvatar(user);
     initApp();
+    // Reset sidebar to visible on desktop
+    const sb = document.getElementById('sidebar');
+    if(sb && window.innerWidth > 768) {
+      sb.style.transform = 'translateX(0)';
+    }
+    // Forza la visualizzazione della dashboard - subito E dopo 100ms (sicurezza)
+    const goToDash = () => {
+      showSection('dashboard');
+      const navDash = document.querySelector('.nav-item[onclick*="dashboard"]');
+      if(navDash) {
+        document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+        navDash.classList.add('active');
+      }
+    };
+    goToDash();
+    setTimeout(goToDash, 500);
   }
 
   function syncEAvvia() {
@@ -6768,27 +6817,36 @@ function enterApp(user) {
     });
   }
 
-  if(fbReady) {
+  // Rileva iOS per timeout più aggressivi
+  const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                 (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  const _syncTimeout = _isIOS ? 4000 : 7000; // 4s su iOS, 7s su desktop
+
+  if(gistReady) {
     syncEAvvia();
+    // Fallback sicurezza: se syncEAvvia non chiama avviaApp entro timeout, apri comunque
+    setTimeout(() => {
+      if(document.getElementById('tc-loading-screen')) avviaApp();
+    }, _syncTimeout);
   } else {
-    setLoader('Connessione…', 'Attendo Firebase…');
-    let waited = 0;
-    const maxWait = 20000;
-    const wait = setInterval(() => {
-      waited += 300;
-      if(fbReady) {
-        clearInterval(wait);
-        syncEAvvia();
-      } else if(waited >= maxWait) {
-        clearInterval(wait);
-        // Firebase non disponibile — apri con dati locali
-        avviaApp();
+    setLoader('Avvio…', 'Caricamento dati locali');
+    // Fallback immediato: su iOS apri entro 1s senza aspettare il Gist
+    setTimeout(() => {
+      if(document.getElementById('tc-loading-screen')) avviaApp();
+    }, _isIOS ? 1000 : 3000);
+    // Prova Gist in background, ma non bloccare l'avvio
+    initGistSync().then(() => {
+      if(!window._appAvviato) {
+        if(gistReady) { syncEAvvia(); } else { avviaApp(); }
       }
-    }, 300);
+    }).catch(() => {
+      if(!window._appAvviato) avviaApp();
+    });
   }
 }
 
 function cambiaUtente() {
+  window._appAvviato = false;
   currentUser = null;
   document.getElementById('loginPage').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
@@ -6827,6 +6885,7 @@ function aggiornaApp() {
 
 function esci() {
   if(!confirm('Sei sicuro di voler uscire?')) return;
+  window._appAvviato = false;
   const fab = document.getElementById('tc-ai-fab');
   if(fab) fab.style.display = 'none';
   currentUser = null;
@@ -7382,31 +7441,18 @@ function showUpdateBanner(newVersion) {
 
 // ===== INIT =====
 
-// Migrazione: converte source:'vs_manual'/'manual' in base al campo pay
+// Migrazione: converte source:'vs_manual' in base al campo pay
 function migrateVSManualSources() {
-  const payToSource = {
-    satispay:'satispay', revolut:'revolut',
-    bancomat:'sella', bonifico:'sella', contanti:'sella',
-    tickets:'sella', carta:'sella', sella:'sella'
-  };
+  const payToSource = { satispay:'satispay', revolut:'revolut', bancomat:'sella', bonifico:'sella' };
   let fixed = 0;
   for(let i=0; i<localStorage.length; i++) {
     const k = localStorage.key(i);
-    if(!k) continue;
-    // Copre sia _vs_expenses_ che _expenses_
-    if(!k.includes('_expenses_')) continue;
+    if(!k || !k.includes('_vs_expenses_')) continue;
     try {
       let arr = JSON.parse(localStorage.getItem(k) || '[]');
       let changed = false;
       arr = arr.map(e => {
-        // Converti sia vs_manual che manual → fonte corretta
-        if((e.source === 'vs_manual' || e.source === 'manual') && payToSource[e.pay]) {
-          fixed++;
-          changed = true;
-          return {...e, source: payToSource[e.pay]};
-        }
-        // Se source mancante ma pay presente, assegna fonte
-        if(!e.source && e.pay && payToSource[e.pay]) {
+        if(e.source === 'vs_manual' && payToSource[e.pay]) {
           fixed++;
           changed = true;
           return {...e, source: payToSource[e.pay]};
@@ -7416,11 +7462,23 @@ function migrateVSManualSources() {
       if(changed) localStorage.setItem(k, JSON.stringify(arr));
     } catch(err) {}
   }
-  if(fixed > 0) { console.log('✅ Migrati ' + fixed + ' source manual→sella'); fbPushToCloud(); }
+  if(fixed > 0) { console.log('✅ Migrati ' + fixed + ' source vs_manual'); fbPushToCloud(); }
 }
 
 function initApp() {
   migrateVSManualSources();
+  // Applica classe iOS se rilevato (sicurezza — già fatto in testa ma ripetiamo)
+  var ua = navigator.userAgent || '';
+  if(/iPhone|iPad|iPod/.test(ua) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua))) {
+    document.body.classList.add('ios-device');
+  }
+  // Se già aperta come PWA standalone, nascondi il bottone installa
+  if(window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches) {
+    const instBtn = document.getElementById('installAppBtn');
+    if(instBtn) instBtn.style.display = 'none';
+  }
+  // Controlla se mostrare guida iOS
+  checkIOSInstallPrompt();
   // Mostra FAB AI
   const fab = document.getElementById('tc-ai-fab');
   if(fab) fab.style.display = 'flex';
@@ -7525,7 +7583,7 @@ function showSection(id, el) {
   if(id==='aggiungiSpesa') initBudgetUI();
   if(id==='documenti') { renderAllDocLists(); initDocDragDrop(); }
   if(id==='entrate') updateRimanenza();
-  if(id==='librietto') { setTimeout(() => { renderLibrietto(); renderGiriSella(); }, 50); }
+  if(id==='librietto') { setTimeout(() => renderLibrietto(), 50); }
   if(id==='ai') {
     aiLoadLocationAndWeather();
     aiUpdateWelcome();
@@ -8000,22 +8058,17 @@ function updateRimanenza() {
   }
 
   // ── SPESE MESE CORRENTE (solo reali importate, NO fisse in anticipo) ──
-  const fixedTotal  = Math.round(getTotalFixedForYear(yr)*100)/100;
-  // Stesso approccio di renderVSBudget: vsFilter + !fromFixed = solo spese variabili reali
-  const vsSpese = vsLoadMonth(yr, mo).filter(e => !e.fromFixed);
-  const totVarSpese = Math.round(vsSpese.reduce((s,e)=>s+e.amount,0)*100)/100;
-  const totBonif = 0;
-  const totLibere = totVarSpese;
-  const totTutteSpese = Math.round((fixedTotal + totVarSpese)*100)/100;
+  const fixedTotal  = Math.round(getTotalFixedForYear(yr)*100)/100; // solo per display
+  const speseBonif  = allExp.filter(e=>e.pay==='bonifico'||e.cat==='rata');
+  const speseLibere = allExp.filter(e=>e.pay!=='bonifico'&&e.cat!=='rata');
+  const totBonif    = Math.round(speseBonif.reduce((s,e)=>s+e.amount,0)*100)/100;
+  const totLibere   = Math.round(speseLibere.reduce((s,e)=>s+e.amount,0)*100)/100;
+  const totTutteSpese = Math.round((fixedTotal + totBonif + totLibere)*100)/100;
 
   // ── LIQUIDITÀ = Stipendio − spese fine mese precedente ──
-  // ATTENZIONE: quando stipendio===0, totEntrate è già = prevStip - totSpesePrev + extra
-  // → NON sottrarre totSpesePrev di nuovo (altrimenti double subtraction)
-  const liquidita = stipendio === 0
-    ? totEntrate
-    : Math.round((totEntrate - totSpesePrev)*100)/100;
+  const liquidita = Math.round((totEntrate - totSpesePrev)*100)/100;
 
-  // ── RIMANENZA REALE = Liquidità − fisse pianificate − spese giornaliere ──
+  // ── RIMANENZA REALE = Liquidità − fisse − spese reali mese corrente ──
   const rimanenza = Math.round((liquidita - totTutteSpese)*100)/100;
 
   const fmt = v => (v<0?'-':'')+'€'+Math.abs(v).toFixed(2).replace('.',',');
@@ -8478,7 +8531,6 @@ function getTotalExpenses() { return getExpenses().reduce((s,e)=>s+e.amount,0); 
 // ===== DASHBOARD =====
 function renderDashboard() {
   if(!document.getElementById('sum-income')) return;
-  if(!document.getElementById('creditoRimanente')) return;
   if(!document.getElementById('latestExpenses')) return;
   const yr = parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear());
   const mo = parseInt(document.getElementById('globalMonth')?.value || new Date().getMonth()+1);
@@ -8523,8 +8575,8 @@ function renderDashboard() {
   // Chiama updateRimanenza per calcolare e mostrare la rimanenza reale corretta
   updateRimanenza();
 
-  document.getElementById('creditoRimanente').textContent = '€'+inc.toFixed(2).replace('.',',');
-  document.getElementById('creditoRimanente').className = 'positive';
+  const crEl = document.getElementById('creditoRimanente');
+  if(crEl) { crEl.textContent = '€'+inc.toFixed(2).replace('.',','); crEl.className = 'positive'; }
 
   // Latest expenses
   const exp = getExpenses().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
@@ -8895,61 +8947,6 @@ function saveEditExp() {
   renderDashboard();
   vsRefreshIfActive();
   showToast('✅ Spesa aggiornata!');
-}
-
-function toggleQuickAddDay() {
-  const panel = document.getElementById('quickAddDayPanel');
-  const btn = document.getElementById('quickAddDayBtn');
-  const open = panel.style.display === 'none';
-  panel.style.display = open ? 'block' : 'none';
-  btn.textContent = open ? '✖ Chiudi' : '➕ Aggiungi Spesa';
-  if(open) {
-    document.getElementById('quickAddDayLabel').textContent = document.getElementById('weekNoteDay').textContent;
-    document.getElementById('quickAddAmount').value = '';
-    document.getElementById('quickAddDesc').value = '';
-    setTimeout(() => document.getElementById('quickAddAmount').focus(), 100);
-  }
-}
-
-function saveQuickAddDay() {
-  if(!selectedWeekDay) return;
-  const cat    = document.getElementById('quickAddCat').value;
-  const pay    = document.getElementById('quickAddPay').value;
-  const amount = parseFloat(document.getElementById('quickAddAmount').value);
-  const desc   = document.getElementById('quickAddDesc').value.trim() || '—';
-  if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido!'); return; }
-
-  // Determina mese/anno dalla data selezionata
-  const d = new Date(selectedWeekDay);
-  const yr = d.getFullYear();
-  const mo = d.getMonth() + 1;
-  const key = yr + '_' + mo;
-  const exps = load('expenses_' + key, []);
-
-  const newExp = {
-    id: Date.now() + Math.random(),
-    date: selectedWeekDay,
-    cat, pay, amount,
-    desc,
-    source: pay === 'satispay' ? 'satispay' : pay === 'revolut' ? 'revolut' : 'sella'
-  };
-  exps.push(newExp);
-  save('expenses_' + key, exps);
-  bumpVersion();
-  fbPushToCloud();
-
-  // Reset form e chiudi
-  document.getElementById('quickAddAmount').value = '';
-  document.getElementById('quickAddDesc').value = '';
-  toggleQuickAddDay();
-
-  // Refresh
-  renderWeekDayExpenses(selectedWeekDay);
-  renderWeek();
-  renderDashboard();
-  updateRimanenza();
-  vsRefreshIfActive();
-  showToast('✅ Spesa aggiunta!');
 }
 
 function prevWeek() { weekOffset--; renderWeek(); }
@@ -9661,67 +9658,6 @@ function renderLibrietto() {
 
   renderLibChart();
   renderLibList();
-}
-
-function renderGiriSella() {
-  // Carica giri da localStorage
-  const allGiri = getGiri ? getGiri() : [];
-  const transferTypes = ['satispay', 'revolut_sella'];
-  const giri = allGiri.filter(g => transferTypes.includes(g.type));
-
-  // Anno selector
-  const sel = document.getElementById('giriSellaYearSel');
-  if(sel) {
-    const years = [...new Set(giri.map(g => g.date.substring(0,4)))].sort().reverse();
-    if(years.length && !sel.options.length) {
-      years.forEach(y => { const o = document.createElement('option'); o.value = y; o.textContent = y; sel.appendChild(o); });
-    }
-  }
-  const yr = sel ? (sel.value || new Date().getFullYear().toString()) : new Date().getFullYear().toString();
-  const filtered = giri.filter(g => g.date.startsWith(yr));
-
-  const totSat = filtered.filter(g=>g.type==='satispay').reduce((s,g)=>s+g.amount,0);
-  const totRev = filtered.filter(g=>g.type==='revolut_sella').reduce((s,g)=>s+g.amount,0);
-  const fmt = v => '€'+v.toFixed(2).replace('.',',');
-
-  // KPI
-  const kpi = document.getElementById('giriSellaKpi');
-  if(kpi) kpi.innerHTML = `
-    <div style="background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.25);border-radius:12px;padding:14px 16px;">
-      <div style="font-size:11px;color:#ff6b6b;font-weight:700;letter-spacing:1px;margin-bottom:4px;">📱 GIRI → SATISPAY ${yr}</div>
-      <div style="font-size:22px;font-weight:800;color:#ff6b6b;">${fmt(totSat)}</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${filtered.filter(g=>g.type==='satispay').length} trasferimenti</div>
-    </div>
-    <div style="background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:12px;padding:14px 16px;">
-      <div style="font-size:11px;color:#a78bfa;font-weight:700;letter-spacing:1px;margin-bottom:4px;">💜 GIRI → REVOLUT ${yr}</div>
-      <div style="font-size:22px;font-weight:800;color:#a78bfa;">${fmt(totRev)}</div>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${filtered.filter(g=>g.type==='revolut_sella').length} trasferimenti</div>
-    </div>`;
-
-  // Lista
-  const list = document.getElementById('giriSellaList');
-  if(!list) return;
-  if(!filtered.length) {
-    list.innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">Nessun trasferimento trovato per ' + yr + '.<br><span style="font-size:12px;">Importa il PDF Sella per vedere i giri automaticamente.</span></div>';
-    return;
-  }
-  const sorted = [...filtered].sort((a,b) => b.date.localeCompare(a.date));
-  list.innerHTML = sorted.map(g => {
-    const isSat = g.type === 'satispay';
-    const color = isSat ? '#ff6b6b' : '#a78bfa';
-    const icon = isSat ? '📱' : '💜';
-    const label = isSat ? 'Satispay' : 'Revolut';
-    return `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:var(--dark3);border:1px solid rgba(${isSat?'255,107,107':'167,139,250'},0.15);border-radius:10px;">
-      <div style="display:flex;align-items:center;gap:10px;">
-        <span style="font-size:18px;">${icon}</span>
-        <div>
-          <div style="font-size:12px;font-weight:700;color:${color};">${label}</div>
-          <div style="font-size:11px;color:var(--text-muted);">${g.date} · ${(g.note||'').substring(0,40)}</div>
-        </div>
-      </div>
-      <div style="font-size:14px;font-weight:700;color:${color};">−${fmt(g.amount)}</div>
-    </div>`;
-  }).join('');
 }
 
 function renderLibChart() {
@@ -11244,33 +11180,142 @@ function renderCalendar() {
 
 function selectCalDay(ds) {
   selectedDay = ds;
+  // Aggiorna anche il pannello note (comportamento originale mantenuto)
   const notes = getNotes();
   const parts = ds.split('-');
   const label = parts[2]+'/'+parts[1]+'/'+parts[0];
-  document.getElementById('selectedDayLabel').textContent = '📅 '+label;
-  document.getElementById('noteText').value = notes[ds]||'';
+  const labelEl = document.getElementById('selectedDayLabel');
+  if(labelEl) labelEl.textContent = '📅 '+label;
+  const noteEl = document.getElementById('noteText');
+  if(noteEl) noteEl.value = notes[ds]||'';
+  const extra = document.getElementById('calDayFixed');
+  if(extra) extra.innerHTML = '';
 
-  // mostra spese fisse pagate quel giorno
-  const pagamenti = getPagamenti();
-  const customFixed = getCustomFixed();
-  const fixedPaid = FIXED.filter(f=>pagamenti[f.id]===ds);
-  const customPaid = customFixed.filter(f=>f.paid && f.paidDate===ds);
-  const customDue = customFixed.filter(f=>f.date===ds && !f.paid);
+  // Apri il modal dettaglio giorno
+  openCalDayModal(ds);
+}
 
-  let extra = document.getElementById('calDayFixed');
-  if(!extra) {
-    extra = document.createElement('div');
-    extra.id = 'calDayFixed';
-    document.getElementById('noteText').parentNode.insertBefore(extra, document.getElementById('noteText'));
-  }
-  if(fixedPaid.length || customPaid.length || customDue.length) {
-    extra.innerHTML = '<div style="margin-bottom:10px;">'
-      + fixedPaid.map(f=>`<div style="display:flex;justify-content:space-between;padding:7px 10px;background:rgba(76,175,130,0.12);border-radius:8px;margin-bottom:4px;font-size:13px;"><span>${f.icon} ${f.name} <span style="font-size:10px;color:var(--green);font-weight:700;">PAGATA</span></span><span style="color:var(--green);font-weight:700;">€${f.amount.toFixed(2).replace('.',',')}</span></div>`).join('')
-      + customPaid.map(f=>`<div style="display:flex;justify-content:space-between;padding:7px 10px;background:rgba(76,175,130,0.12);border-radius:8px;margin-bottom:4px;font-size:13px;"><span>📌 ${f.name} <span style="font-size:10px;color:var(--green);font-weight:700;">PAGATA</span></span><span style="color:var(--green);font-weight:700;">€${f.amount.toFixed(2).replace('.',',')}</span></div>`).join('')
-      + customDue.map(f=>`<div style="display:flex;justify-content:space-between;padding:7px 10px;background:rgba(201,168,76,0.12);border-radius:8px;margin-bottom:4px;font-size:13px;"><span>⏰ ${f.name} <span style="font-size:10px;color:var(--gold);font-weight:700;">IN SCADENZA</span></span><span style="color:var(--gold);font-weight:700;">€${f.amount.toFixed(2).replace('.',',')}</span></div>`).join('')
-      + '</div>';
-  } else {
-    extra.innerHTML = '';
+function openCalDayModal(ds) {
+  const modal = document.getElementById('weekDetailModal');
+  if(!modal) return;
+  modal.style.display = 'flex';
+  _weekDetailCurrentDs = ds;
+
+  // Reset form aggiungi se aperto
+  const addForm = document.getElementById('weekDetailAddForm');
+  const addBtn  = document.getElementById('weekDetailAddToggleBtn');
+  if(addForm) addForm.style.display = 'none';
+  if(addBtn)  addBtn.textContent = '➕ Aggiungi Spesa per questo giorno';
+
+  document.getElementById('weekDetailList').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);">Caricamento...</div>';
+
+  try {
+    const d   = new Date(ds + 'T12:00:00');
+    const key = d.getFullYear() + '_' + (d.getMonth()+1);
+    const ds2 = ds.split('-').reverse().join('/');
+    const allExp = (load('expenses_'+key, [])||[]).filter(e => e.date===ds || e.date===ds2);
+    const allInc = (load('income_'+key,   [])||[]).filter(x => (x.date===ds||x.date===ds2) && x.type!=='ferrino');
+
+    // Spese fisse pagate/in scadenza
+    const pagamenti  = getPagamenti();
+    const customFixed = getCustomFixed();
+    const fixedPaid  = FIXED.filter(f => pagamenti[f.id]===ds);
+    const customPaid = customFixed.filter(f => f.paid && f.paidDate===ds);
+    const customDue  = customFixed.filter(f => f.date===ds && !f.paid);
+
+    const libere   = allExp.filter(e => e.pay!=='bonifico' && e.cat!=='rata');
+    const bonifici = allExp.filter(e => e.pay==='bonifico' || e.cat==='rata');
+    const totAll   = allExp.reduce((s,e)=>s+e.amount, 0);
+    const totLib   = libere.reduce((s,e)=>s+e.amount, 0);
+    const totBon   = bonifici.reduce((s,e)=>s+e.amount, 0);
+    const totInc   = allInc.reduce((s,x)=>s+x.amount, 0);
+    const fmt = v => '€'+v.toFixed(2).replace('.',',');
+
+    // Intestazione modale
+    const DAYS_FULL = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+    const dayLabel = DAYS_FULL[d.getDay()] + ' ' + d.getDate() + ' ' + MESI[d.getMonth()] + ' ' + d.getFullYear();
+    document.getElementById('weekDetailTitle').textContent = dayLabel;
+    document.getElementById('weekDetailSubtitle').textContent = allExp.length + ' spese · ' + allInc.length + ' entrate';
+
+    // Stats KPI
+    document.getElementById('weekDetailStats').innerHTML = [
+      { label:'Totale spese', value: fmt(totAll),    c:'var(--red)'  },
+      { label:'Libere',       value: fmt(totLib),    c:'#4ae87a'     },
+      { label:'Bonifici',     value: fmt(totBon),    c:'#ffb400'     },
+      { label:'Entrate',      value:'+'+fmt(totInc), c:'#4ae87a'     },
+    ].map(s=>`<div style="padding:12px 16px;border-right:1px solid var(--border);text-align:center;">
+      <div style="font-size:18px;font-weight:700;color:${s.c};">${s.value}</div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.8px;">${s.label}</div>
+    </div>`).join('');
+
+    let html = '';
+
+    // Entrate
+    if(allInc.length) {
+      html += '<div style="font-size:11px;color:#4ae87a;font-weight:700;margin-bottom:8px;letter-spacing:0.5px;">💰 ENTRATE</div>';
+      html += allInc.map(x=>{
+        const desc = x.causale && x.causale!=='—' ? x.causale : (INCOME_LABELS[x.type]||x.type||'—');
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(74,232,122,0.07);border:1px solid rgba(74,232,122,0.2);border-radius:10px;margin-bottom:6px;">
+          <span style="font-size:13px;color:#4ae87a;font-weight:600;">${INCOME_ICONS[x.type]||'💸'} ${desc}</span>
+          <span style="font-size:14px;font-weight:700;color:#4ae87a;">+${fmt(x.amount)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    // Spese fisse pagate
+    if(fixedPaid.length || customPaid.length) {
+      html += '<div style="font-size:11px;color:var(--green);font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">✅ SPESE FISSE PAGATE</div>';
+      html += [...fixedPaid.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(76,175,130,0.08);border:1px solid rgba(76,175,130,0.25);border-radius:10px;margin-bottom:5px;">
+        <span style="font-size:13px;">${f.icon} ${f.name}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--green);">€${f.amount.toFixed(2).replace('.',',')}</span>
+      </div>`),
+      ...customPaid.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(76,175,130,0.08);border:1px solid rgba(76,175,130,0.25);border-radius:10px;margin-bottom:5px;">
+        <span style="font-size:13px;">📌 ${f.name}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--green);">€${f.amount.toFixed(2).replace('.',',')}</span>
+      </div>`)].join('');
+    }
+
+    // Spese in scadenza
+    if(customDue.length) {
+      html += '<div style="font-size:11px;color:var(--gold);font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">⏰ IN SCADENZA</div>';
+      html += customDue.map(f=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.3);border-radius:10px;margin-bottom:5px;">
+        <span style="font-size:13px;">⏰ ${f.name}</span>
+        <span style="font-size:14px;font-weight:700;color:var(--gold);">€${f.amount.toFixed(2).replace('.',',')}</span>
+      </div>`).join('');
+    }
+
+    // Spese variabili libere
+    if(libere.length) {
+      html += '<div style="font-size:11px;color:var(--text-muted);font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">🛒 SPESE LIBERE</div>';
+      html += _weekExpRows(libere, fmt);
+    }
+
+    // Bonifici/Rate
+    if(bonifici.length) {
+      html += '<div style="font-size:11px;color:#ffb400;font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">🏦 BONIFICI & RATE</div>';
+      html += _weekExpRows(bonifici, fmt);
+    }
+
+    // Stato vuoto
+    if(!allExp.length && !allInc.length && !fixedPaid.length && !customPaid.length && !customDue.length) {
+      html = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">📭 Nessuna spesa o entrata in questo giorno.</div>';
+    }
+
+    // Nota del giorno
+    const weekNotes = load('weekNotes', {});
+    const calNotes  = getNotes();
+    const nota = weekNotes[ds] || calNotes[ds];
+    if(nota) {
+      html += `<div style="margin-top:14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.2);border-radius:10px;padding:10px 14px;">
+        <div style="font-size:10px;color:var(--gold);font-weight:700;margin-bottom:4px;">📝 NOTA</div>
+        <div style="font-size:13px;color:var(--text);">${nota}</div>
+      </div>`;
+    }
+
+    document.getElementById('weekDetailList').innerHTML = html;
+
+  } catch(err) {
+    document.getElementById('weekDetailList').innerHTML = '<div style="padding:24px;color:var(--red);">Errore: ' + err.message + '</div>';
   }
 }
 
@@ -12574,7 +12619,6 @@ async function importSatispayPDF(event) {
   statusEl.textContent = '⏳ Lettura PDF in corso...';
   document.getElementById('satispayPreview').style.display = 'none';
   satispayParsed = [];
-  _fbImporting = true; // blocca disconnect durante parsing
 
   try {
     // Inizializza PDF.js se non ancora fatto
@@ -12836,7 +12880,6 @@ function confirmSatispayImport() { genericConfirmImport(satispayParsed, 'satispa
 function doSatispayImport() { confirmSatispayImport(); }
 
 function cancelSatispayImport() {
-  _fbImporting = false;
   satispayParsed = [];
   document.getElementById('satispayPreview').style.display = 'none';
   document.getElementById('satispayStatus').textContent = '';
@@ -12864,7 +12907,6 @@ async function importSellaPDF(event) {
   statusEl.textContent = '⏳ Lettura PDF in corso...';
   document.getElementById('sellaPreview').style.display = 'none';
   sellaParsed = [];
-  _fbImporting = true; // blocca disconnect durante parsing
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const pdf  = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
@@ -13475,7 +13517,6 @@ function confirmSellaImport() {
 }
 
 function cancelSellaImport() {
-  _fbImporting = false;
   sellaParsed = [];
   sellaIncomeParsed = [];
   sellaFixedParsed = [];
@@ -13499,7 +13540,6 @@ async function importRevolutPDF(event) {
   statusEl.textContent = '⏳ Lettura PDF in corso...';
   document.getElementById('revolutPreview').style.display = 'none';
   revolutParsed = [];
-  _fbImporting = true; // blocca disconnect durante parsing
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     const pdf  = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
@@ -13656,8 +13696,7 @@ function parseRevolutText(text) {
 }
 
 function confirmRevolutImport()  { genericConfirmImport(revolutParsed, 'revolutPreview', 'revolutStatus', '💜 Revolut'); }
-function cancelRevolutImport()   {
-  _fbImporting = false; revolutParsed = []; document.getElementById('revolutPreview').style.display='none'; document.getElementById('revolutStatus').textContent=''; }
+function cancelRevolutImport()   { revolutParsed = []; document.getElementById('revolutPreview').style.display='none'; document.getElementById('revolutStatus').textContent=''; }
 
 // ═══════════════════════════════════════════════════════════
 // ── CSV IMPORT — BANCA SELLA ──
@@ -13731,18 +13770,7 @@ function parseSellaCSV(text) {
     const fullDesc = (desc || causale || '—').substring(0, 80);
 
     // Skip giroconti/trasferimenti interni
-    // Satispay: ricarica app (in tutte le varianti descrizione)
-    if(/satispay europe|satispay s\.?a\.|ricarica.*satispay|satispay.*ricarica/i.test(fullDesc)) {
-      saveGiro('satispay', dateStr, Math.abs(amount), fullDesc);
-      continue;
-    }
-    // Revolut: ricarica/trasferimento verso Revolut
-    if(/revolut\*+\d+\*|revolut.*dublin|revolut.*\d{4}/i.test(fullDesc)) {
-      saveGiro('revolut_sella', dateStr, Math.abs(amount), fullDesc);
-      continue;
-    }
-    // Altri giroconti interni
-    if(/giro al[l]?\s|libretto di risparmio|giroconto/i.test(fullDesc)) continue;
+    if(/giro al[l]?\s|libretto di risparmio|satispay europe|revolut\*+\d+\*|giroconto/i.test(fullDesc)) continue;
     if(/contributo.*da\s|stipendio|salario|\bsdd\b.*add\.diretto/i.test(fullDesc)) continue;
 
     const key = `${dateStr}_${absAmount.toFixed(2)}_${fullDesc.substring(0,10)}`;
@@ -14040,151 +14068,9 @@ function genericConfirmImport(parsed, previewId, statusId, label) {
   if(previewId.includes('sella'))   sellaParsed   = [];
   if(previewId.includes('revolut')) revolutParsed = [];
   refreshAll();
-  // Auto-dedup cross-source dopo ogni importazione
-  const dupsRemoved = deduplicateAllMonths();
-  const dupMsg = dupsRemoved > 0 ? ` · 🧹 ${dupsRemoved} duplicati rimossi` : '';
-  _fbImporting = false; // import finito — riabilita controllo connessione
-  showToast(`✅ Importate ${totalImported} uscite da ${label} in ${Object.keys(byMonth).length} mes${Object.keys(byMonth).length===1?'e':'i'}!${dupMsg}`);
+  showToast(`✅ Importate ${totalImported} uscite da ${label} in ${Object.keys(byMonth).length} mes${Object.keys(byMonth).length===1?'e':'i'}!`);
 }
 
-
-// ═══════════════════════════════════════════════════════════════
-// ── DEDUP CROSS-SOURCE ──
-// Rileva e rimuove duplicati tra Satispay/Revolut/Sella stesso giorno
-// ═══════════════════════════════════════════════════════════════
-
-// Priorità fonte: teniamo Satispay > Revolut / Sella
-const SOURCE_PRIORITY = { satispay: 3, sella: 2, revolut: 1, manual: 0 };
-
-function cleanDesc(desc) {
-  if(!desc) return '';
-  return desc.toLowerCase()
-    .replace(/[^a-z0-9àèéìòù\s]/gi,'')
-    .replace(/\s+/g,' ')
-    .trim()
-    .substring(0,12);
-}
-
-function isCrossSourceDuplicate(a, b) {
-  // Stessa data
-  if(a.date !== b.date) return false;
-  // Stessa fonte = non è cross-source
-  if(a.source === b.source) return false;
-  // Almeno una delle due deve essere da carta
-  const srcSet = new Set([a.source, b.source]);
-  if(!srcSet.has('satispay') && !srcSet.has('revolut') && !srcSet.has('sella')) return false;
-
-  // Importi simili: stessa cifra o differenza ≤ €2 (fee Revolut)
-  const diff = Math.abs(a.amount - b.amount);
-  const maxAmt = Math.max(a.amount, b.amount);
-  const withinTolerance = diff <= 2.5 || (maxAmt > 0 && diff/maxAmt <= 0.15);
-  if(!withinTolerance) return false;
-
-  // Descrizioni simili (primi 8 char puliti)
-  const da = cleanDesc(a.desc);
-  const db = cleanDesc(b.desc);
-  if(da.length >= 4 && db.length >= 4) {
-    const shorter = da.length < db.length ? da : db;
-    const longer  = da.length < db.length ? db : da;
-    if(!longer.startsWith(shorter.substring(0,6))) return false;
-  }
-
-  return true;
-}
-
-function deduplicateMonth(expenses) {
-  // Per ogni coppia, se cross-source duplicate, tieni quello con priorità più alta
-  const toRemove = new Set();
-  for(let i = 0; i < expenses.length; i++) {
-    if(toRemove.has(i)) continue;
-    for(let j = i+1; j < expenses.length; j++) {
-      if(toRemove.has(j)) continue;
-      if(isCrossSourceDuplicate(expenses[i], expenses[j])) {
-        const priA = SOURCE_PRIORITY[expenses[i].source] || 0;
-        const priB = SOURCE_PRIORITY[expenses[j].source] || 0;
-        // Rimuovi quello con priorità più bassa
-        if(priA >= priB) toRemove.add(j);
-        else toRemove.add(i);
-      }
-    }
-  }
-  return { cleaned: expenses.filter((_,i) => !toRemove.has(i)), removed: toRemove.size };
-}
-
-function deduplicateAllMonths() {
-  if(!currentUser?.email) return 0;
-  const prefix = `tc_${currentUser.email}_expenses_`;
-  let totalRemoved = 0;
-  for(let i = 0; i < localStorage.length; i++) {
-    const key = localStorage.key(i);
-    if(!key || !key.startsWith(prefix)) continue;
-    try {
-      const expenses = JSON.parse(localStorage.getItem(key) || '[]');
-      const { cleaned, removed } = deduplicateMonth(expenses);
-      if(removed > 0) {
-        localStorage.setItem(key, JSON.stringify(cleaned));
-        totalRemoved += removed;
-      }
-    } catch(e) {}
-  }
-  if(totalRemoved > 0) {
-    bumpVersion();
-    fbPushToCloud();
-    refreshAll();
-  }
-  return totalRemoved;
-}
-
-function toggleVsQuickAdd() {
-  const panel = document.getElementById('vsQuickAddPanel');
-  const btn = document.getElementById('vsQuickAddBtn');
-  const open = panel.style.display === 'none';
-  panel.style.display = open ? 'block' : 'none';
-  btn.textContent = open ? '✖ Chiudi' : '➕ Aggiungi Spesa';
-  if(open) {
-    document.getElementById('vsQuickAddLabel').textContent = document.getElementById('vsDayDetailTitle').textContent;
-    document.getElementById('vsQuickAddAmount').value = '';
-    document.getElementById('vsQuickAddDesc').value = '';
-    setTimeout(() => document.getElementById('vsQuickAddAmount').focus(), 100);
-  }
-}
-
-function saveVsQuickAdd() {
-  if(!vsDayDetailDate) return;
-  const cat    = document.getElementById('vsQuickAddCat').value;
-  const pay    = document.getElementById('vsQuickAddPay').value;
-  const amount = parseFloat(document.getElementById('vsQuickAddAmount').value);
-  const desc   = document.getElementById('vsQuickAddDesc').value.trim() || '—';
-  if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido!'); return; }
-
-  const d = new Date(vsDayDetailDate);
-  const yr = d.getFullYear();
-  const mo = d.getMonth() + 1;
-  const key = yr + '_' + mo;
-  const exps = load('expenses_' + key, []);
-
-  const source = pay === 'satispay' ? 'satispay' : pay === 'revolut' ? 'revolut' : 'sella';
-  exps.push({ id: Date.now()+Math.random(), date: vsDayDetailDate, cat, pay, amount, desc, source });
-  save('expenses_' + key, exps);
-  bumpVersion();
-  fbPushToCloud();
-
-  document.getElementById('vsQuickAddAmount').value = '';
-  document.getElementById('vsQuickAddDesc').value = '';
-  toggleVsQuickAdd();
-
-  vsRenderDayDetailList(vsDayDetailDate);
-  renderWeek();
-  renderDashboard();
-  updateRimanenza();
-  showToast('✅ Spesa aggiunta!');
-}
-
-function runManualDedup() {
-  const n = deduplicateAllMonths();
-  if(n > 0) showToast(`🧹 Rimossi ${n} duplicati cross-carta!`);
-  else showToast('✅ Nessun duplicato trovato.');
-}
 
 // ═══════════════════════════════════════════════════════════════
 // ── SPESE SETTIMANALI (SELLA/SATISPAY/REVOLUT) ──
@@ -15800,65 +15686,33 @@ function resetMonth() {
 
 function resetYear() {
   const yr = document.getElementById('globalYear').value;
-
-  // Mostra modal con scelta: reset parziale o totale
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
-  overlay.innerHTML = `
-    <div style="background:var(--dark2);border:1.5px solid rgba(224,92,92,0.5);border-radius:20px;padding:28px;max-width:440px;width:100%;text-align:center;">
-      <div style="font-size:36px;margin-bottom:12px;">🗑️</div>
-      <div style="font-size:18px;font-weight:800;color:var(--red);margin-bottom:8px;">Reset Anno ${yr}</div>
-      <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px;">Scegli cosa vuoi cancellare:</div>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-        <button onclick="doResetYear('partial','${yr}',this.closest('div[style*=fixed]'))"
-          style="background:rgba(255,180,0,0.15);border:1.5px solid rgba(255,180,0,0.4);color:#ffb400;border-radius:12px;padding:14px 18px;cursor:pointer;font-size:13px;font-weight:700;text-align:left;">
-          ⚠️ Reset Parziale<br>
-          <span style="font-size:11px;font-weight:400;color:var(--text-muted);">Spese, entrate, note, pagamenti, emergenze, PDF ${yr}</span>
-        </button>
-        <button onclick="doResetYear('total','${yr}',this.closest('div[style*=fixed]'))"
-          style="background:rgba(224,92,92,0.15);border:1.5px solid rgba(224,92,92,0.5);color:var(--red);border-radius:12px;padding:14px 18px;cursor:pointer;font-size:13px;font-weight:700;text-align:left;">
-          💥 Cancella TUTTO ${yr}<br>
-          <span style="font-size:11px;font-weight:400;color:var(--text-muted);">Tutto quanto sopra + spese fisse, giri, libretto, budget, rimanenze, note settimanali</span>
-        </button>
-      </div>
-      <button onclick="this.closest('div[style*=fixed]').remove()"
-        style="background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:8px;padding:8px 20px;cursor:pointer;font-size:13px;">
-        Annulla
-      </button>
-    </div>`;
-  document.body.appendChild(overlay);
-}
-
-function doResetYear(mode, yr, overlay) {
-  overlay?.remove();
-  const label = mode === 'total' ? 'TUTTO' : 'i dati principali';
   showCustomConfirm(
     '🗑️',
-    `Conferma: cancella ${label} ${yr}`,
-    mode === 'total'
-      ? `Verranno cancellati TUTTI i dati dell'anno ${yr} senza eccezioni.\n\nQuesta azione NON è reversibile!`
-      : `Verranno cancellati spese, entrate, note, pagamenti e PDF di ${yr}.\n\nQuesta azione NON è reversibile!`,
-    '🗑️ Confermo — Cancella',
+    `Elimina TUTTI i dati ${yr}`,
+    `Verranno cancellati:\n• Spese variabili di tutti i mesi\n• Entrate di tutti i mesi\n• Note del calendario\n• Pagamenti spese fisse\n• Spese emergenza\n• PDF importati\n\nQuesta azione NON è reversibile!`,
+    '🗑️ Elimina Anno',
     'linear-gradient(135deg,#c0392b,#922b21)',
     () => {
       const email  = currentUser?.email || 'guest';
       const prefix = `tc_${email}_`;
 
-      // ── RESET PARZIALE (base) ──
+      // Cancella tutti i mesi dell'anno
       for(let mo = 1; mo <= 12; mo++) {
         localStorage.removeItem(`${prefix}expenses_${yr}_${mo}`);
-        localStorage.removeItem(`${prefix}vs_expenses_${yr}_${mo}`);
         localStorage.removeItem(`${prefix}income_${yr}_${mo}`);
         localStorage.removeItem(`${prefix}pagamenti_${yr}_${mo}`);
-        localStorage.removeItem(`${prefix}weekNotes`); // note settimanali globali
       }
-      // Note calendario
+
+      // Cancella note dell'anno
       const notes = getNotes();
       Object.keys(notes).forEach(k => { if(k.startsWith(yr+'-')) delete notes[k]; });
       saveNotes(notes);
-      // Emergenze
-      try { const allEmg = getEmergenze(); saveEmergenze(allEmg.filter(e => !e.month?.startsWith(yr+'_'))); } catch(e) {}
-      // PDF importati
+
+      // Cancella emergenze dell'anno
+      const allEmg = getEmergenze();
+      saveEmergenze(allEmg.filter(e => !e.month?.startsWith(yr+'_')));
+
+      // Cancella PDF importati dell'anno
       const keysToRemove = [];
       for(let i = 0; i < localStorage.length; i++) {
         const k = localStorage.key(i);
@@ -15866,51 +15720,12 @@ function doResetYear(mode, yr, overlay) {
       }
       keysToRemove.forEach(k => localStorage.removeItem(k));
 
-      if(mode === 'total') {
-        // ── RESET TOTALE: cancella TUTTO quello che contiene l'anno ──
-        const allKeys = [];
-        for(let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if(!k || !k.startsWith(prefix)) continue;
-          // Spese fisse snapshot
-          if(k.includes(`fixedSnapshot_${yr}`)) allKeys.push(k);
-          // Giri Satispay/Revolut — chiave è tc_EMAIL_giri (senza anno)
-          if(k.endsWith('_giri')) {
-            try {
-              const giri = JSON.parse(localStorage.getItem(k) || '[]');
-              const filtered = giri.filter(g => !g.date?.startsWith(yr));
-              localStorage.setItem(k, JSON.stringify(filtered));
-            } catch(e) {}
-          }
-          // Libretto risparmio
-          if(k.includes('_librietto_')) {
-            try {
-              const lib = JSON.parse(localStorage.getItem(k) || '[]');
-              const filtered = lib.filter(l => !l.date?.startsWith(yr));
-              localStorage.setItem(k, JSON.stringify(filtered));
-            } catch(e) {}
-          }
-          // Rimanenze
-          if(k.includes(`_rimanenza_${yr}_`)) allKeys.push(k);
-          // Budget settimanale
-          if(k.includes(`_vs_budget_`)) allKeys.push(k);
-          // Promemoria anno
-          if(k.includes('_reminders_')) {
-            try {
-              const rems = JSON.parse(localStorage.getItem(k) || '[]');
-              const filtered = rems.filter(r => !new Date(r.ts).getFullYear().toString().startsWith(yr));
-              localStorage.setItem(k, JSON.stringify(filtered));
-            } catch(e) {}
-          }
-        }
-        allKeys.forEach(k => localStorage.removeItem(k));
-      }
-
       fbPushToCloud();
       bumpVersion();
       refreshAll();
+      // Forza re-render sezione attiva
       if(document.getElementById('sec-vistaSpese')?.classList.contains('active')) renderVSAll();
-      showToast(`🗑️ Anno ${yr} ${mode === 'total' ? 'cancellato completamente' : 'resettato'}`);
+      showToast(`🗑️ Anno ${yr} resettato completamente`);
     }
   );
 }
@@ -16429,12 +16244,24 @@ let isDark = true;
 function toggleTheme() {
   isDark = !isDark;
   document.body.classList.toggle('light', !isDark);
-  const btn = document.getElementById('themeBtn');
-  btn.textContent = isDark ? '🌙 Notte' : '☀️ Giorno';
+  _updateThemeBtn();
   localStorage.setItem('tc_theme', isDark ? 'dark' : 'light');
   // redraw charts with new colors
   if(dashChartInst) renderDashboard();
   if(catChartInst || payChartInst) { if(selectedCat) renderCatChart(selectedCat); }
+}
+
+function _updateThemeBtn() {
+  const btn = document.getElementById('themeBtn');
+  if(!btn) return;
+  const emoji = isDark ? '🌙' : '☀️';
+  const label = isDark ? ' Notte' : ' Giorno';
+  // Aggiorna gli span interni senza distruggerli
+  const emojiEl = btn.querySelector('.btn-emoji');
+  const txtEl   = btn.querySelector('.btn-txt');
+  if(emojiEl) emojiEl.textContent = emoji;
+  else btn.innerHTML = `<span class="btn-emoji">${emoji}</span><span class="btn-txt">${label}</span>`;
+  if(txtEl) txtEl.textContent = label;
 }
 
 function loadTheme() {
@@ -16442,43 +16269,46 @@ function loadTheme() {
   if(saved === 'light') {
     isDark = false;
     document.body.classList.add('light');
-    const btn = document.getElementById('themeBtn');
-    if(btn) btn.textContent = '☀️ Giorno';
+  } else {
+    isDark = true;
+    document.body.classList.remove('light');
   }
+  _updateThemeBtn();
 }
 
 // ===== SYNC =====
 function sincronizzaOra() {
-  // Se Firebase è pronto e c'è un utente, scarica subito i dati dal cloud
-  if(fbReady && db && currentUser) {
+  // Se Gist è pronto e c'è un utente, scarica subito i dati dal cloud
+  if(gistReady && currentUser) {
     showToast('☁️ Sincronizzazione in corso…');
-    fbSyncFromCloud(currentUser.email, () => {
+    gistSyncFromCloud(currentUser.email, () => {
       renderSidebarAvatar(currentUser);
       refreshAll();
       showToast('✅ Dati sincronizzati dal cloud!');
     });
-  } else if(!fbReady && currentUser) {
-    // Firebase non ancora pronto — prova a connettersi e poi sincronizza
+  } else if(!gistReady && currentUser) {
+    // Gist non ancora pronto — prova a connettersi e poi sincronizza
     showToast('⏳ Connessione in corso, riprovo…');
     let att = 0;
     const trySync = setInterval(() => {
       att += 500;
-      if(fbReady) {
+      if(gistReady) {
         clearInterval(trySync);
-        fbSyncFromCloud(currentUser.email, () => {
+        gistSyncFromCloud(currentUser.email, () => {
           renderSidebarAvatar(currentUser);
           refreshAll();
           showToast('✅ Dati sincronizzati dal cloud!');
         });
       } else if(att >= 10000) {
         clearInterval(trySync);
-        showToast('⚠️ Nessuna connessione cloud. Usa la modale per sync manuale.');
-        openSync();
+        showToast('⚠️ Nessuna connessione Gist. Configura il token GitHub.');
+        openFirebaseModal();
       }
     }, 500);
   } else {
-    // Nessun cloud — apre modale QR classica
-    openSync();
+    // Nessun cloud — apre il modal di configurazione Gist
+    showToast('☁️ Configura il Gist per abilitare il sync.');
+    openFirebaseModal();
   }
 }
 
@@ -16521,55 +16351,51 @@ function generateSyncCode() { generateQRPin(); } // legacy alias
 
 function generateQRPin() {
   const msgEl = document.getElementById('syncExportMsg');
-  if(!fbReady || !db) {
+  if(!gistReady) {
     msgEl.style.color='var(--red)';
-    msgEl.textContent = '❌ Firebase non connesso. Badge deve essere 🟢';
+    msgEl.textContent = '❌ Gist non connesso. Il badge deve essere 🟢 Cloud Sync ON';
     return;
   }
   if(!currentUser) return;
 
   msgEl.style.color='var(--gold)';
-  msgEl.textContent = '⏳ Caricamento su cloud...';
+  msgEl.textContent = '⏳ Caricamento su Gist...';
 
-  // Prima push tutti i dati aggiornati su Firebase
+  // Prima push tutti i dati aggiornati su Gist
   fbPushToCloud();
 
-  // Genera PIN
+  // Genera PIN e salvalo in localStorage (visibile all'altro dispositivo via Gist)
   const pin = String(Math.floor(1000 + Math.random() * 9000));
   const expiry = Date.now() + 10 * 60 * 1000; // 10 minuti
+  const pinData = { email: currentUser.email, expiry };
+  localStorage.setItem('tc_sync_pin_' + pin, JSON.stringify(pinData));
 
-  // Salva solo email e scadenza — l'altro dispositivo leggerà direttamente da users/
-  safeDb()?.ref('sync_pins/' + pin).set({
-    email: currentUser.email,
-    expiry
-  }).then(() => {
-    msgEl.textContent = '';
-    // Mostra PIN
-    const pinDisplay = document.getElementById('pinDisplay');
-    pinDisplay.innerHTML = pin.split('').map(d=>`<div class="pin-digit">${d}</div>`).join('');
-    document.getElementById('qrPinArea').style.display = 'block';
-    document.getElementById('genPinBtn').textContent = '🔄 Genera Nuovo Codice';
-    // QR code
-    const qrDiv = document.getElementById('qrCanvas');
-    qrDiv.innerHTML = '';
-    new QRCode(qrDiv, { text: pin, width:160, height:160, colorDark:'#000000', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.H });
-    // Countdown
-    let secsLeft = 600;
-    const timer = setInterval(() => {
-      secsLeft--;
-      const m = Math.floor(secsLeft/60), s = secsLeft%60;
-      const el = document.getElementById('pinExpiry');
-      if(el) el.textContent = `⏱️ Scade tra ${m}:${s<10?'0':''}${s}`;
-      if(secsLeft <= 0) {
-        clearInterval(timer);
-        if(el) el.textContent = '❌ Codice scaduto — generane uno nuovo';
-        safeDb()?.ref('sync_pins/' + pin).remove();
-      }
-    }, 1000);
-  }).catch(e => {
-    msgEl.style.color='var(--red)';
-    msgEl.textContent = '❌ Errore: ' + e.message;
-  });
+  // Push Gist aggiornato col PIN
+  setTimeout(() => gistPushToCloud(), 300);
+
+  msgEl.textContent = '';
+  // Mostra PIN
+  const pinDisplay = document.getElementById('pinDisplay');
+  pinDisplay.innerHTML = pin.split('').map(d=>`<div class="pin-digit">${d}</div>`).join('');
+  document.getElementById('qrPinArea').style.display = 'block';
+  document.getElementById('genPinBtn').textContent = '🔄 Genera Nuovo Codice';
+  // QR code
+  const qrDiv = document.getElementById('qrCanvas');
+  qrDiv.innerHTML = '';
+  new QRCode(qrDiv, { text: pin, width:160, height:160, colorDark:'#000000', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.H });
+  // Countdown
+  let secsLeft = 600;
+  const timer = setInterval(() => {
+    secsLeft--;
+    const m = Math.floor(secsLeft/60), s = secsLeft%60;
+    const el = document.getElementById('pinExpiry');
+    if(el) el.textContent = `⏱️ Scade tra ${m}:${s<10?'0':''}${s}`;
+    if(secsLeft <= 0) {
+      clearInterval(timer);
+      if(el) el.textContent = '❌ Codice scaduto — generane uno nuovo';
+      localStorage.removeItem('tc_sync_pin_' + pin);
+    }
+  }, 1000);
 }
 
 
@@ -16586,63 +16412,52 @@ function importQRPin() {
   const pin = digits.join('');
   const msgEl = document.getElementById('syncImportMsg');
   if(digits.some(d => d === '')) { msgEl.style.color='var(--red)'; msgEl.textContent='⚠️ Inserisci tutte e 4 le cifre.'; return; }
-  if(!fbReady || !db) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Firebase non connesso.'; return; }
+  if(!gistReady) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Gist non connesso. Il badge deve essere 🟢'; return; }
 
-  msgEl.style.color='var(--gold)'; msgEl.textContent='⏳ Ricerca codice...';
+  msgEl.style.color='var(--gold)'; msgEl.textContent='⏳ Ricerca codice nel Gist...';
 
-  // 1. Leggi il PIN per trovare l'email sorgente
-  safeDb()?.ref('sync_pins/' + pin).once('value').then(snap => {
-    const entry = snap.val();
-    if(!entry) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Codice non trovato o già usato.'; return; }
+  // Prima scarica dati aggiornati dal Gist (potrebbe contenere il PIN)
+  gistSyncFromCloud(currentUser.email, () => {
+    const pinRaw = localStorage.getItem('tc_sync_pin_' + pin);
+    if(!pinRaw) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Codice non trovato. Verifica le cifre o rigeneralo.'; return; }
+
+    let entry;
+    try { entry = JSON.parse(pinRaw); } catch(e) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Dati PIN non validi.'; return; }
+
     if(Date.now() > entry.expiry) {
-      safeDb()?.ref('sync_pins/' + pin).remove();
+      localStorage.removeItem('tc_sync_pin_' + pin);
       msgEl.style.color='var(--red)'; msgEl.textContent='❌ Codice scaduto. Generane uno nuovo.'; return;
     }
 
     const sourceEmail = entry.email;
-    const safeSource = sourceEmail.replace(/[.#$\[\]]/g, '_');
     msgEl.textContent='⏳ Scarico dati dal cloud...';
 
-    // 2. Leggi direttamente i dati dell'utente sorgente da Firebase
-    const _syncdb = safeDb(); if(!_syncdb) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Errore connessione Firebase.'; return; }
-    const dataPromise = _syncdb.ref(`users/${safeSource}`).once('value');
-    const photoPromise = new Promise(resolve => fbLoadPhoto(sourceEmail, resolve));
-
-    Promise.all([dataPromise, photoPromise]).then(([dataSnap, photoUrl]) => {
-      safeDb()?.ref('sync_pins/' + pin).remove(); // elimina PIN usato
-
-      // 3. Applica i dati sull'utente corrente
-      const cloudData = dataSnap.val() || {};
-      const targetEmail = currentUser.email;
-      let count = 0;
-
-      Object.entries(cloudData).forEach(([shortKey, v]) => {
-        const fullKey = `tc_${targetEmail}_${shortKey}`;
-        try {
-          localStorage.setItem(fullKey, JSON.stringify(v));
-          count++;
-        } catch(e) {}
-      });
-
-      // 4. Applica foto
-      if(photoUrl) {
-        localStorage.setItem('tc_photo_' + targetEmail, photoUrl);
-        renderSidebarAvatar(currentUser);
+    // Sincronizza col Gist sorgente (stessa connessione, dati già in localStorage dopo il sync)
+    const prefix = 'tc_' + sourceEmail + '_';
+    const targetEmail = currentUser.email;
+    let count = 0;
+    for(let i=0;i<localStorage.length;i++) {
+      const k = localStorage.key(i);
+      if(k && k.startsWith(prefix)) {
+        const sk = k.substring(prefix.length);
+        const val = localStorage.getItem(k);
+        try { localStorage.setItem('tc_' + targetEmail + '_' + sk, val); count++; } catch(e){}
       }
+    }
+    // Applica foto sorgente se disponibile
+    const photoUrl = localStorage.getItem('tc_photo_' + sourceEmail);
+    if(photoUrl) {
+      localStorage.setItem('tc_photo_' + targetEmail, photoUrl);
+      renderSidebarAvatar(currentUser);
+    }
+    // Rimuovi PIN usato
+    localStorage.removeItem('tc_sync_pin_' + pin);
+    // Push aggiornato
+    setTimeout(() => fbPushToCloud(), 300);
 
-      // 5. Push su Firebase con la nuova email (rende i dati permanenti)
-      setTimeout(() => fbPushToCloud(), 300);
-
-      msgEl.style.color='var(--green)';
-      msgEl.textContent=`✅ Sincronizzati ${count} blocchi dati${photoUrl?' + foto profilo':''}! Ricarico...`;
-      setTimeout(() => { closeSync(); refreshAll(); }, 1500);
-
-    }).catch(e => {
-      msgEl.style.color='var(--red)'; msgEl.textContent='❌ Errore lettura dati: '+e.message;
-    });
-
-  }).catch(e => {
-    msgEl.style.color='var(--red)'; msgEl.textContent='❌ Errore Firebase: '+e.message;
+    msgEl.style.color='var(--green)';
+    msgEl.textContent=`✅ Sincronizzati ${count} blocchi dati${photoUrl?' + foto profilo':''}! Ricarico...`;
+    setTimeout(() => { closeSync(); refreshAll(); }, 1500);
   });
 }
 
@@ -16893,7 +16708,7 @@ function getReminders() {
 function saveReminders(list) {
   localStorage.setItem(getReminderKey(), JSON.stringify(list));
   syncRemindersToSW(); // aggiorna SW subito (funziona offline)
-  setTimeout(syncRemindersToFirebase, 500); // sync Firebase se online
+  setTimeout(syncRemindersToFirebase, 500); // push Gist se online
 }
 
 function syncRemindersToSW() {
@@ -16935,7 +16750,6 @@ function checkRemindersMain() {
 
 function updateReminderBadge() {
   const now = Date.now();
-  const list = getReminders();
   const pending = list.filter(r => !r.completed && r.ts > now).length;
   const overdue = list.filter(r => !r.completed && r.ts <= now && r.notified).length;
   const badge = document.getElementById('reminderNavBadge');
@@ -16976,7 +16790,7 @@ function pianificaCleanup() {
     id: 'cleanup_' + Date.now().toString(36),
     desc: '🗑️ Pulizia dati vecchi (>2 anni)',
     amount: '',
-    note: 'Rimozione dati più vecchi di 2 anni da localStorage e Firebase',
+    note: 'Rimozione dati più vecchi di 2 anni da localStorage e Gist',
     ts: d.getTime(),
     created: Date.now(),
     notified: false,
@@ -17011,7 +16825,7 @@ function eseguiCleanupDati() {
   keysToDelete.forEach(k => { localStorage.removeItem(k); rimossi++; });
   if(fbReady && db) {
     const safeEmail = email.replace(/[.#$\[\]]/g, '_');
-    safeDb()?.ref(`users/${safeEmail}`).once('value').then(snap => {
+    Promise.resolve(null).then(snap => { // Gist: no Firebase
       const data = snap.val();
       if(!data) return;
       const updates = {};
@@ -17019,7 +16833,7 @@ function eseguiCleanupDati() {
         const m = k.match(/_(\d{4})(?:_\d+)?$/);
         if(m && parseInt(m[1]) <= cutoffYear) updates[k] = null;
       });
-      if(Object.keys(updates).length) safeDb()?.ref(`users/${safeEmail}`).update(updates);
+      if(Object.keys(updates).length) fbPushToCloud(); // Gist: push whole profile
     });
   }
   const list = getReminders();
@@ -17219,58 +17033,14 @@ function checkNotifPermission() {
 // ════════════════════════════════════
 // PWA INSTALL SYSTEM
 // ════════════════════════════════════
-// ── Safe DB accessor — evita "Cannot call ref on deleted database" ──
-function safeDb() {
-  if(!db) return null;
-  try {
-    // Verifica che il db non sia stato eliminato tentando di accedere a app
-    if(db.app && db.app.isDeleted_) return null;
-    return db;
-  } catch(e) { return null; }
-}
-
 let _pwaInstallPrompt = null;
-
-function triggerPwaInstall() {
-  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const isEdge = /EdgA|EdgiOS/i.test(navigator.userAgent);
-
-  if(_pwaInstallPrompt) {
-    _pwaInstallPrompt.prompt();
-    _pwaInstallPrompt.userChoice.then(r => {
-      _pwaInstallPrompt = null;
-    });
-    return;
-  }
-
-  // iOS: mostra modal con istruzioni visive
-  if(isIOS) {
-    const msg = isEdge
-      ? '📲 Su Edge iPad/iPhone:\n1. Tocca i tre puntini (···) in basso\n2. Tocca "Aggiungi a schermata Home"\n3. Conferma con "Aggiungi"'
-      : '📲 Su Safari:\n1. Tocca il tasto Condividi (□↑) in basso\n2. Scorri e tocca "Aggiungi a schermata Home"\n3. Conferma con "Aggiungi"';
-    alert(msg);
-    return;
-  }
-
-  // Android/Chrome/PC
-  showToast('📲 Menu ⋮ → "Installa app" o icona nella barra URL');
-}
-
-// Mostra sempre il pulsante su iOS (beforeinstallprompt non esiste su iOS)
-(function() {
-  const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  if(isIOS) {
-    const btn = document.getElementById('navPwaInstall');
-    if(btn) btn.style.display = 'flex';
-  }
-})();
 
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   _pwaInstallPrompt = e;
-  // Mostra il pulsante nel menu laterale sempre quando il prompt è disponibile
-  const navBtn = document.getElementById('navPwaInstall');
-  if(navBtn) navBtn.style.display = 'flex';
+  // Mostra il bottone nel topbar
+  const installBtn = document.getElementById('installAppBtn');
+  if(installBtn) installBtn.style.display = '';
   // Show banner only if not dismissed in last 7 days
   const dismissed = localStorage.getItem('pwa_dismissed_ts');
   if (!dismissed || Date.now() - parseInt(dismissed) > 7 * 86400 * 1000) {
@@ -17283,6 +17053,11 @@ window.addEventListener('beforeinstallprompt', e => {
 
 window.addEventListener('appinstalled', () => {
   _pwaInstallPrompt = null;
+  // Nascondi il bottone solo se standalone (app già aperta come PWA)
+  if(window.matchMedia('(display-mode: standalone)').matches) {
+    const installBtn = document.getElementById('installAppBtn');
+    if(installBtn) installBtn.style.display = 'none';
+  }
   const b = document.getElementById('pwaInstallBanner');
   if (b) b.style.display = 'none';
   showToast('🎉 TradoCroods installata! Aprila dalla schermata Home');
@@ -17306,14 +17081,61 @@ function dismissPWABanner() {
 }
 
 function checkIOSInstallPrompt() {
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
   const isStandalone = window.navigator.standalone === true;
-  const dismissed = localStorage.getItem('pwa_ios_dismissed');
-  if (isIOS && !isStandalone && !dismissed) {
-    setTimeout(() => {
-      const g = document.getElementById('iosInstallGuide');
-      if (g) g.style.display = 'block';
-    }, 4000);
+
+  if (isIOS && !isStandalone) {
+    // Mostra sempre il bottone "Installa App" nella topbar su iOS
+    const btn = document.getElementById('installAppBtn');
+    if (btn) btn.style.display = '';
+
+    // Mostra il banner in basso solo se non già dismissato
+    const dismissed = localStorage.getItem('pwa_ios_dismissed');
+    if (!dismissed) {
+      setTimeout(() => {
+        const g = document.getElementById('iosInstallGuide');
+        if (g) g.style.display = 'block';
+      }, 3000);
+    }
+  }
+}
+
+// Gestisce il click su "Installa App": nativo su Android/desktop, guida su iOS
+function toggleTopbarMenu() {
+  const m = document.getElementById('topbarMobileMenu');
+  if(m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+}
+function closeTopbarMenu() {
+  const m = document.getElementById('topbarMobileMenu');
+  if(m) m.style.display = 'none';
+}
+
+function handleInstallClick() {
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+                (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  const isStandalone = window.navigator.standalone === true ||
+                       window.matchMedia('(display-mode: standalone)').matches;
+
+  if (isStandalone) {
+    showToast('✅ App già installata! Aprila dalla schermata Home.');
+    return;
+  }
+  if (isIOS) {
+    // Mostra guida iOS
+    const g = document.getElementById('iosInstallGuide');
+    if (g) {
+      g.style.display = 'block';
+      g.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }
+    return;
+  }
+  if (_pwaInstallPrompt) {
+    // Chrome/Edge: usa il prompt nativo
+    installPWA();
+  } else {
+    // Browser non ha ancora il prompt (es. già installata, o non supportato)
+    showToast('💡 Per installare: clicca ⋮ nel browser → "Installa app" o "Aggiungi alla schermata Home"');
   }
 }
 
@@ -17371,11 +17193,14 @@ async function subscribeToPush() {
 }
 
 async function savePushSubscriptionToFirebase(sub) {
-  if (!fbReady || !db || !currentUser) return;
+  if (!gistReady || !currentUser) return;
+  // Push notifications not supported with Gist backend
+  return;
   const userId = currentUser.email.replace(/[.@]/g, '_');
   const reminders = getReminders();
   try {
-    const _psdb = safeDb(); if(_psdb) await _psdb.ref('pushSubscriptions/' + userId).set({
+    // await safeDb()?.ref('pushSubscriptions/' + userId).set({ // disabled Gist
+    if(false) safeDb()?.ref('push').set({
       subscription: sub.toJSON(),
       reminders: reminders,
       updatedAt: Date.now()
@@ -17387,14 +17212,8 @@ async function savePushSubscriptionToFirebase(sub) {
 }
 
 async function syncRemindersToFirebase() {
-  if (!fbReady || !db || !currentUser) return;
-  const userId = currentUser.email.replace(/[.@]/g, '_');
-  const reminders = getReminders();
-  try {
-    if(_psdb) await _psdb.ref('pushSubscriptions/' + userId + '/reminders').set(reminders);
-  } catch(e) {
-    console.warn('Firebase reminders sync error:', e);
-  }
+  if (!gistReady || !currentUser) return;
+  // Reminders stored locally, pushed via Gist on next bumpVersion
 }
 
 async function initPushNotifications() {
@@ -17407,59 +17226,15 @@ async function initPushNotifications() {
 
 
 // ── DETTAGLIO SETTIMANA / GIORNO (sec-settimanale) ──
-let _wdCurrentDate = null;
-let _wdCurrentLabel = null;
-
-function wdQuickAddClose() {
-  const p = document.getElementById('wdQuickAddPanel');
-  const b = document.getElementById('wdQuickAddBtn');
-  if(p) p.style.display = 'none';
-  if(b) b.textContent = '➕ Aggiungi';
-}
-
-function toggleWdQuickAdd() {
-  const panel = document.getElementById('wdQuickAddPanel');
-  const btn = document.getElementById('wdQuickAddBtn');
-  const open = panel.style.display === 'none';
-  panel.style.display = open ? 'block' : 'none';
-  btn.textContent = open ? '✖ Chiudi' : '➕ Aggiungi';
-  if(open) {
-    document.getElementById('wdQuickAddLabel').textContent = _wdCurrentLabel || '';
-    document.getElementById('wdQuickAddAmount').value = '';
-    document.getElementById('wdQuickAddDesc').value = '';
-    setTimeout(() => document.getElementById('wdQuickAddAmount').focus(), 100);
-  }
-}
-
-function wdQuickAddSave() {
-  if(!_wdCurrentDate) return;
-  const cat    = document.getElementById('wdQuickAddCat').value;
-  const pay    = document.getElementById('wdQuickAddPay').value;
-  const amount = parseFloat(document.getElementById('wdQuickAddAmount').value);
-  const desc   = document.getElementById('wdQuickAddDesc').value.trim() || '—';
-  if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido!'); return; }
-
-  const d = new Date(_wdCurrentDate);
-  const yr = d.getFullYear(), mo = d.getMonth()+1;
-  const exps = load(yr+'_'+mo, []);
-  const key = yr+'_'+mo;
-  const allExps = load('expenses_'+key, []);
-  const source = pay === 'satispay' ? 'satispay' : pay === 'revolut' ? 'revolut' : 'sella';
-  allExps.push({ id: Date.now()+Math.random(), date: _wdCurrentDate, cat, pay, amount, desc, source });
-  save('expenses_'+key, allExps);
-  bumpVersion(); fbPushToCloud();
-  wdQuickAddClose();
-  // Riapri il modal aggiornato
-  openWeekDayModal(_wdCurrentDate, _wdCurrentLabel);
-  renderWeek(); renderDashboard(); updateRimanenza();
-  showToast('✅ Spesa aggiunta!');
-}
-
 function openWeekDayModal(ds, label) {
-  _wdCurrentDate = ds;
-  _wdCurrentLabel = label;
   const modal = document.getElementById('weekDetailModal');
   modal.style.display = 'flex';
+  _weekDetailCurrentDs = ds;
+  // Reset form aggiungi se aperto
+  const addForm = document.getElementById('weekDetailAddForm');
+  const addBtn  = document.getElementById('weekDetailAddToggleBtn');
+  if(addForm)  addForm.style.display = 'none';
+  if(addBtn)   addBtn.textContent = '➕ Aggiungi Spesa per questo giorno';
   document.getElementById('weekDetailList').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);">Caricamento...</div>';
 
   try {
@@ -17561,6 +17336,78 @@ function _weekExpRows(exps, fmt) {
       <span style="font-size:14px;font-weight:700;color:var(--red);margin-left:10px;white-space:nowrap;">${fmt(e.amount)}</span>
     </div>`;
   }).join('');
+}
+
+// ── Variabile che tiene traccia della data selezionata nel modal giorno ──
+let _weekDetailCurrentDs = null;
+
+function weekDetailToggleAdd() {
+  const form = document.getElementById('weekDetailAddForm');
+  const btn  = document.getElementById('weekDetailAddToggleBtn');
+  const open = form.style.display === 'none';
+  form.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '▲ Chiudi form' : '➕ Aggiungi Spesa per questo giorno';
+  if(open) {
+    // Reset form
+    document.getElementById('wdAmount').value = '';
+    document.getElementById('wdDesc').value = '';
+    document.getElementById('wdNote').value = '';
+    document.getElementById('wdMsg').textContent = '';
+    document.getElementById('wdCat').value = 'ristorante';
+    document.getElementById('wdPay').value = 'bancomat';
+    setTimeout(() => document.getElementById('wdAmount').focus(), 80);
+  }
+}
+
+function weekDetailSaveExpense() {
+  const ds = _weekDetailCurrentDs;
+  if(!ds) return;
+  const msgEl = document.getElementById('wdMsg');
+
+  const cat    = document.getElementById('wdCat').value;
+  const amount = parseFloat(document.getElementById('wdAmount').value);
+  const desc   = document.getElementById('wdDesc').value.trim() || '—';
+  const pay    = document.getElementById('wdPay').value;
+  const note   = document.getElementById('wdNote').value.trim();
+
+  if(!amount || amount <= 0) {
+    msgEl.style.color = 'var(--red)';
+    msgEl.textContent = '⚠️ Inserisci un importo valido.';
+    document.getElementById('wdAmount').focus();
+    return;
+  }
+
+  // Salva nel mese corretto della data
+  const d = new Date(ds + 'T12:00:00');
+  const key = 'expenses_' + d.getFullYear() + '_' + (d.getMonth()+1);
+  const exp = load(key, []);
+  const newEntry = { id: Date.now(), cat, amount, desc, pay, date: ds };
+  exp.push(newEntry);
+  save(key, exp);
+
+  // Salva nota del giorno se presente
+  if(note) {
+    const notes = load('weekNotes', {});
+    notes[ds] = note;
+    save('weekNotes', notes);
+  }
+
+  bumpVersion();
+  fbPushToCloud();
+
+  // Feedback visivo
+  msgEl.style.color = 'var(--green)';
+  msgEl.textContent = '✅ Spesa aggiunta!';
+
+  // Chiudi form e ricarica il modal
+  setTimeout(() => {
+    weekDetailToggleAdd();
+    openWeekDayModal(ds, document.getElementById('weekDetailTitle').textContent);
+    // Aggiorna anche la vista sottostante
+    renderWeek();
+    renderDashboard();
+    vsRefreshIfActive();
+  }, 700);
 }
 
 function openWeekSummaryModal(filter) {
@@ -17781,54 +17628,88 @@ document.addEventListener('click', function(e) {
             <div style="font-size:20px;font-weight:700;color:var(--gold);" id="weekDetailTitle">—</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="weekDetailSubtitle"></div>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <button onclick="printDetailModal('weekDetailModal')" title="Stampa" style="background:rgba(201,168,67,0.12);border:1px solid rgba(201,168,67,0.3);color:var(--gold);font-size:14px;cursor:pointer;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--font);font-size:12px;font-weight:600;">🖨️ Stampa</button>
-            <button onclick="toggleWdQuickAdd()" id="wdQuickAddBtn" style="background:rgba(74,232,122,0.15);border:1px solid rgba(74,232,122,0.4);color:#4ae87a;font-size:12px;font-weight:700;cursor:pointer;border-radius:8px;padding:6px 12px;white-space:nowrap;">➕ Aggiungi</button>
-            <button onclick="document.getElementById('weekDetailModal').style.display='none';wdQuickAddClose();" style="background:var(--dark3);border:1px solid var(--border);color:var(--text-muted);font-size:20px;cursor:pointer;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">✕</button>
-          </div>
+          <button onclick="printDetailModal('weekDetailModal')" title="Stampa" style="background:rgba(201,168,67,0.12);border:1px solid rgba(201,168,67,0.3);color:var(--gold);font-size:14px;cursor:pointer;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--font);font-size:12px;font-weight:600;">🖨️ Stampa</button>
+          <button onclick="document.getElementById('weekDetailModal').style.display='none'" style="background:var(--dark3);border:1px solid var(--border);color:var(--text-muted);font-size:20px;cursor:pointer;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">✕</button>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid var(--border);" id="weekDetailStats"></div>
-        <!-- quick-add inside weekDetailModal -->
-        <div id="wdQuickAddPanel" style="display:none;padding:14px 22px;border-bottom:1px solid var(--border);background:rgba(201,168,76,0.05);">
-          <div style="font-size:12px;font-weight:700;color:var(--gold);margin-bottom:10px;">➕ Aggiungi spesa per <span id="wdQuickAddLabel" style="color:var(--text);font-weight:400;"></span></div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:10px;align-items:end;">
-            <div class="fld" style="margin:0;">
-              <label style="font-size:11px;">Categoria</label>
-              <select id="wdQuickAddCat">
-                <option value="bar">☕ Bar</option>
-                <option value="ristorante">🍽️ Ristorante</option>
-                <option value="supermercato">🛒 Supermercato</option>
-                <option value="svago">🎭 Svago</option>
-                <option value="viaggi">✈️ Viaggi</option>
-                <option value="hotel">🏨 Hotel</option>
-                <option value="musei">🏛️ Musei</option>
-                <option value="extra">💡 Extra</option>
-              </select>
+        <div style="flex:1;overflow-y:auto;padding:16px 22px;" id="weekDetailList"></div>
+
+        <!-- ➕ FORM AGGIUNGI SPESA -->
+        <div style="border-top:1px solid var(--border);padding:14px 22px;" id="weekDetailAddPanel">
+          <!-- Toggle button -->
+          <button id="weekDetailAddToggleBtn" onclick="weekDetailToggleAdd()"
+            style="width:100%;background:rgba(201,168,76,0.10);border:1.5px dashed rgba(201,168,76,0.4);color:var(--gold);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.2s;">
+            ➕ Aggiungi Spesa per questo giorno
+          </button>
+
+          <!-- Form (nascosto di default) -->
+          <div id="weekDetailAddForm" style="display:none;margin-top:14px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+              <!-- Categoria -->
+              <div>
+                <label style="font-size:10px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">🏷️ Categoria</label>
+                <select id="wdCat" style="width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;font-family:var(--font);">
+                  <option value="ristorante">🍽️ Ristorante</option>
+                  <option value="bar">☕ Bar</option>
+                  <option value="supermercato">🛒 Supermercato</option>
+                  <option value="svago">🎭 Svago</option>
+                  <option value="viaggi">✈️ Viaggi</option>
+                  <option value="hotel">🏨 Hotel</option>
+                  <option value="musei">🏛️ Musei</option>
+                  <option value="extra">💡 Extra</option>
+                  <option value="rata">📦 Rata</option>
+                </select>
+              </div>
+              <!-- Importo -->
+              <div>
+                <label style="font-size:10px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">💶 Importo (€)</label>
+                <input type="number" id="wdAmount" step="0.01" min="0.01" placeholder="0,00"
+                  style="width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;font-family:var(--font);">
+              </div>
             </div>
-            <div class="fld" style="margin:0;">
-              <label style="font-size:11px;">Pagamento</label>
-              <select id="wdQuickAddPay">
-                <option value="satispay">📱 Satispay</option>
-                <option value="bancomat">💳 Bancomat</option>
-                <option value="contanti">💵 Contanti</option>
-                <option value="tickets">🎫 Tickets</option>
-              </select>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+              <!-- Descrizione -->
+              <div>
+                <label style="font-size:10px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">📝 Descrizione</label>
+                <input type="text" id="wdDesc" placeholder="es. Cena al ristorante…"
+                  style="width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;font-family:var(--font);">
+              </div>
+              <!-- Metodo pagamento -->
+              <div>
+                <label style="font-size:10px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">💳 Pagamento</label>
+                <select id="wdPay" style="width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;font-family:var(--font);">
+                  <option value="bancomat">💳 Bancomat</option>
+                  <option value="contanti">💵 Contanti</option>
+                  <option value="satispay">📱 Satispay</option>
+                  <option value="tickets">🎫 Tickets</option>
+                  <option value="bonifico">🏦 Bonifico</option>
+                </select>
+              </div>
             </div>
-            <div class="fld" style="margin:0;">
-              <label style="font-size:11px;">Importo €</label>
-              <input type="number" id="wdQuickAddAmount" step="0.01" min="0" placeholder="0,00" style="font-size:15px;font-weight:700;">
+
+            <!-- Nota -->
+            <div style="margin-bottom:12px;">
+              <label style="font-size:10px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">🗒️ Nota (opzionale)</label>
+              <input type="text" id="wdNote" placeholder="Note aggiuntive…"
+                style="width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;font-family:var(--font);">
             </div>
-            <div class="fld" style="margin:0;">
-              <label style="font-size:11px;">Descrizione</label>
-              <input type="text" id="wdQuickAddDesc" placeholder="es. Caffè...">
+
+            <!-- Azioni -->
+            <div id="wdMsg" style="font-size:12px;min-height:18px;margin-bottom:8px;text-align:center;"></div>
+            <div style="display:flex;gap:10px;">
+              <button onclick="weekDetailToggleAdd()"
+                style="flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text-muted);border-radius:10px;padding:10px;font-size:13px;cursor:pointer;font-family:var(--font);">
+                Annulla
+              </button>
+              <button onclick="weekDetailSaveExpense()"
+                style="flex:2;background:linear-gradient(135deg,rgba(201,168,76,0.25),rgba(201,168,76,0.15));border:1.5px solid rgba(201,168,76,0.5);color:var(--gold);border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">
+                💾 Salva Spesa
+              </button>
             </div>
-          </div>
-          <div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end;">
-            <button onclick="wdQuickAddClose()" style="background:transparent;border:1px solid var(--border);color:var(--text-muted);border-radius:8px;padding:7px 16px;cursor:pointer;font-size:12px;">Annulla</button>
-            <button onclick="wdQuickAddSave()" style="background:rgba(74,232,122,0.2);border:1px solid rgba(74,232,122,0.4);color:#4ae87a;border-radius:8px;padding:7px 20px;cursor:pointer;font-size:12px;font-weight:700;">💾 Salva</button>
           </div>
         </div>
-        <div style="flex:1;overflow-y:auto;padding:16px 22px;" id="weekDetailList"></div>
+
       </div>
     </div>
 
@@ -17956,18 +17837,29 @@ document.addEventListener('click', function(e) {
     </div>
 
     <!-- iOS INSTALL GUIDE (shown on iOS when not installed) -->
-    <div id="iosInstallGuide" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:0 0 env(safe-area-inset-bottom);background:linear-gradient(135deg,#1a1a2e,#0f0f1a);border-top:1px solid rgba(201,168,76,0.4);box-shadow:0 -4px 20px rgba(0,0,0,0.5);">
-      <div style="padding:16px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div style="font-size:14px;font-weight:700;color:var(--gold);">📲 Installa su iPhone/iPad</div>
-          <button onclick="document.getElementById('iosInstallGuide').style.display='none';localStorage.setItem('pwa_ios_dismissed','1')" style="background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;">✕</button>
+    <div id="iosInstallGuide" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;padding:0 0 env(safe-area-inset-bottom);background:linear-gradient(180deg,#1a1a2e,#0d0d1a);border-top:2px solid rgba(201,168,76,0.5);box-shadow:0 -8px 32px rgba(0,0,0,0.6);">
+      <div style="padding:18px 20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-size:15px;font-weight:800;color:var(--gold);">📲 Installa TradoCroods</div>
+          <button onclick="document.getElementById('iosInstallGuide').style.display='none';localStorage.setItem('pwa_ios_dismissed','1')" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-muted);font-size:16px;cursor:pointer;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;">✕</button>
         </div>
-        <div style="font-size:12px;color:var(--text-muted);line-height:1.8;">
-          1. Tocca <strong style="color:var(--text);">□↑</strong> (Condividi) nella barra del browser<br>
-          2. Scorri e tocca <strong style="color:var(--gold);">"Aggiungi a schermata Home"</strong><br>
-          3. Conferma con <strong style="color:var(--text);">Aggiungi</strong>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.05);border-radius:12px;padding:10px 14px;">
+            <div style="font-size:22px;flex-shrink:0;">1️⃣</div>
+            <div style="font-size:13px;color:var(--text);">Tocca <strong style="color:var(--gold);">
+              <svg style="width:14px;height:14px;vertical-align:middle;margin:0 2px;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+              Condividi</strong> nella barra di Safari (in basso su iPhone)</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.05);border-radius:12px;padding:10px 14px;">
+            <div style="font-size:22px;flex-shrink:0;">2️⃣</div>
+            <div style="font-size:13px;color:var(--text);">Scorri il menu e tocca <strong style="color:var(--gold);">Aggiungi a schermata Home</strong></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:rgba(255,255,255,0.05);border-radius:12px;padding:10px 14px;">
+            <div style="font-size:22px;flex-shrink:0;">3️⃣</div>
+            <div style="font-size:13px;color:var(--text);">Tocca <strong style="color:var(--gold);">Aggiungi</strong> in alto a destra — fatto! 🎉</div>
+          </div>
         </div>
-        <div style="margin-top:10px;font-size:11px;color:rgba(201,168,76,0.7);">⚡ Dopo l'installazione riceverai notifiche anche con l'app chiusa</div>
+        <div style="margin-top:12px;font-size:11px;color:rgba(201,168,76,0.6);text-align:center;">⚡ L'app funzionerà offline e si aprirà come una vera app nativa</div>
       </div>
     </div>
 
