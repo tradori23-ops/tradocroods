@@ -2998,7 +2998,6 @@ input, select, textarea {
         <p id="fb-msg" style="font-size:12px;color:#4ae87a;margin-top:10px;text-align:center;"></p>
       </div>
     </div>
-    </div>
 
     <!-- TOPBAR -->
     <div class="topbar">
@@ -3542,7 +3541,7 @@ input, select, textarea {
         <!-- Pulizia automatica dati vecchi -->
         <div style="background:rgba(224,92,92,0.06);border:1px solid rgba(224,92,92,0.2);border-radius:10px;padding:12px 14px;margin-bottom:16px;">
           <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px;">🗑️ Pulizia automatica dati vecchi</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Imposta un promemoria annuale — quando scatta ti chiede conferma e cancella i dati più vecchi di 2 anni (localStorage + Firebase).</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Imposta un promemoria annuale — quando scatta ti chiede conferma e cancella i dati più vecchi di 2 anni (localStorage + Gist).</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
             <input type="date" id="cleanupDate" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:12px;color:var(--text);font-family:inherit;">
             <button onclick="pianificaCleanup()" style="background:rgba(224,92,92,0.15);border:1px solid rgba(224,92,92,0.35);color:#e05c5c;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;font-weight:600;">📅 Pianifica pulizia</button>
@@ -5156,7 +5155,7 @@ input, select, textarea {
     <h3>🔄 Sincronizza su Altro Dispositivo</h3>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:20px;">
       Genera un codice <b>4 cifre</b> su questo dispositivo, poi inseriscilo sull'altro per trasferire tutti i tuoi dati.
-      <br><small style="color:var(--gold);">⚠️ Richiede Cloud (Firebase) configurato per funzionare.</small>
+      <br><small style="color:var(--gold);">⚠️ Richiede Cloud (GitHub Gist) configurato per funzionare.</small>
     </p>
 
     <div style="display:flex;gap:12px;margin-bottom:20px;">
@@ -15538,36 +15537,37 @@ function loadTheme() {
 
 // ===== SYNC =====
 function sincronizzaOra() {
-  // Se Firebase è pronto e c'è un utente, scarica subito i dati dal cloud
-  if(fbReady && db && currentUser) {
+  // Se Gist è pronto e c'è un utente, scarica subito i dati dal cloud
+  if(gistReady && currentUser) {
     showToast('☁️ Sincronizzazione in corso…');
-    fbSyncFromCloud(currentUser.email, () => {
+    gistSyncFromCloud(currentUser.email, () => {
       renderSidebarAvatar(currentUser);
       refreshAll();
       showToast('✅ Dati sincronizzati dal cloud!');
     });
-  } else if(!fbReady && currentUser) {
-    // Firebase non ancora pronto — prova a connettersi e poi sincronizza
+  } else if(!gistReady && currentUser) {
+    // Gist non ancora pronto — prova a connettersi e poi sincronizza
     showToast('⏳ Connessione in corso, riprovo…');
     let att = 0;
     const trySync = setInterval(() => {
       att += 500;
-      if(fbReady) {
+      if(gistReady) {
         clearInterval(trySync);
-        fbSyncFromCloud(currentUser.email, () => {
+        gistSyncFromCloud(currentUser.email, () => {
           renderSidebarAvatar(currentUser);
           refreshAll();
           showToast('✅ Dati sincronizzati dal cloud!');
         });
       } else if(att >= 10000) {
         clearInterval(trySync);
-        showToast('⚠️ Nessuna connessione cloud. Usa la modale per sync manuale.');
-        openSync();
+        showToast('⚠️ Nessuna connessione Gist. Configura il token GitHub.');
+        openFirebaseModal();
       }
     }, 500);
   } else {
-    // Nessun cloud — apre modale QR classica
-    openSync();
+    // Nessun cloud — apre il modal di configurazione Gist
+    showToast('☁️ Configura il Gist per abilitare il sync.');
+    openFirebaseModal();
   }
 }
 
@@ -15610,55 +15610,51 @@ function generateSyncCode() { generateQRPin(); } // legacy alias
 
 function generateQRPin() {
   const msgEl = document.getElementById('syncExportMsg');
-  if(!fbReady || !db) {
+  if(!gistReady) {
     msgEl.style.color='var(--red)';
-    msgEl.textContent = '❌ Firebase non connesso. Badge deve essere 🟢';
+    msgEl.textContent = '❌ Gist non connesso. Il badge deve essere 🟢 Cloud Sync ON';
     return;
   }
   if(!currentUser) return;
 
   msgEl.style.color='var(--gold)';
-  msgEl.textContent = '⏳ Caricamento su cloud...';
+  msgEl.textContent = '⏳ Caricamento su Gist...';
 
-  // Prima push tutti i dati aggiornati su Firebase
+  // Prima push tutti i dati aggiornati su Gist
   fbPushToCloud();
 
-  // Genera PIN
+  // Genera PIN e salvalo in localStorage (visibile all'altro dispositivo via Gist)
   const pin = String(Math.floor(1000 + Math.random() * 9000));
   const expiry = Date.now() + 10 * 60 * 1000; // 10 minuti
+  const pinData = { email: currentUser.email, expiry };
+  localStorage.setItem('tc_sync_pin_' + pin, JSON.stringify(pinData));
 
-  // Salva solo email e scadenza — l'altro dispositivo leggerà direttamente da users/
-  null?.ref('sync_pins/' + pin).set({
-    email: currentUser.email,
-    expiry
-  }).then(() => {
-    msgEl.textContent = '';
-    // Mostra PIN
-    const pinDisplay = document.getElementById('pinDisplay');
-    pinDisplay.innerHTML = pin.split('').map(d=>`<div class="pin-digit">${d}</div>`).join('');
-    document.getElementById('qrPinArea').style.display = 'block';
-    document.getElementById('genPinBtn').textContent = '🔄 Genera Nuovo Codice';
-    // QR code
-    const qrDiv = document.getElementById('qrCanvas');
-    qrDiv.innerHTML = '';
-    new QRCode(qrDiv, { text: pin, width:160, height:160, colorDark:'#000000', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.H });
-    // Countdown
-    let secsLeft = 600;
-    const timer = setInterval(() => {
-      secsLeft--;
-      const m = Math.floor(secsLeft/60), s = secsLeft%60;
-      const el = document.getElementById('pinExpiry');
-      if(el) el.textContent = `⏱️ Scade tra ${m}:${s<10?'0':''}${s}`;
-      if(secsLeft <= 0) {
-        clearInterval(timer);
-        if(el) el.textContent = '❌ Codice scaduto — generane uno nuovo';
-        null?.ref('sync_pins/' + pin).remove();
-      }
-    }, 1000);
-  }).catch(e => {
-    msgEl.style.color='var(--red)';
-    msgEl.textContent = '❌ Errore: ' + e.message;
-  });
+  // Push Gist aggiornato col PIN
+  setTimeout(() => gistPushToCloud(), 300);
+
+  msgEl.textContent = '';
+  // Mostra PIN
+  const pinDisplay = document.getElementById('pinDisplay');
+  pinDisplay.innerHTML = pin.split('').map(d=>`<div class="pin-digit">${d}</div>`).join('');
+  document.getElementById('qrPinArea').style.display = 'block';
+  document.getElementById('genPinBtn').textContent = '🔄 Genera Nuovo Codice';
+  // QR code
+  const qrDiv = document.getElementById('qrCanvas');
+  qrDiv.innerHTML = '';
+  new QRCode(qrDiv, { text: pin, width:160, height:160, colorDark:'#000000', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.H });
+  // Countdown
+  let secsLeft = 600;
+  const timer = setInterval(() => {
+    secsLeft--;
+    const m = Math.floor(secsLeft/60), s = secsLeft%60;
+    const el = document.getElementById('pinExpiry');
+    if(el) el.textContent = `⏱️ Scade tra ${m}:${s<10?'0':''}${s}`;
+    if(secsLeft <= 0) {
+      clearInterval(timer);
+      if(el) el.textContent = '❌ Codice scaduto — generane uno nuovo';
+      localStorage.removeItem('tc_sync_pin_' + pin);
+    }
+  }, 1000);
 }
 
 
@@ -15675,62 +15671,52 @@ function importQRPin() {
   const pin = digits.join('');
   const msgEl = document.getElementById('syncImportMsg');
   if(digits.some(d => d === '')) { msgEl.style.color='var(--red)'; msgEl.textContent='⚠️ Inserisci tutte e 4 le cifre.'; return; }
-  if(!fbReady || !db) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Firebase non connesso.'; return; }
+  if(!gistReady) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Gist non connesso. Il badge deve essere 🟢'; return; }
 
-  msgEl.style.color='var(--gold)'; msgEl.textContent='⏳ Ricerca codice...';
+  msgEl.style.color='var(--gold)'; msgEl.textContent='⏳ Ricerca codice nel Gist...';
 
-  // 1. Leggi il PIN per trovare l'email sorgente
-  null?.ref('sync_pins/' + pin).once('value').then(snap => {
-    const entry = snap.val();
-    if(!entry) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Codice non trovato o già usato.'; return; }
+  // Prima scarica dati aggiornati dal Gist (potrebbe contenere il PIN)
+  gistSyncFromCloud(currentUser.email, () => {
+    const pinRaw = localStorage.getItem('tc_sync_pin_' + pin);
+    if(!pinRaw) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Codice non trovato. Verifica le cifre o rigeneralo.'; return; }
+
+    let entry;
+    try { entry = JSON.parse(pinRaw); } catch(e) { msgEl.style.color='var(--red)'; msgEl.textContent='❌ Dati PIN non validi.'; return; }
+
     if(Date.now() > entry.expiry) {
-      null?.ref('sync_pins/' + pin).remove();
+      localStorage.removeItem('tc_sync_pin_' + pin);
       msgEl.style.color='var(--red)'; msgEl.textContent='❌ Codice scaduto. Generane uno nuovo.'; return;
     }
 
     const sourceEmail = entry.email;
-    const safeSource = sourceEmail.replace(/[.#$\[\]]/g, '_');
     msgEl.textContent='⏳ Scarico dati dal cloud...';
 
-    // 2. Leggi direttamente i dati dell'utente sorgente da Firebase
-    const dataPromise = Promise.resolve(null); // Gist: no Firebase
-    const photoPromise = new Promise(resolve => fbLoadPhoto(sourceEmail, resolve));
-
-    Promise.all([dataPromise, photoPromise]).then(([dataSnap, photoUrl]) => {
-      null?.ref('sync_pins/' + pin).remove(); // elimina PIN usato
-
-      // 3. Applica i dati sull'utente corrente
-      const cloudData = dataSnap.val() || {};
-      const targetEmail = currentUser.email;
-      let count = 0;
-
-      Object.entries(cloudData).forEach(([shortKey, v]) => {
-        const fullKey = `tc_${targetEmail}_${shortKey}`;
-        try {
-          localStorage.setItem(fullKey, JSON.stringify(v));
-          count++;
-        } catch(e) {}
-      });
-
-      // 4. Applica foto
-      if(photoUrl) {
-        localStorage.setItem('tc_photo_' + targetEmail, photoUrl);
-        renderSidebarAvatar(currentUser);
+    // Sincronizza col Gist sorgente (stessa connessione, dati già in localStorage dopo il sync)
+    const prefix = 'tc_' + sourceEmail + '_';
+    const targetEmail = currentUser.email;
+    let count = 0;
+    for(let i=0;i<localStorage.length;i++) {
+      const k = localStorage.key(i);
+      if(k && k.startsWith(prefix)) {
+        const sk = k.substring(prefix.length);
+        const val = localStorage.getItem(k);
+        try { localStorage.setItem('tc_' + targetEmail + '_' + sk, val); count++; } catch(e){}
       }
+    }
+    // Applica foto sorgente se disponibile
+    const photoUrl = localStorage.getItem('tc_photo_' + sourceEmail);
+    if(photoUrl) {
+      localStorage.setItem('tc_photo_' + targetEmail, photoUrl);
+      renderSidebarAvatar(currentUser);
+    }
+    // Rimuovi PIN usato
+    localStorage.removeItem('tc_sync_pin_' + pin);
+    // Push aggiornato
+    setTimeout(() => fbPushToCloud(), 300);
 
-      // 5. Push su Firebase con la nuova email (rende i dati permanenti)
-      setTimeout(() => fbPushToCloud(), 300);
-
-      msgEl.style.color='var(--green)';
-      msgEl.textContent=`✅ Sincronizzati ${count} blocchi dati${photoUrl?' + foto profilo':''}! Ricarico...`;
-      setTimeout(() => { closeSync(); refreshAll(); }, 1500);
-
-    }).catch(e => {
-      msgEl.style.color='var(--red)'; msgEl.textContent='❌ Errore lettura dati: '+e.message;
-    });
-
-  }).catch(e => {
-    msgEl.style.color='var(--red)'; msgEl.textContent='❌ Errore Firebase: '+e.message;
+    msgEl.style.color='var(--green)';
+    msgEl.textContent=`✅ Sincronizzati ${count} blocchi dati${photoUrl?' + foto profilo':''}! Ricarico...`;
+    setTimeout(() => { closeSync(); refreshAll(); }, 1500);
   });
 }
 
@@ -15981,7 +15967,7 @@ function getReminders() {
 function saveReminders(list) {
   localStorage.setItem(getReminderKey(), JSON.stringify(list));
   syncRemindersToSW(); // aggiorna SW subito (funziona offline)
-  setTimeout(syncRemindersToFirebase, 500); // sync Firebase se online
+  setTimeout(syncRemindersToFirebase, 500); // push Gist se online
 }
 
 function syncRemindersToSW() {
@@ -16063,7 +16049,7 @@ function pianificaCleanup() {
     id: 'cleanup_' + Date.now().toString(36),
     desc: '🗑️ Pulizia dati vecchi (>2 anni)',
     amount: '',
-    note: 'Rimozione dati più vecchi di 2 anni da localStorage e Firebase',
+    note: 'Rimozione dati più vecchi di 2 anni da localStorage e Gist',
     ts: d.getTime(),
     created: Date.now(),
     notified: false,
@@ -16430,14 +16416,8 @@ async function savePushSubscriptionToFirebase(sub) {
 }
 
 async function syncRemindersToFirebase() {
-  if (!fbReady || !db || !currentUser) return;
-  const userId = currentUser.email.replace(/[.@]/g, '_');
-  const reminders = getReminders();
-  try {
-    // Gist: reminders stored locally
-  } catch(e) {
-    console.warn('Firebase reminders sync error:', e);
-  }
+  if (!gistReady || !currentUser) return;
+  // Reminders stored locally, pushed via Gist on next bumpVersion
 }
 
 async function initPushNotifications() {
