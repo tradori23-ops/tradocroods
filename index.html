@@ -27,6 +27,30 @@
 })();
 </script>
 
+<!-- DEVICE PERFORMANCE: rileva iOS/iPad e disabilita effetti pesanti -->
+<script>
+(function(){
+  var ua = navigator.userAgent || '';
+  var isIOS = /iPhone|iPad|iPod/.test(ua);
+  // iPad con iPadOS 13+ si identifica come Mac con touch
+  var isIPadOS = navigator.maxTouchPoints > 1 && /Macintosh/.test(ua);
+  var isSafari = /^((?!chrome|android).)*safari/i.test(ua);
+  // Rileva anche Android basso profilo e vecchi browser
+  var isLowEnd = isIOS || isIPadOS || (isSafari && !isIOS);
+  if(isIOS || isIPadOS) {
+    document.documentElement.classList.add('ios-device');
+    // Applica subito la classe anche al body non appena esiste
+    document.addEventListener('DOMContentLoaded', function(){
+      document.body.classList.add('ios-device');
+    });
+    // Ferma subito l'animazione meshDrift aggiungendo uno style inline
+    var s = document.createElement('style');
+    s.textContent = 'body::before{animation:none!important}';
+    document.head.appendChild(s);
+  }
+})();
+</script>
+
 <meta charset="UTF-8">
   <!-- v6-cache-bust -->
 <link rel="manifest" href="manifest.json">
@@ -2119,6 +2143,7 @@ body { background: #09090f !important; }
 body::before {
   content: '';
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  will-change: filter;
   background:
     radial-gradient(ellipse 90% 70% at 8%  12%, rgba(88, 40,200,0.50) 0%, transparent 55%),
     radial-gradient(ellipse 65% 55% at 92% 8%,  rgba(24, 80,210,0.40) 0%, transparent 55%),
@@ -2126,12 +2151,12 @@ body::before {
     radial-gradient(ellipse 60% 50% at  8% 92%, rgba(15,125, 95,0.28) 0%, transparent 55%),
     radial-gradient(ellipse 55% 55% at 50% 50%, rgba(50, 30,130,0.22) 0%, transparent 65%),
     #09090f;
-  animation: meshDrift 20s ease-in-out infinite alternate;
+  animation: meshDrift 40s ease-in-out infinite alternate;
 }
 @keyframes meshDrift {
   0%   { filter: hue-rotate(0deg)   brightness(1.00); }
-  50%  { filter: hue-rotate(12deg)  brightness(1.05); }
-  100% { filter: hue-rotate(-8deg)  brightness(0.97); }
+  50%  { filter: hue-rotate(8deg)   brightness(1.03); }
+  100% { filter: hue-rotate(-5deg)  brightness(0.98); }
 }
 body > * { position: relative; z-index: 1; }
 
@@ -2671,10 +2696,69 @@ input, select, textarea {
   right: calc(24px + env(safe-area-inset-right));
 }
 
-/* Fix backdrop-filter su Safari (prefisso già presente, ma forziamo) */
-.card, .sidebar, .summary-card, .day-card,
-.login-card, .profile-card, .modal-box, .fb-modal {
-  -webkit-backdrop-filter: var(--lg-blur) !important;
+/* ══════════════════════════════════════════════════════
+   PERFORMANCE iOS / iPhone / iPad / Safari
+   Riduce drasticamente backdrop-filter e animazioni pesanti
+   su dispositivi mobile per evitare lag e freeze.
+   ══════════════════════════════════════════════════════ */
+body.ios-device body::before {
+  animation: none !important;
+}
+body.ios-device .hex {
+  display: none !important;
+}
+/* Su iOS: blur ridotto al minimo, solo dove serve davvero */
+body.ios-device .card,
+body.ios-device .summary-card,
+body.ios-device .day-card,
+body.ios-device .profile-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(20,20,38,0.96) !important;
+}
+body.ios-device .sidebar {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+}
+body.ios-device .modal-box,
+body.ios-device .fb-modal,
+body.ios-device [id="weekDetailModal"] > div,
+body.ios-device [id="catDetailModal"] > div,
+body.ios-device [id="payDetailModal"] > div,
+body.ios-device [id="firebaseModal"] > div,
+body.ios-device [id="confirmDeleteModal"] > div {
+  backdrop-filter: blur(16px) !important;
+  -webkit-backdrop-filter: blur(16px) !important;
+}
+body.ios-device .login-card {
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+}
+body.ios-device .btn-gold,
+body.ios-device .btn-primary,
+body.ios-device .btn-outline {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+body.ios-device input,
+body.ios-device select,
+body.ios-device textarea {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+/* Disabilita hover transform su touch (causa janky su iOS) */
+body.ios-device .card:hover,
+body.ios-device .summary-card:hover,
+body.ios-device .day-card:hover,
+body.ios-device .profile-card:hover,
+body.ios-device .btn-gold:hover {
+  transform: none !important;
+}
+/* prefers-reduced-motion — rispetta l'impostazione accessibilità */
+@media (prefers-reduced-motion: reduce) {
+  body::before { animation: none !important; }
+  .hex { animation-duration: 0.01ms !important; }
+  * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }
 
 /* Fix scroll momentum su iOS */
@@ -3005,6 +3089,7 @@ input, select, textarea {
       <h1 class="page-title" id="pageTitle">Dashboard</h1>
       <div class="topbar-actions">
         <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"><span class="btn-emoji">🌙</span><span class="btn-txt"> Notte</span></button>
+        <button id="installAppBtn" class="btn btn-outline" onclick="installPWA()" style="display:none;border-color:rgba(201,168,76,0.5);color:var(--gold);"><span class="btn-emoji">⬇️</span><span class="btn-txt"> Installa App</span></button>
         <button class="btn btn-outline" onclick="printPage()"><span class="btn-emoji">🖨️</span><span class="btn-txt"> Stampa</span></button>
         <button class="btn btn-green" onclick="lockScreen()"><span class="btn-emoji">🔒</span><span class="btn-txt"> Blocca</span></button>
         <button class="btn btn-outline" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sincronizza</span></button>
@@ -5717,6 +5802,9 @@ function parseFBPaste() {}
 
 // ===== HEXAGONS =====
 function createHexagons() {
+  // Su iOS non creiamo esagoni — troppo pesanti per il GPU
+  var ua = navigator.userAgent || '';
+  if(/iPhone|iPad|iPod/.test(ua) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua))) return;
   const c = document.getElementById('hexContainer');
   for(let i=0;i<12;i++) {
     const h = document.createElement('div');
@@ -6861,6 +6949,11 @@ function migrateVSManualSources() {
 
 function initApp() {
   migrateVSManualSources();
+  // Applica classe iOS se rilevato (sicurezza — già fatto in testa ma ripetiamo)
+  var ua = navigator.userAgent || '';
+  if(/iPhone|iPad|iPod/.test(ua) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(ua))) {
+    document.body.classList.add('ios-device');
+  }
   // Mostra FAB AI
   const fab = document.getElementById('tc-ai-fab');
   if(fab) fab.style.display = 'flex';
@@ -16297,6 +16390,9 @@ let _pwaInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
   _pwaInstallPrompt = e;
+  // Mostra il bottone nel topbar
+  const installBtn = document.getElementById('installAppBtn');
+  if(installBtn) installBtn.style.display = '';
   // Show banner only if not dismissed in last 7 days
   const dismissed = localStorage.getItem('pwa_dismissed_ts');
   if (!dismissed || Date.now() - parseInt(dismissed) > 7 * 86400 * 1000) {
@@ -16309,6 +16405,8 @@ window.addEventListener('beforeinstallprompt', e => {
 
 window.addEventListener('appinstalled', () => {
   _pwaInstallPrompt = null;
+  const installBtn = document.getElementById('installAppBtn');
+  if(installBtn) installBtn.style.display = 'none';
   const b = document.getElementById('pwaInstallBanner');
   if (b) b.style.display = 'none';
   showToast('🎉 TradoCroods installata! Aprila dalla schermata Home');
@@ -16433,6 +16531,12 @@ async function initPushNotifications() {
 function openWeekDayModal(ds, label) {
   const modal = document.getElementById('weekDetailModal');
   modal.style.display = 'flex';
+  _weekDetailCurrentDs = ds;
+  // Reset form aggiungi se aperto
+  const addForm = document.getElementById('weekDetailAddForm');
+  const addBtn  = document.getElementById('weekDetailAddToggleBtn');
+  if(addForm)  addForm.style.display = 'none';
+  if(addBtn)   addBtn.textContent = '➕ Aggiungi Spesa per questo giorno';
   document.getElementById('weekDetailList').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);">Caricamento...</div>';
 
   try {
@@ -16534,6 +16638,78 @@ function _weekExpRows(exps, fmt) {
       <span style="font-size:14px;font-weight:700;color:var(--red);margin-left:10px;white-space:nowrap;">${fmt(e.amount)}</span>
     </div>`;
   }).join('');
+}
+
+// ── Variabile che tiene traccia della data selezionata nel modal giorno ──
+let _weekDetailCurrentDs = null;
+
+function weekDetailToggleAdd() {
+  const form = document.getElementById('weekDetailAddForm');
+  const btn  = document.getElementById('weekDetailAddToggleBtn');
+  const open = form.style.display === 'none';
+  form.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? '▲ Chiudi form' : '➕ Aggiungi Spesa per questo giorno';
+  if(open) {
+    // Reset form
+    document.getElementById('wdAmount').value = '';
+    document.getElementById('wdDesc').value = '';
+    document.getElementById('wdNote').value = '';
+    document.getElementById('wdMsg').textContent = '';
+    document.getElementById('wdCat').value = 'ristorante';
+    document.getElementById('wdPay').value = 'bancomat';
+    setTimeout(() => document.getElementById('wdAmount').focus(), 80);
+  }
+}
+
+function weekDetailSaveExpense() {
+  const ds = _weekDetailCurrentDs;
+  if(!ds) return;
+  const msgEl = document.getElementById('wdMsg');
+
+  const cat    = document.getElementById('wdCat').value;
+  const amount = parseFloat(document.getElementById('wdAmount').value);
+  const desc   = document.getElementById('wdDesc').value.trim() || '—';
+  const pay    = document.getElementById('wdPay').value;
+  const note   = document.getElementById('wdNote').value.trim();
+
+  if(!amount || amount <= 0) {
+    msgEl.style.color = 'var(--red)';
+    msgEl.textContent = '⚠️ Inserisci un importo valido.';
+    document.getElementById('wdAmount').focus();
+    return;
+  }
+
+  // Salva nel mese corretto della data
+  const d = new Date(ds + 'T12:00:00');
+  const key = 'expenses_' + d.getFullYear() + '_' + (d.getMonth()+1);
+  const exp = load(key, []);
+  const newEntry = { id: Date.now(), cat, amount, desc, pay, date: ds };
+  exp.push(newEntry);
+  save(key, exp);
+
+  // Salva nota del giorno se presente
+  if(note) {
+    const notes = load('weekNotes', {});
+    notes[ds] = note;
+    save('weekNotes', notes);
+  }
+
+  bumpVersion();
+  fbPushToCloud();
+
+  // Feedback visivo
+  msgEl.style.color = 'var(--green)';
+  msgEl.textContent = '✅ Spesa aggiunta!';
+
+  // Chiudi form e ricarica il modal
+  setTimeout(() => {
+    weekDetailToggleAdd();
+    openWeekDayModal(ds, document.getElementById('weekDetailTitle').textContent);
+    // Aggiorna anche la vista sottostante
+    renderWeek();
+    renderDashboard();
+    vsRefreshIfActive();
+  }, 700);
 }
 
 function openWeekSummaryModal(filter) {
@@ -16759,6 +16935,83 @@ document.addEventListener('click', function(e) {
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid var(--border);" id="weekDetailStats"></div>
         <div style="flex:1;overflow-y:auto;padding:16px 22px;" id="weekDetailList"></div>
+
+        <!-- ➕ FORM AGGIUNGI SPESA -->
+        <div style="border-top:1px solid var(--border);padding:14px 22px;" id="weekDetailAddPanel">
+          <!-- Toggle button -->
+          <button id="weekDetailAddToggleBtn" onclick="weekDetailToggleAdd()"
+            style="width:100%;background:rgba(201,168,76,0.10);border:1.5px dashed rgba(201,168,76,0.4);color:var(--gold);border-radius:12px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.2s;">
+            ➕ Aggiungi Spesa per questo giorno
+          </button>
+
+          <!-- Form (nascosto di default) -->
+          <div id="weekDetailAddForm" style="display:none;margin-top:14px;">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+              <!-- Categoria -->
+              <div>
+                <label style="font-size:10px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">🏷️ Categoria</label>
+                <select id="wdCat" style="width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;font-family:var(--font);">
+                  <option value="ristorante">🍽️ Ristorante</option>
+                  <option value="bar">☕ Bar</option>
+                  <option value="supermercato">🛒 Supermercato</option>
+                  <option value="svago">🎭 Svago</option>
+                  <option value="viaggi">✈️ Viaggi</option>
+                  <option value="hotel">🏨 Hotel</option>
+                  <option value="musei">🏛️ Musei</option>
+                  <option value="extra">💡 Extra</option>
+                  <option value="rata">📦 Rata</option>
+                </select>
+              </div>
+              <!-- Importo -->
+              <div>
+                <label style="font-size:10px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">💶 Importo (€)</label>
+                <input type="number" id="wdAmount" step="0.01" min="0.01" placeholder="0,00"
+                  style="width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;font-family:var(--font);">
+              </div>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+              <!-- Descrizione -->
+              <div>
+                <label style="font-size:10px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">📝 Descrizione</label>
+                <input type="text" id="wdDesc" placeholder="es. Cena al ristorante…"
+                  style="width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;font-family:var(--font);">
+              </div>
+              <!-- Metodo pagamento -->
+              <div>
+                <label style="font-size:10px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">💳 Pagamento</label>
+                <select id="wdPay" style="width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;font-family:var(--font);">
+                  <option value="bancomat">💳 Bancomat</option>
+                  <option value="contanti">💵 Contanti</option>
+                  <option value="satispay">📱 Satispay</option>
+                  <option value="tickets">🎫 Tickets</option>
+                  <option value="bonifico">🏦 Bonifico</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Nota -->
+            <div style="margin-bottom:12px;">
+              <label style="font-size:10px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">🗒️ Nota (opzionale)</label>
+              <input type="text" id="wdNote" placeholder="Note aggiuntive…"
+                style="width:100%;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font-size:13px;box-sizing:border-box;font-family:var(--font);">
+            </div>
+
+            <!-- Azioni -->
+            <div id="wdMsg" style="font-size:12px;min-height:18px;margin-bottom:8px;text-align:center;"></div>
+            <div style="display:flex;gap:10px;">
+              <button onclick="weekDetailToggleAdd()"
+                style="flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text-muted);border-radius:10px;padding:10px;font-size:13px;cursor:pointer;font-family:var(--font);">
+                Annulla
+              </button>
+              <button onclick="weekDetailSaveExpense()"
+                style="flex:2;background:linear-gradient(135deg,rgba(201,168,76,0.25),rgba(201,168,76,0.15));border:1.5px solid rgba(201,168,76,0.5);color:var(--gold);border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">
+                💾 Salva Spesa
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
 
