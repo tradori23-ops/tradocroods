@@ -1727,6 +1727,176 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   .day-item { font-size: 10px; padding: 2px 0; }
 }
 
+/* ═══════════════════════════════════════════════════
+   iPhone 12 / 13 / 14 — 390px larghezza logica
+   Layout compatto, spazi uniformi, font scalati
+   ═══════════════════════════════════════════════════ */
+@media(max-width:440px) {
+
+  /* ── Base: blocca overflow orizzontale ── */
+  html, body, #app, .main-content, [id^="sec-"] {
+    overflow-x: hidden !important;
+    max-width: 100vw !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── Spaziatura contenuto principale ── */
+  .main-content { padding: 10px !important; }
+
+  /* ── Topbar: compatta ── */
+  .topbar {
+    margin-bottom: 10px !important;
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+  }
+  .topbar-actions {
+    gap: 5px !important;
+    flex-wrap: nowrap !important;
+  }
+  /* Bottoni topbar: solo emoji, no testo, più piccoli */
+  .topbar-actions .btn,
+  .topbar-actions .btn-outline,
+  .topbar-actions .btn-green,
+  .topbar-actions .btn-danger,
+  .theme-toggle {
+    padding: 6px 8px !important;
+    font-size: 15px !important;
+    min-height: 36px !important;
+    border-radius: 10px !important;
+  }
+  .topbar-actions .btn-txt,
+  .theme-toggle .btn-txt { display: none !important; }
+  .page-title { font-size: 15px !important; font-weight: 700 !important; }
+  .hamburger-btn { width: 34px !important; height: 34px !important; font-size: 16px !important; }
+
+  /* ── Month selector ── */
+  .month-selector {
+    padding: 7px 10px !important;
+    gap: 6px !important;
+    margin-bottom: 10px !important;
+  }
+  .month-selector label { font-size: 12px !important; }
+  .month-selector select {
+    font-size: 14px !important;
+    padding: 5px 8px !important;
+    border-radius: 10px !important;
+  }
+
+  /* ── Card generali ── */
+  .card { padding: 12px !important; border-radius: 14px !important; }
+
+  /* ── Font globale ridotto del 10% ── */
+  body { font-size: 13px !important; }
+
+  /* ── Dashboard: tutte le griglie → 1 colonna ── */
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+
+  /* ── Importi grandi: scala uniforme ── */
+  #sum-balance { font-size: 34px !important; }
+  [style*="font-size:52px"] { font-size: 32px !important; }
+  [style*="font-size:42px"] { font-size: 28px !important; }
+  [style*="font-size:38px"] { font-size: 26px !important; }
+  [style*="font-size:28px"] { font-size: 20px !important; }
+  [style*="font-size:26px"] { font-size: 18px !important; }
+  [style*="font-size:22px"] { font-size: 17px !important; }
+
+  /* ── Cards dashboard: padding compatto ── */
+  #dash-rim-box,
+  [style*="border-radius:18px"],
+  [style*="border-radius: 18px"] {
+    padding: 12px 14px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  /* ── Spese Settimanali: 2 colonne ── */
+  .week-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 5px !important;
+  }
+  .day-card { min-height: 75px !important; border-radius: 10px !important; }
+  .day-header { font-size: 9px !important; padding: 5px 6px !important; }
+  .day-items { padding: 2px 4px !important; }
+  .day-item { font-size: 9px !important; }
+
+  /* ── Sezione pianificazione vistaSpese ── */
+  #vs-totale-card [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  /* Nascondi operatori ÷ e = inline */
+  #vs-totale-card > div > div[style*="font-size:20px"] { display: none !important; }
+  #vs-rim-reale-banner {
+    flex-direction: column !important;
+    padding: 12px !important;
+    gap: 4px !important;
+  }
+  #vs-rim-reale-val { font-size: 26px !important; }
+
+  /* ── AI Assistente ── */
+  #ai-messages {
+    height: 44vh !important;
+    padding: 10px !important;
+    gap: 8px !important;
+  }
+  .ai-bubble {
+    max-width: 82% !important;
+    font-size: 12px !important;
+    padding: 9px 12px !important;
+    border-radius: 12px 12px 12px 4px !important;
+    line-height: 1.55 !important;
+  }
+  .ai-bubble-user { border-radius: 12px 12px 4px 12px !important; }
+  .ai-avatar { width: 26px !important; height: 26px !important; font-size: 13px !important; border-radius: 8px !important; }
+  .ai-msg { gap: 7px !important; }
+  .ai-quick-btn { font-size: 11px !important; padding: 5px 10px !important; }
+  #ai-input { font-size: 14px !important; }
+
+  /* ── FAB AI: non copre testo ── */
+  #tc-ai-fab {
+    bottom: 76px !important;
+    right: 12px !important;
+    width: 46px !important;
+    height: 46px !important;
+    font-size: 19px !important;
+    border-radius: 14px !important;
+  }
+
+  /* ── Spese Fisse form ── */
+  .new-fixed-form { grid-template-columns: 1fr !important; }
+  #rataFormGrid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+
+  /* ── Totale settimana header ── */
+  #sec-settimanale [style*="justify-content:space-between"][style*="flex-wrap:wrap"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  #weekTotalAmount { font-size: 18px !important; }
+
+  /* ── Modali ── */
+  .modal-box, [id="weekDetailModal"] > div {
+    padding: 14px !important;
+    border-radius: 16px !important;
+    max-height: 85vh !important;
+  }
+  #weekDetailStats > div { padding: 8px 6px !important; }
+  #weekDetailStats > div > div:first-child { font-size: 14px !important; }
+
+  /* ── Form aggiungi spesa nel modal ── */
+  #weekDetailAddPanel { padding: 10px 12px !important; }
+  #weekDetailAddForm > div { gap: 7px !important; margin-bottom: 7px !important; }
+
+  /* ── Sezione AI header card ── */
+  #sec-ai .card:first-child { padding: 14px !important; }
+}
+
 @media(max-width:600px) {
 
   /* ═══ STRUTTURA BASE ═══ */
@@ -2584,6 +2754,38 @@ body.light select option {
   color: #1a1830 !important;
 }
 
+/* ── Testo light mode: forza colori scuri su iOS ── */
+body.light,
+body.light.ios-device {
+  color: #1a1830 !important;
+}
+body.light p, body.light span, body.light div,
+body.light label, body.light h1, body.light h2,
+body.light h3, body.light h4, body.light li,
+body.light.ios-device p, body.light.ios-device span,
+body.light.ios-device div, body.light.ios-device label {
+  color: #1a1830 !important;
+}
+body.light .text-muted, body.light .label,
+body.light [style*="color:var(--text-muted)"],
+body.light [style*="color: var(--text-muted)"] {
+  color: #5a5880 !important;
+}
+body.light [style*="color:var(--gold)"],
+body.light [style*="color: var(--gold)"] {
+  color: #8a6500 !important;
+}
+body.light [style*="color:var(--red)"],
+body.light [style*="color: var(--red)"] {
+  color: #c0392b !important;
+}
+body.light [style*="color:var(--green)"],
+body.light [style*="color: var(--green)"] {
+  color: #1e8a5c !important;
+}
+body.light .negative { color: #c0392b !important; }
+body.light .positive { color: #1e8a5c !important; }
+
 
 /* ═══ AI ASSISTENTE ═══ */
 .ai-msg { display:flex; gap:10px; align-items:flex-start; }
@@ -2853,24 +3055,42 @@ input, select, textarea {
    Riduce drasticamente backdrop-filter e animazioni pesanti
    su dispositivi mobile per evitare lag e freeze.
    ══════════════════════════════════════════════════════ */
-body.ios-device body::before {
+body.ios-device::before {
   animation: none !important;
+}
+body.ios-device.light {
+  background: #ece9f5 !important;
 }
 body.ios-device .hex {
   display: none !important;
 }
 /* Su iOS: blur ridotto al minimo, solo dove serve davvero */
-body.ios-device .card,
-body.ios-device .summary-card,
-body.ios-device .day-card,
-body.ios-device .profile-card {
+/* DARK mode: sfondo solido */
+body.ios-device:not(.light) .card,
+body.ios-device:not(.light) .summary-card,
+body.ios-device:not(.light) .day-card,
+body.ios-device:not(.light) .profile-card {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   background: rgba(20,20,38,0.96) !important;
 }
-body.ios-device .sidebar {
+/* LIGHT mode iOS: sfondo chiaro */
+body.ios-device.light .card,
+body.ios-device.light .summary-card,
+body.ios-device.light .day-card,
+body.ios-device.light .profile-card {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(240,238,252,0.97) !important;
+}
+body.ios-device:not(.light) .sidebar {
   backdrop-filter: blur(12px) !important;
   -webkit-backdrop-filter: blur(12px) !important;
+}
+body.ios-device.light .sidebar {
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  background: rgba(240,237,252,0.95) !important;
 }
 body.ios-device .modal-box,
 body.ios-device .fb-modal,
@@ -2897,6 +3117,13 @@ body.ios-device select,
 body.ios-device textarea {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+}
+body.ios-device.light input:not([type=checkbox]):not([type=radio]),
+body.ios-device.light select,
+body.ios-device.light textarea {
+  background: rgba(255,255,255,0.85) !important;
+  color: #1a1830 !important;
+  border-color: rgba(180,140,40,0.35) !important;
 }
 /* Disabilita hover transform su touch (causa janky su iOS) */
 body.ios-device .card:hover,
@@ -6562,8 +6789,13 @@ function enterApp(user) {
     // Previeni doppia esecuzione
     if(window._appAvviato) return;
     window._appAvviato = true;
+    // Rimuovi loader — forza anche dopo 300ms per sicurezza
     const el = document.getElementById('tc-loading-screen');
     if(el) el.remove();
+    setTimeout(() => {
+      const el2 = document.getElementById('tc-loading-screen');
+      if(el2) el2.remove();
+    }, 300);
     document.getElementById('loginPage').style.display = 'none';
     const appEl = document.getElementById('app');
     appEl.style.display = 'block';
@@ -6607,6 +6839,26 @@ function enterApp(user) {
     setTimeout(goToDash, 500);
   }
 
+  // Rileva iOS
+  const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                 (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+
+  // Su iOS: apri SUBITO con dati locali, sync in background silenzioso
+  if(_isIOS) {
+    avviaApp();
+    // Sync silenzioso in background dopo che l'app è aperta
+    if(gistReady) {
+      setTimeout(() => {
+        gistSyncFromCloud(user.email, () => {
+          renderSidebarAvatar(user);
+          refreshAll();
+        });
+      }, 500);
+    }
+    return;
+  }
+
+  // Desktop: comportamento standard con loader
   function syncEAvvia() {
     setLoader('Caricamento dati…', 'Recupero i tuoi dati dal cloud');
     fbSyncFromCloud(user.email, () => {
@@ -6615,24 +6867,17 @@ function enterApp(user) {
     });
   }
 
-  // Rileva iOS per timeout più aggressivi
-  const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
-                 (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
-  const _syncTimeout = _isIOS ? 4000 : 7000; // 4s su iOS, 7s su desktop
-
   if(gistReady) {
     syncEAvvia();
-    // Fallback sicurezza: se syncEAvvia non chiama avviaApp entro timeout, apri comunque
+    // Fallback: apri comunque dopo 5s
     setTimeout(() => {
       if(document.getElementById('tc-loading-screen')) avviaApp();
-    }, _syncTimeout);
+    }, 5000);
   } else {
     setLoader('Avvio…', 'Caricamento dati locali');
-    // Fallback immediato: su iOS apri entro 1s senza aspettare il Gist
     setTimeout(() => {
       if(document.getElementById('tc-loading-screen')) avviaApp();
-    }, _isIOS ? 1000 : 3000);
-    // Prova Gist in background, ma non bloccare l'avvio
+    }, 3000);
     initGistSync().then(() => {
       if(!window._appAvviato) {
         if(gistReady) { syncEAvvia(); } else { avviaApp(); }
@@ -16042,12 +16287,24 @@ let isDark = true;
 function toggleTheme() {
   isDark = !isDark;
   document.body.classList.toggle('light', !isDark);
-  const btn = document.getElementById('themeBtn');
-  btn.textContent = isDark ? '🌙 Notte' : '☀️ Giorno';
+  _updateThemeBtn();
   localStorage.setItem('tc_theme', isDark ? 'dark' : 'light');
   // redraw charts with new colors
   if(dashChartInst) renderDashboard();
   if(catChartInst || payChartInst) { if(selectedCat) renderCatChart(selectedCat); }
+}
+
+function _updateThemeBtn() {
+  const btn = document.getElementById('themeBtn');
+  if(!btn) return;
+  const emoji = isDark ? '🌙' : '☀️';
+  const label = isDark ? ' Notte' : ' Giorno';
+  // Aggiorna gli span interni senza distruggerli
+  const emojiEl = btn.querySelector('.btn-emoji');
+  const txtEl   = btn.querySelector('.btn-txt');
+  if(emojiEl) emojiEl.textContent = emoji;
+  else btn.innerHTML = `<span class="btn-emoji">${emoji}</span><span class="btn-txt">${label}</span>`;
+  if(txtEl) txtEl.textContent = label;
 }
 
 function loadTheme() {
@@ -16055,9 +16312,11 @@ function loadTheme() {
   if(saved === 'light') {
     isDark = false;
     document.body.classList.add('light');
-    const btn = document.getElementById('themeBtn');
-    if(btn) btn.textContent = '☀️ Giorno';
+  } else {
+    isDark = true;
+    document.body.classList.remove('light');
   }
+  _updateThemeBtn();
 }
 
 // ===== SYNC =====
