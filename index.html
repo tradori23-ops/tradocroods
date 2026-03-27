@@ -3500,9 +3500,6 @@ body.ios-device .btn-gold:hover {
       <div class="nav-item" onclick="showSection('documenti', this); closeSidebar()">
         <span class="icon">📁</span> Documenti & Fatture
       </div>
-      <div class="nav-item" onclick="showSection('librietto', this); closeSidebar()">
-        <span class="icon">🏦</span> Libretto Risparmio
-      </div>
       <div class="nav-item" onclick="showSection('contocorrente', this); closeSidebar()">
         <span class="icon">💳</span> Conto Corrente
       </div>
@@ -3605,7 +3602,7 @@ body.ios-device .btn-gold:hover {
     <!-- MONTH SELECTOR (global) -->
     <div class="month-selector">
       <label>📅 Periodo:</label>
-      <select id="globalMonth" onchange="refreshAll();
+      <select id="globalMonth" onchange="refreshAllDebounced();
   setTimeout(initReminders, 500); syncGlobalToCal();">
         <option value="1">Gennaio</option><option value="2">Febbraio</option>
         <option value="3">Marzo</option><option value="4">Aprile</option>
@@ -3614,7 +3611,7 @@ body.ios-device .btn-gold:hover {
         <option value="9">Settembre</option><option value="10">Ottobre</option>
         <option value="11">Novembre</option><option value="12">Dicembre</option>
       </select>
-      <select id="globalYear" onchange="refreshAll(); syncGlobalToCal();">
+      <select id="globalYear" onchange="refreshAllDebounced(); syncGlobalToCal();">
       </select>
     </div>
 
@@ -3627,36 +3624,14 @@ body.ios-device .btn-gold:hover {
 
         <!-- RIMANENZA -->
         <div style="background:var(--card);border-radius:18px;padding:22px 26px;border:2px solid rgba(74,232,122,0.35);position:relative;overflow:hidden;" id="dash-rim-box">
-          <!-- label dinamica -->
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:2px;" id="dash-rim-label">💰 Rimanenza Reale ad Oggi</div>
-          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;" id="dash-rim-sublabel">Stipendio − spese fisse − spese variabili</div>
-          <!-- NUMERO GRANDE — saldo banca se disponibile, altrimenti calcolato -->
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:2px;">💰 Rimanenza Reale ad Oggi</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;">Stipendio − spese fisse − spese variabili</div>
           <div style="font-size:52px;font-weight:900;font-family:'Playfair Display',serif;line-height:1;" id="sum-balance">€0,00</div>
-          <!-- sub-info al giorno -->
           <div id="dash-al-giorno-info" style="margin-top:8px;font-size:12px;font-weight:600;color:var(--text-muted);"></div>
           <div id="sum-income-detail" style="font-size:10px;color:var(--gold);margin-top:6px;line-height:1.5;display:none;"></div>
-          <!-- Riga calcolato TradoCroods (visibile solo quando si mostra il saldo banca) -->
-          <div id="dash-rim-tc-row" style="display:none;margin-top:8px;padding:6px 10px;background:rgba(255,255,255,0.04);border-radius:8px;border:1px solid rgba(255,255,255,0.07);">
-            <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:2px;">📊 Calcolato da TradoCroods</div>
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <span style="font-size:11px;color:var(--text-muted);">Entrate − fisse − variabili</span>
-              <span style="font-size:15px;font-weight:700;font-family:'Playfair Display',serif;" id="dash-rim-tc-val">€0,00</span>
-            </div>
-          </div>
-          <!-- Bottone rapido aggiorna saldo banca -->
-          <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center;">
-            <div style="font-size:11px;color:var(--text-muted);" id="dash-rim-date">—</div>
-            <button onclick="dashQuickEditSaldo()" id="dash-rim-edit-btn"
-              style="background:rgba(74,144,232,0.12);border:1px solid rgba(74,144,232,0.3);color:#4a90e8;border-radius:7px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);">
-              🏦 Aggiorna saldo
-            </button>
-          </div>
-          <div id="sum-income-detail-legacy" style="display:none;"></div>
-          <div style="display:none;" id="dash-riporto-wrap">
-            <div style="margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
-              <span>Da mese prec.</span>
-              <span id="dash-riporto" style="color:var(--gold);">—</span>
-            </div>
+          <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.07);display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);">
+            <span>Da mese prec.</span>
+            <span id="dash-riporto" style="color:var(--gold);">—</span>
           </div>
         </div>
 
@@ -3692,57 +3667,6 @@ body.ios-device .btn-gold:hover {
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:6px;">🛒 Spese Variabili</div>
           <div style="font-size:28px;font-weight:900;font-family:'Playfair Display',serif;color:#e05c5c;" id="sum-var">€0,00</div>
           <div style="margin-top:8px;font-size:10px;color:var(--text-muted);">Spese reali del mese</div>
-        </div>
-      </div>
-
-      <!-- ROW 2b: Saldo Reale Banca vs TradoCroods -->
-      <div id="saldo-banca-card" style="background:var(--card);border-radius:18px;padding:18px 22px;margin-bottom:14px;border:1.5px solid rgba(74,144,232,0.25);">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
-          <div>
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:2px;">🏦 Saldo Reale Banca</div>
-            <div style="font-size:11px;color:var(--text-muted);">Confronto con rimanenza TradoCroods</div>
-          </div>
-          <button id="saldo-banca-edit-btn" onclick="saldoBancaToggleEdit()"
-            style="background:rgba(74,144,232,0.12);border:1px solid rgba(74,144,232,0.35);color:#4a90e8;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);">
-            ✏️ Modifica
-          </button>
-        </div>
-
-        <!-- Riga principale: saldo banca + differenza -->
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
-
-          <!-- Saldo banca -->
-          <div>
-            <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">💳 Saldo in banca</div>
-            <!-- Vista statica -->
-            <div id="saldo-banca-display" style="font-size:28px;font-weight:900;font-family:'Playfair Display',serif;color:#4a90e8;">—</div>
-            <!-- Input edit -->
-            <div id="saldo-banca-edit-row" style="display:none;align-items:center;gap:6px;">
-              <span style="font-size:14px;color:var(--text-muted);font-weight:600;">€</span>
-              <input type="number" id="saldo-banca-input" step="0.01" placeholder="es. 319.66"
-                style="flex:1;background:rgba(74,144,232,0.08);border:1.5px solid #4a90e8;border-radius:8px;padding:6px 10px;font-size:18px;font-weight:700;color:#4a90e8;font-family:'Playfair Display',serif;outline:none;width:100%;box-sizing:border-box;"
-                oninput="saldoBancaUpdateLive(this.value)"
-                onkeydown="if(event.key==='Enter')saldoBancaToggleEdit()">
-              <button onclick="saldoBancaToggleEdit()"
-                style="background:rgba(74,232,122,0.15);border:1px solid rgba(74,232,122,0.4);color:#4ae87a;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:var(--font);">✅</button>
-            </div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:3px;" id="saldo-banca-date">—</div>
-          </div>
-
-          <!-- Differenza -->
-          <div>
-            <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">📊 Differenza</div>
-            <div style="font-size:24px;font-weight:900;font-family:'Playfair Display',serif;" id="saldo-banca-diff">—</div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:3px;line-height:1.4;" id="saldo-banca-diff-hint">Inserisci il saldo per confrontare</div>
-          </div>
-        </div>
-
-        <!-- Spiegazione differenza -->
-        <div id="saldo-banca-explain" style="display:none;background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;font-size:11px;color:var(--text-muted);line-height:1.7;">
-          <div style="font-weight:700;color:var(--text);margin-bottom:4px;">ℹ️ Perché sono diversi?</div>
-          <div>• <strong>Saldo banca</strong> = tutti i soldi accumulati nel tempo</div>
-          <div>• <strong>Rimanenza TradoCroods</strong> = entrate − spese del mese corrente</div>
-          <div style="margin-top:4px;color:rgba(255,255,255,0.4);">I valori coincidono solo se inserisci tutte le spese storiche.</div>
         </div>
       </div>
 
@@ -4899,151 +4823,6 @@ body.ios-device .btn-gold:hover {
     </div>
 
 
-    <!-- ===== LIBRETTO DI RISPARMIO ===== -->
-    <div id="sec-librietto" class="section">
-      <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;">
-        <span style="font-size:32px;">🏦</span>
-        <div>
-          <div style="font-size:24px;font-weight:800;">Libretto di Risparmio</div>
-          <div style="font-size:13px;color:var(--text-muted);">Tutti i giroconti dal conto corrente Sella · importati automaticamente dal PDF</div>
-        </div>
-      </div>
-
-      <!-- KPI cards -->
-      <div id="lib-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:24px;"></div>
-
-      <!-- Grafico annuale giroconti -->
-      <div class="card mb-20">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-          <div class="card-title" style="margin:0;">📊 Giroconti nel Tempo</div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <button class="graph-tab active" id="lib-view-bar" onclick="switchLibView('bar')">📊 Importi</button>
-            <button class="graph-tab" id="lib-view-count" onclick="switchLibView('count')">🔢 Frequenza</button>
-            <select id="libYearSel" onchange="renderLibChart()" style="background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;"></select>
-          </div>
-        </div>
-        <div class="chart-container" style="height:280px;"><canvas id="libChart"></canvas></div>
-      </div>
-
-      <!-- Lista movimenti -->
-      <div class="card">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
-          <div class="card-title" style="margin:0;">📋 Tutti i Movimenti</div>
-          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <button class="graph-tab active" id="lib-fil-all" onclick="switchLibFilter('all')">Tutti</button>
-            <button class="graph-tab" id="lib-fil-deposito" onclick="switchLibFilter('deposito')">⬆️ Depositi</button>
-            <button class="graph-tab" id="lib-fil-prelievo" onclick="switchLibFilter('prelievo')">⬇️ Prelievi</button>
-          </div>
-        </div>
-        <div id="lib-list" style="max-height:500px;overflow-y:auto;border:1px solid var(--border);border-radius:12px;"></div>
-        <div style="margin-top:16px;padding:12px;background:rgba(201,168,76,0.06);border:1px dashed rgba(201,168,76,0.25);border-radius:10px;font-size:12px;color:var(--text-muted);">
-          💡 I movimenti vengono importati automaticamente dal <strong>PDF Banca Sella</strong> nella sezione <em>Aggiungi Spesa</em>. Non appaiono nelle spese settimanali.
-        </div>
-      </div>
-    </div>
-
-    <!-- ===== CONTO CORRENTE ===== -->
-    <div id="sec-contocorrente" class="section">
-
-      <!-- Header -->
-      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <span style="font-size:32px;">💳</span>
-          <div>
-            <div style="font-size:22px;font-weight:800;">Conto Corrente</div>
-            <div style="font-size:12px;color:var(--text-muted);">Saldo reale · movimenti cronologici · traccia tutto</div>
-          </div>
-        </div>
-        <button onclick="ccOpenSetSaldo()" style="background:rgba(74,144,232,0.15);border:1.5px solid rgba(74,144,232,0.5);color:#4a90e8;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">
-          ⚙️ Imposta saldo iniziale
-        </button>
-      </div>
-
-      <!-- Card saldo attuale -->
-      <div style="background:var(--card);border-radius:18px;padding:20px 24px;margin-bottom:14px;border:2px solid rgba(74,144,232,0.35);">
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:center;">
-          <div>
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">💳 Saldo Attuale</div>
-            <div style="font-size:40px;font-weight:900;font-family:'Playfair Display',serif;" id="cc-saldo-attuale">€0,00</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="cc-saldo-data">—</div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">📥 Saldo Iniziale</div>
-            <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:#4a90e8;" id="cc-saldo-iniziale">—</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="cc-saldo-iniziale-data">Non impostato</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">📊 Movimenti</div>
-            <div style="font-size:22px;font-weight:700;" id="cc-n-movimenti">0</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="cc-periodo-movimenti">—</div>
-          </div>
-        </div>
-
-        <!-- Barra entrate/uscite -->
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.07);display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center;">
-          <div>
-            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;">💵 Totale Entrate</div>
-            <div style="font-size:16px;font-weight:700;color:#4ae87a;" id="cc-tot-entrate">€0,00</div>
-          </div>
-          <div>
-            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;">💸 Totale Uscite</div>
-            <div style="font-size:16px;font-weight:700;color:#e05c5c;" id="cc-tot-uscite">€0,00</div>
-          </div>
-          <div>
-            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;">📈 Delta</div>
-            <div style="font-size:16px;font-weight:700;" id="cc-delta">€0,00</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Filtri -->
-      <div style="background:var(--card);border-radius:14px;padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-        <span style="font-size:12px;color:var(--text-muted);font-weight:600;">Filtra:</span>
-        <button class="cc-filter-btn active" onclick="ccSetFilter('all',this)" style="background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:20px;padding:4px 14px;font-size:12px;cursor:pointer;font-family:var(--font);">Tutti</button>
-        <button class="cc-filter-btn" onclick="ccSetFilter('entrata',this)" style="background:rgba(74,232,122,0.1);border:1px solid rgba(74,232,122,0.3);color:#4ae87a;border-radius:20px;padding:4px 14px;font-size:12px;cursor:pointer;font-family:var(--font);">💵 Entrate</button>
-        <button class="cc-filter-btn" onclick="ccSetFilter('uscita',this)" style="background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:#e05c5c;border-radius:20px;padding:4px 14px;font-size:12px;cursor:pointer;font-family:var(--font);">💸 Uscite</button>
-        <button class="cc-filter-btn" onclick="ccSetFilter('bonifico',this)" style="background:rgba(255,180,0,0.1);border:1px solid rgba(255,180,0,0.3);color:#ffb400;border-radius:20px;padding:4px 14px;font-size:12px;cursor:pointer;font-family:var(--font);">🏦 Bonifici</button>
-        <select id="cc-filter-year" onchange="renderCC()" style="margin-left:auto;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:4px 10px;font-size:12px;font-family:var(--font);">
-          <option value="all">Tutti gli anni</option>
-        </select>
-      </div>
-
-      <!-- Registro movimenti -->
-      <div style="background:var(--card);border-radius:14px;overflow:hidden;" id="cc-movimenti-wrap">
-        <div id="cc-movimenti-list" style="max-height:600px;overflow-y:auto;">
-          <div style="text-align:center;padding:40px;color:var(--text-muted);">
-            ⚙️ Imposta il saldo iniziale per iniziare a tracciare
-          </div>
-        </div>
-      </div>
-
-    </div>
-
-    <!-- Modal imposta saldo iniziale -->
-    <div id="cc-modal-saldo" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:20px;">
-      <div style="background:var(--surface);border:1.5px solid rgba(74,144,232,0.4);border-radius:20px;padding:28px;max-width:420px;width:100%;">
-        <div style="font-size:18px;font-weight:800;color:#4a90e8;margin-bottom:6px;">💳 Saldo Iniziale Conto</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Inserisci il saldo reale del tuo conto in una data precisa. Da lì, ogni entrata/uscita verrà sommata o sottratta automaticamente.</div>
-        <div style="margin-bottom:14px;">
-          <label style="font-size:11px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:6px;">💶 Saldo in quella data (€)</label>
-          <input type="number" id="cc-input-saldo" step="0.01" placeholder="es. 319.66"
-            style="width:100%;background:rgba(74,144,232,0.08);border:1.5px solid #4a90e8;border-radius:10px;padding:12px 14px;font-size:22px;font-weight:700;color:#4a90e8;font-family:'Playfair Display',serif;outline:none;box-sizing:border-box;">
-        </div>
-        <div style="margin-bottom:20px;">
-          <label style="font-size:11px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:6px;">📅 Data del saldo</label>
-          <input type="date" id="cc-input-data"
-            style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--text);outline:none;box-sizing:border-box;font-family:var(--font);">
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);background:rgba(74,144,232,0.06);border-radius:8px;padding:10px 12px;margin-bottom:20px;line-height:1.6;">
-          💡 <strong>Suggerimento:</strong> puoi usare il saldo di oggi dall'app Banca Sella, o quello di inizio aprile 2026, o anche di gennaio 2023 se vuoi tracciare tutto lo storico.
-        </div>
-        <div style="display:flex;gap:10px;">
-          <button onclick="ccCloseSetSaldo()" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text-muted);border-radius:10px;padding:11px;font-size:13px;cursor:pointer;font-family:var(--font);">Annulla</button>
-          <button onclick="ccSaveSaldoIniziale()" style="flex:2;background:linear-gradient(135deg,rgba(74,144,232,0.3),rgba(74,144,232,0.2));border:1.5px solid rgba(74,144,232,0.6);color:#4a90e8;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">💾 Salva Saldo Iniziale</button>
-        </div>
-      </div>
-    </div>
-
     <!-- ===== EMERGENZA ===== -->
     <div id="sec-emergenza" class="section">
       <!-- Banner rosso -->
@@ -5365,17 +5144,15 @@ body.ios-device .btn-gold:hover {
       <!-- BANNER RIMANENZA REALE MENSILE -->
       <div id="vs-rim-reale-banner" style="background:var(--card);border-radius:18px;padding:16px 22px;margin-bottom:14px;border:2px solid rgba(74,232,122,0.25);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
         <div>
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;" id="vs-rim-reale-label">💰 Rimanenza Reale ad Oggi</div>
-          <div style="font-size:11px;color:var(--text-muted);" id="vs-rim-reale-sub">Entrate − spese fisse − spese libere − bonifici</div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">💰 Rimanenza Reale ad Oggi</div>
+          <div style="font-size:11px;color:var(--text-muted);">Entrate − spese fisse − spese libere − bonifici</div>
           <!-- Valore TradoCroods (visibile solo quando si mostra saldo banca) -->
-          <div id="vs-rim-tc-row" style="display:none;margin-top:6px;font-size:11px;color:var(--text-muted);">
-            📊 TradoCroods: <span id="vs-rim-tc-val" style="font-weight:700;">€0,00</span>
-          </div>
+
         </div>
         <div style="text-align:right;">
           <div style="font-size:38px;font-weight:900;font-family:'Playfair Display',serif;line-height:1;" id="vs-rim-reale-val">€0,00</div>
           <div style="font-size:11px;color:var(--text-muted);margin-top:3px;" id="vs-rim-reale-hint"></div>
-          <button onclick="dashQuickEditSaldo()" style="margin-top:6px;background:rgba(74,144,232,0.12);border:1px solid rgba(74,144,232,0.3);color:#4a90e8;border-radius:7px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);">🏦 Aggiorna saldo</button>
+
         </div>
       </div>
 
@@ -6148,6 +5925,31 @@ let selectedDay = null;
 let weekOffset = 0;
 let lastUserCleared = false;
 let catChartInst = null, payChartInst = null, dashChartInst = null;
+
+// ── Chart.js defaults globali: disabilita animazioni per performance ──
+// Chart.js è caricato con defer — wrapper sicuro
+function _applyChartDefaults() {
+  if(typeof Chart === 'undefined') return;
+  Chart.defaults.animation = false;
+  Chart.defaults.animations = {};
+  Chart.defaults.transitions = {};
+  Chart.defaults.font.family = "'DM Sans', system-ui, sans-serif";
+  Chart.defaults.font.size = 11;
+}
+// Prova subito e poi di nuovo quando il DOM è pronto
+_applyChartDefaults();
+document.addEventListener('DOMContentLoaded', _applyChartDefaults);
+// Patch su ogni new Chart() — sicurezza assoluta
+const _ChartOriginal = window.Chart;
+Object.defineProperty(window, 'Chart', {
+  get() { return _ChartOriginal; },
+  set(C) {
+    // Chart.js viene assegnato a window dopo il caricamento defer
+    Object.defineProperty(window, 'Chart', { value: C, writable: true, configurable: true });
+    setTimeout(() => _applyChartDefaults(), 0);
+  },
+  configurable: true
+});
 let selectedCat = null;
 
 function getKey(k) { return `tc_${currentUser?.email}_${k}`; }
@@ -7803,6 +7605,13 @@ function initApp() {
   refreshAll();
 }
 
+// ── Debounce per evitare ridisegni multipli in rapida sequenza ──
+let _refreshTimer = null;
+function refreshAllDebounced() {
+  clearTimeout(_refreshTimer);
+  _refreshTimer = setTimeout(refreshAll, 80);
+}
+
 function refreshAll() {
   // Sync rataYear with globalYear selector
   const gy = document.getElementById('globalYear');
@@ -7862,6 +7671,7 @@ function showSection(id, el) {
   if(el) el.classList.add('active');
   const titles = {
     dashboard:'📊 Dashboard',
+    contocorrente:'💳 Conto Corrente',
     speseFisse:'🏠 Spese Fisse',
     entrate:'💰 Entrate',
     aggiungiSpesa:'➕ Aggiungi Spesa',
@@ -7875,7 +7685,7 @@ function showSection(id, el) {
     ai:'✨ AI Assistente'
   };
   document.getElementById('pageTitle').textContent = titles[id]||id;
-  if(id==='grafici') { setTimeout(() => { renderGraphButtons(); if(currentGraphTab==='week') renderWeekChart(); if(currentGraphTab==='year'){ initYearSelect(); renderYearChart(); } if(currentGraphTab==='budget') renderBudgetChart(); if(currentGraphTab==='trend') renderTrendChart(); if(currentGraphTab==='giri') renderGiriChart(); if(currentGraphTab==='pdf') renderPdfChart(); if(currentGraphTab==='librietto') renderLib2Chart(); if(currentGraphTab==='salute') renderSaluteChart(); }, 50); }
+  if(id==='grafici') { requestAnimationFrame(() => { renderGraphButtons(); if(currentGraphTab==='week') renderWeekChart(); else if(currentGraphTab==='year'){ initYearSelect(); renderYearChart(); } else if(currentGraphTab==='budget') renderBudgetChart(); else if(currentGraphTab==='trend') renderTrendChart(); else if(currentGraphTab==='giri') renderGiriChart(); else if(currentGraphTab==='pdf') renderPdfChart(); else if(currentGraphTab==='librietto') renderLib2Chart(); else if(currentGraphTab==='salute') renderSaluteChart(); else if(currentGraphTab==='cat' && selectedCat) { renderCatChart(selectedCat); renderCatFreqChart(selectedCat); } }); }
   if(id==='settimanale') renderWeek();
   if(id==='vistaSpese') { initVSYearSelects(); renderVSAll(); }
   if(id==='promemoria') { renderReminderList(); checkNotifPermission(); updateReminderBadge(); }
@@ -8490,41 +8300,7 @@ function updateRimanenza() {
   if(sumInc)   sumInc.textContent   = fmt(totEntrate);
   if(sumFixed) sumFixed.textContent = fmt(fixedTotal);
   if(sumVar)   sumVar.textContent   = fmt(totLibere + totBonif);
-  // ── Se saldo banca disponibile → mostralo come valore principale ──
-  const _saldoBanca = getSaldoBanca();
-  if(_saldoBanca && _saldoBanca.amount !== null) {
-    const ba = _saldoBanca.amount;
-    if(sumBal) {
-      sumBal.textContent = fmt(ba);
-      sumBal.style.color = ba >= 0 ? '#4a90e8' : 'var(--red)';
-    }
-    // Label aggiornata
-    const lbl = el('dash-rim-label');
-    const sub = el('dash-rim-sublabel');
-    if(lbl) { lbl.textContent = '🏦 Saldo Reale Banca'; lbl.style.color = '#4a90e8'; }
-    if(sub) sub.textContent = 'Saldo attuale del tuo conto corrente';
-    // Mostra valore TradoCroods come secondario
-    const tcRow = el('dash-rim-tc-row');
-    const tcVal = el('dash-rim-tc-val');
-    if(tcRow) tcRow.style.display = 'block';
-    if(tcVal) { tcVal.textContent = fmt(rimanenza); tcVal.style.color = rimanenza>=0?'var(--green)':'var(--red)'; }
-    // Data aggiornamento
-    const dateEl = el('dash-rim-date');
-    if(dateEl) dateEl.textContent = '📅 Aggiornato ' + _saldoBanca.date;
-    // Bordo azzurro
-    if(el('dash-rim-box')) el('dash-rim-box').style.borderColor = ba>=0?'rgba(74,144,232,0.5)':'rgba(224,92,92,0.4)';
-  } else {
-    // Nessun saldo banca → comportamento normale
-    if(sumBal) { sumBal.textContent = fmt(rimanenza); sumBal.style.color = rimanenza>=0?'var(--green)':'var(--red)'; }
-    const lbl = el('dash-rim-label');
-    const sub = el('dash-rim-sublabel');
-    if(lbl) { lbl.textContent = '💰 Rimanenza Reale ad Oggi'; lbl.style.color = ''; }
-    if(sub) sub.textContent = 'Stipendio − spese fisse − spese variabili';
-    const tcRow = el('dash-rim-tc-row');
-    if(tcRow) tcRow.style.display = 'none';
-    const dateEl = el('dash-rim-date');
-    if(dateEl) dateEl.textContent = 'Saldo banca non inserito — clicca →';
-  }
+  if(sumBal) { sumBal.textContent = fmt(rimanenza); sumBal.style.color = rimanenza>=0?'var(--green)':'var(--red)'; }
 
   // ── Nuovi elementi dashboard mensile ──
   const mesiN2 = ['','Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
@@ -8998,6 +8774,7 @@ function renderDashboard() {
     type: 'line',
     data: { labels, datasets },
     options: {
+      animation: false,
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
@@ -9509,7 +9286,7 @@ function renderGiriChart() {
       ]
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      animation: false, responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { labels: { color: '#e0e0e0', font: { family: 'DM Sans', size: 12 } } },
         tooltip: {
@@ -9585,6 +9362,7 @@ function renderTrendChart() {
     type: 'line',
     data: { labels: DAYS_IT, datasets: allDatasets },
     options: {
+      animation: false,
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
@@ -9739,7 +9517,7 @@ function renderLib2Chart() {
       { label: useCount?'⬇️ N° Prelievi':'⬇️ Prelievi (€)', data: useCount?preCount:preData.map(v=>parseFloat(v.toFixed(2))), backgroundColor:'rgba(74,232,122,0.65)', borderColor:'#4ae87a', borderWidth:2, borderRadius:6 },
     ]},
     options:{
-      responsive:true, maintainAspectRatio:false,
+      animation:false, responsive:true, maintainAspectRatio:false,
       interaction:{mode:'index',intersect:false},
       plugins:{
         legend:{ labels:{color:textColor,font:{family:'DM Sans',size:12},boxWidth:14} },
@@ -9852,7 +9630,7 @@ function renderPdfChart() {
     type: 'bar',
     data: { labels, datasets },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      animation: false, responsive: true, maintainAspectRatio: false,
       interaction: { mode:'index', intersect:false },
       plugins: {
         legend: { labels: { color:textColor, font:{family:'DM Sans',size:12}, boxWidth:14 } },
@@ -10029,7 +9807,7 @@ function renderLibChart() {
     type:'bar',
     data:{ labels:MESI_L, datasets },
     options:{
-      responsive:true, maintainAspectRatio:false,
+      animation:false, responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
       plugins:{
         legend:{ labels:{ color:textColor, font:{family:'DM Sans',size:12}, boxWidth:14 } },
@@ -10278,7 +10056,7 @@ function renderSaluteChart() {
       { label:'⚕️ Riab.Neuro', data: riabData,  backgroundColor:'rgba(74,184,232,0.65)', borderColor:'#4ab8e8', borderWidth:2, borderRadius:8 },
     ]},
     options:{
-      responsive:true, maintainAspectRatio:false,
+      animation:false, responsive:true, maintainAspectRatio:false,
       interaction:{ mode:'index', intersect:false },
       plugins:{
         legend:{ labels:{ color:textColor, font:{family:'DM Sans',size:12}, boxWidth:14 } },
@@ -10515,7 +10293,7 @@ function renderCatChart(cat) {
       fill: true,
     }]},
     options: {
-      responsive: true, maintainAspectRatio: false,
+      animation: false, responsive: true, maintainAspectRatio: false,
       onClick(evt, elements) {
         if(!elements.length) return;
         const idx = elements[0].index;
@@ -10564,7 +10342,7 @@ function renderCatChart(cat) {
         backgroundColor:['rgba(201,168,76,0.8)','rgba(76,175,130,0.8)','rgba(123,94,167,0.8)','rgba(224,92,138,0.8)','rgba(80,160,220,0.8)'],
         borderColor:['#c9a84c','#4caf82','#7b5ea7','#e05c8a','#50a0dc'], borderWidth:2 }]
     },
-    options:{ responsive:true, maintainAspectRatio:false,
+    options:{ animation:false, responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{ labels:{ color:chartTextColor(), font:{size:11} } },
                 title:{ display:true, text:'Metodi Pagamento', color:chartMutedColor(), font:{size:13} } }
     }
@@ -10890,7 +10668,7 @@ function renderCatFreqChart(cat) {
         tension: 0.4, fill: false, yAxisID: 'y2' }
     ]},
     options: {
-      responsive: true, maintainAspectRatio: false,
+      animation: false, responsive: true, maintainAspectRatio: false,
       interaction: { mode:'index', intersect:false },
       onClick(evt, elements) {
         if(!elements.length) return;
@@ -10967,7 +10745,7 @@ function renderWeekChart() {
         backgroundColor: colors, borderColor: borders, borderWidth:2, borderRadius:8
       }]
     },
-    options:{ responsive:true, maintainAspectRatio:false,
+    options:{ animation:false, responsive:true, maintainAspectRatio:false,
       plugins:{ legend:{ labels:{ color:chartTextColor(), font:{family:'DM Sans',size:12} } } },
       scales:{
         x:{ ticks:{ color:chartTextColor(), font:{weight:'600'} }, grid:{ color:gridColor } },
@@ -11018,7 +10796,7 @@ function renderYearChart() {
     yearChartInst = new Chart(document.getElementById('yearChart').getContext('2d'), {
       type:'bar',
       data:{ labels: MESI, datasets },
-      options:{ responsive:true, maintainAspectRatio:false,
+      options:{ animation:false, responsive:true, maintainAspectRatio:false,
         plugins:{ legend:{ labels:{ color:chartTextColor(), font:{size:10} }, position:'bottom' } },
         scales:{
           x:{ stacked:true, ticks:{ color:chartMutedColor() }, grid:{ color:gridColor } },
@@ -11297,6 +11075,7 @@ function renderBudgetChart() {
       ]
     },
     options: {
+      animation: false,
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
@@ -16631,34 +16410,13 @@ function renderVSTotale() {
     const rimVal = parseFloat(rimTxt.replace(/[€\s\u00a0]/g,'').replace(',','.')) || 0;
     const fmtBa  = v => (v < 0 ? '-' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
 
-    const _sb      = getSaldoBanca();
-    const vsLabel  = document.getElementById('vs-rim-reale-label');
-    const vsSub    = document.getElementById('vs-rim-reale-sub');
-    const vsTcRow  = document.getElementById('vs-rim-tc-row');
-    const vsTcVal  = document.getElementById('vs-rim-tc-val');
-
-    if(_sb && _sb.amount !== null) {
-      const ba = _sb.amount;
-      vsRimReale.textContent = fmtBa(ba);
-      vsRimReale.style.color = ba >= 0 ? '#4a90e8' : 'var(--red)';
-      if(vsLabel)  { vsLabel.textContent = '🏦 Saldo Reale Banca'; vsLabel.style.color = '#4a90e8'; }
-      if(vsSub)    vsSub.textContent = 'Aggiornato ' + _sb.date;
-      if(vsTcRow)  vsTcRow.style.display = 'block';
-      if(vsTcVal)  { vsTcVal.textContent = rimTxt; vsTcVal.style.color = rimVal >= 0 ? 'var(--green)' : 'var(--red)'; }
-      if(vsRimBanner) vsRimBanner.style.borderColor = ba >= 0 ? 'rgba(74,144,232,0.4)' : 'rgba(224,92,92,0.4)';
-      if(vsRimHint)   vsRimHint.textContent = '';
-    } else {
-      vsRimReale.textContent = rimTxt;
-      vsRimReale.style.color = rimVal >= 0 ? 'var(--green)' : 'var(--red)';
-      if(vsLabel) { vsLabel.textContent = '💰 Rimanenza Reale ad Oggi'; vsLabel.style.color = ''; }
-      if(vsSub)   vsSub.textContent = 'Entrate − spese fisse − spese libere − bonifici';
-      if(vsTcRow) vsTcRow.style.display = 'none';
-      if(vsRimBanner) vsRimBanner.style.borderColor = rimVal >= 0 ? 'rgba(74,232,122,0.3)' : 'rgba(224,92,92,0.3)';
-      if(vsRimHint) {
-        const alGiornoEl = document.getElementById('rim-al-giorno');
-        const alGiorno = alGiornoEl ? alGiornoEl.textContent : '';
-        vsRimHint.textContent = alGiorno && alGiorno !== '—' ? '📆 ' + alGiorno + ' al giorno disponibili' : '';
-      }
+    vsRimReale.textContent = rimTxt;
+    vsRimReale.style.color = rimVal >= 0 ? 'var(--green)' : 'var(--red)';
+    if(vsRimBanner) vsRimBanner.style.borderColor = rimVal >= 0 ? 'rgba(74,232,122,0.3)' : 'rgba(224,92,92,0.3)';
+    if(vsRimHint) {
+      const alGiornoEl = document.getElementById('rim-al-giorno');
+      const alGiorno = alGiornoEl ? alGiornoEl.textContent : '';
+      vsRimHint.textContent = alGiorno && alGiorno !== '—' ? '📆 ' + alGiorno + ' al giorno disponibili' : '';
     }
   }
 
@@ -16721,7 +16479,7 @@ function renderDashCatChart(yr, mo) {
     type: 'bar',
     data: { labels: sortedLabels, datasets: [{ data: sortedData, backgroundColor: colors.slice(0, sortedLabels.length), borderRadius: 6, borderSkipped: false }] },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      animation: false, responsive: true, maintainAspectRatio: false,
       indexAxis: 'y',
       plugins: {
         legend: { display: false },
