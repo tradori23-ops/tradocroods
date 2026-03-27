@@ -3670,6 +3670,39 @@ body.ios-device .btn-gold:hover {
         </div>
       </div>
 
+      <!-- ROW 2b: Saldo Conto Corrente -->
+      <div id="dash-cc-banner" style="background:var(--card);border-radius:18px;padding:16px 22px;margin-bottom:14px;border:2px solid rgba(74,144,232,0.3);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;cursor:pointer;" onclick="showSection('contocorrente', document.querySelector('.nav-item[onclick*=contocorrente]'))">
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">🏦 Saldo Conto Corrente</div>
+          <div style="font-size:11px;color:var(--text-muted);" id="dash-cc-sub">Saldo reale aggiornato</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:20px;">
+          <div style="text-align:right;">
+            <div style="font-size:36px;font-weight:900;font-family:'Playfair Display',serif;" id="dash-cc-saldo">—</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="dash-cc-data">Imposta saldo in Conto Corrente →</div>
+          </div>
+          <div style="font-size:20px;color:rgba(74,144,232,0.4);">›</div>
+        </div>
+      </div>
+
+      <!-- ROW 2b: Saldo Reale Banca (da Conto Corrente) -->
+      <div id="dash-saldo-banca-row" style="background:var(--card);border-radius:18px;padding:16px 22px;margin-bottom:14px;border:1.5px solid rgba(74,144,232,0.3);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">💳 Saldo Reale Conto Corrente</div>
+          <div style="font-size:11px;color:var(--text-muted);" id="dash-saldo-banca-sub">Aggiornato dal Conto Corrente</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
+          <div style="text-align:right;">
+            <div style="font-size:36px;font-weight:900;font-family:'Playfair Display',serif;" id="dash-saldo-banca-val">—</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="dash-saldo-banca-date">Non ancora impostato</div>
+          </div>
+          <button onclick="showSection('contocorrente', document.querySelector('.nav-item[onclick*=contocorrente]'))" 
+            style="background:rgba(74,144,232,0.12);border:1.5px solid rgba(74,144,232,0.4);color:#4a90e8;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;">
+            💳 Vai a Conto Corrente
+          </button>
+        </div>
+      </div>
+
       <!-- ROW 3: Grafico Trend Mensile -->
       <div style="background:var(--card);border-radius:18px;padding:20px 22px;margin-bottom:14px;">
         <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:14px;">📈 Trend Spese del Mese</div>
@@ -4822,6 +4855,109 @@ body.ios-device .btn-gold:hover {
       </div>
     </div>
 
+
+    <!-- ===== CONTO CORRENTE ===== -->
+    <div id="sec-contocorrente" class="section">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <span style="font-size:32px;">💳</span>
+          <div>
+            <div style="font-size:22px;font-weight:800;">Conto Corrente</div>
+            <div style="font-size:12px;color:var(--text-muted);">Saldo reale · movimenti cronologici · traccia tutto</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button onclick="ccUsaRimanenzaTradoCroods()" style="background:rgba(74,232,122,0.12);border:1.5px solid rgba(74,232,122,0.4);color:#4ae87a;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">
+            📊 Usa rimanenza TradoCroods
+          </button>
+          <button onclick="ccOpenSetSaldo()" style="background:rgba(74,144,232,0.15);border:1.5px solid rgba(74,144,232,0.5);color:#4a90e8;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">
+            ⚙️ Imposta saldo manuale
+          </button>
+        </div>
+      </div>
+
+      <!-- Card saldo -->
+      <div style="background:var(--card);border-radius:18px;padding:20px 24px;margin-bottom:14px;border:2px solid rgba(74,144,232,0.35);">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:center;">
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">💳 Saldo Attuale</div>
+            <div style="font-size:40px;font-weight:900;font-family:'Playfair Display',serif;" id="cc-saldo-attuale">—</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="cc-saldo-data">—</div>
+          </div>
+          <div style="text-align:center;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">📥 Saldo Iniziale</div>
+            <div style="font-size:22px;font-weight:700;font-family:'Playfair Display',serif;color:#4a90e8;" id="cc-saldo-iniziale">—</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="cc-saldo-iniziale-data">Non impostato</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">📊 Movimenti</div>
+            <div style="font-size:22px;font-weight:700;" id="cc-n-movimenti">0</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="cc-periodo-movimenti">—</div>
+          </div>
+        </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.07);display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;text-align:center;">
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;">💵 Totale Entrate</div>
+            <div style="font-size:16px;font-weight:700;color:#4ae87a;" id="cc-tot-entrate">€0,00</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;">💸 Totale Uscite</div>
+            <div style="font-size:16px;font-weight:700;color:#e05c5c;" id="cc-tot-uscite">€0,00</div>
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;">📈 Delta</div>
+            <div style="font-size:16px;font-weight:700;" id="cc-delta">€0,00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filtri -->
+      <div style="background:var(--card);border-radius:14px;padding:12px 16px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+        <span style="font-size:12px;color:var(--text-muted);font-weight:600;">Filtra:</span>
+        <button class="cc-filter-btn active" onclick="ccSetFilter('all',this)" style="background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:20px;padding:4px 14px;font-size:12px;cursor:pointer;font-family:var(--font);">Tutti</button>
+        <button class="cc-filter-btn" onclick="ccSetFilter('entrata',this)" style="background:rgba(74,232,122,0.1);border:1px solid rgba(74,232,122,0.3);color:#4ae87a;border-radius:20px;padding:4px 14px;font-size:12px;cursor:pointer;font-family:var(--font);">💵 Entrate</button>
+        <button class="cc-filter-btn" onclick="ccSetFilter('uscita',this)" style="background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:#e05c5c;border-radius:20px;padding:4px 14px;font-size:12px;cursor:pointer;font-family:var(--font);">💸 Uscite</button>
+        <button class="cc-filter-btn" onclick="ccSetFilter('bonifico',this)" style="background:rgba(255,180,0,0.1);border:1px solid rgba(255,180,0,0.3);color:#ffb400;border-radius:20px;padding:4px 14px;font-size:12px;cursor:pointer;font-family:var(--font);">🏦 Bonifici</button>
+        <select id="cc-filter-year" onchange="renderCC()" style="margin-left:auto;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:4px 10px;font-size:12px;font-family:var(--font);">
+          <option value="all">Tutti gli anni</option>
+        </select>
+      </div>
+
+      <!-- Registro movimenti -->
+      <div style="background:var(--card);border-radius:14px;overflow:hidden;">
+        <div id="cc-movimenti-list" style="max-height:600px;overflow-y:auto;">
+          <div style="text-align:center;padding:40px;color:var(--text-muted);">
+            ⚙️ Imposta il saldo iniziale per iniziare a tracciare
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal imposta saldo iniziale -->
+    <div id="cc-modal-saldo" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:20px;">
+      <div style="background:var(--surface);border:1.5px solid rgba(74,144,232,0.4);border-radius:20px;padding:28px;max-width:420px;width:100%;">
+        <div style="font-size:18px;font-weight:800;color:#4a90e8;margin-bottom:6px;">💳 Saldo Iniziale Conto</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Inserisci il saldo reale del tuo conto in una data precisa. Da lì ogni entrata/uscita verrà sommata o sottratta automaticamente.</div>
+        <div style="margin-bottom:14px;">
+          <label style="font-size:11px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:6px;">💶 Saldo in quella data (€)</label>
+          <input type="number" id="cc-input-saldo" step="0.01" placeholder="es. 319.66"
+            style="width:100%;background:rgba(74,144,232,0.08);border:1.5px solid #4a90e8;border-radius:10px;padding:12px 14px;font-size:22px;font-weight:700;color:#4a90e8;font-family:'Playfair Display',serif;outline:none;box-sizing:border-box;">
+        </div>
+        <div style="margin-bottom:20px;">
+          <label style="font-size:11px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:6px;">📅 Data del saldo</label>
+          <input type="date" id="cc-input-data"
+            style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--text);outline:none;box-sizing:border-box;font-family:var(--font);">
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);background:rgba(74,144,232,0.06);border-radius:8px;padding:10px 12px;margin-bottom:20px;line-height:1.6;">
+          💡 Puoi usare il saldo di oggi dall'app Banca Sella, oppure la rimanenza calcolata da TradoCroods.
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button onclick="ccCloseSetSaldo()" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text-muted);border-radius:10px;padding:11px;font-size:13px;cursor:pointer;font-family:var(--font);">Annulla</button>
+          <button onclick="ccSaveSaldoIniziale()" style="flex:2;background:linear-gradient(135deg,rgba(74,144,232,0.3),rgba(74,144,232,0.2));border:1.5px solid rgba(74,144,232,0.6);color:#4a90e8;border-radius:10px;padding:11px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">💾 Salva Saldo Iniziale</button>
+        </div>
+      </div>
+    </div>
 
     <!-- ===== EMERGENZA ===== -->
     <div id="sec-emergenza" class="section">
@@ -8632,8 +8768,8 @@ function getTotalExpenses() { return getExpenses().reduce((s,e)=>s+e.amount,0); 
 // ===== DASHBOARD =====
 function renderDashboard() {
   if(!document.getElementById('sum-income')) return;
-  // Aggiorna saldo banca dopo che sum-balance è stato calcolato
-  setTimeout(renderSaldoBanca, 100);
+  // Aggiorna banner Conto Corrente nella dashboard
+  setTimeout(renderDashSaldoBanca, 100);
   if(!document.getElementById('latestExpenses')) return;
   const yr = parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear());
   const mo = parseInt(document.getElementById('globalMonth')?.value || new Date().getMonth()+1);
@@ -17553,6 +17689,35 @@ function dashQuickEditSaldo() {
   showToast('✅ Saldo banca aggiornato: €' + amount.toFixed(2).replace('.', ','));
 }
 
+function renderDashSaldoBanca() {
+  const row  = document.getElementById('dash-saldo-banca-row');
+  const val  = document.getElementById('dash-saldo-banca-val');
+  const date = document.getElementById('dash-saldo-banca-date');
+  const sub  = document.getElementById('dash-saldo-banca-sub');
+  if(!row) return;
+
+  const saved = getCCSaldoIniziale();
+  if(!saved) {
+    row.style.display = 'flex';
+    if(val)  { val.textContent = '—'; val.style.color = 'var(--text-muted)'; }
+    if(date) date.textContent = 'Non ancora impostato — vai a Conto Corrente';
+    if(sub)  sub.textContent = 'Clicca per impostare il saldo iniziale';
+    return;
+  }
+
+  // Calcola saldo attuale da tutti i movimenti
+  const tutti = ccGetAllMovimenti();
+  let totE = 0, totU = 0;
+  tutti.forEach(m => { if(m.tipo==='entrata') totE+=m.amount; else totU+=m.amount; });
+  const saldoAtt = saved.amount + totE - totU;
+  const fmt = v => (v<0?'-':'') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
+
+  if(val)  { val.textContent = fmt(saldoAtt); val.style.color = saldoAtt>=0 ? '#4a90e8' : 'var(--red)'; }
+  if(date) date.textContent = 'Base: ' + fmt(saved.amount) + ' dal ' + new Date(saved.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+  if(sub)  sub.textContent = 'Saldo calcolato · ' + tutti.length + ' movimenti';
+  if(row)  row.style.borderColor = saldoAtt>=0 ? 'rgba(74,144,232,0.3)' : 'rgba(224,92,92,0.4)';
+}
+
 function getSaldoBanca() {
   try { return JSON.parse(localStorage.getItem(getKey('saldo_banca')) || 'null'); } catch(e) { return null; }
 }
@@ -17673,6 +17838,34 @@ function saveCCSaldoIniziale(v) {
   bumpVersion();
 }
 
+// Imposta come saldo iniziale la rimanenza calcolata da TradoCroods
+function ccUsaRimanenzaTradoCroods() {
+  // Legge il valore da rim-result (calcolato da renderDashboard)
+  const rimEl = document.getElementById('rim-result') || document.getElementById('sum-balance');
+  if(!rimEl) { showToast('⚠️ Apri la Dashboard prima per calcolare la rimanenza'); return; }
+
+  const txt = rimEl.textContent || '';
+  // Parsing robusto: gestisce −€1.611,00 o -€1611,00
+  const negative = txt.includes('−') || txt.includes('-');
+  const num = parseFloat(txt.replace(/[^0-9,\.]/g,'').replace(',','.'));
+  if(isNaN(num)) { showToast('⚠️ Impossibile leggere la rimanenza — apri la Dashboard'); return; }
+  const amount = negative ? -num : num;
+
+  // Data di oggi
+  const today = new Date().toISOString().split('T')[0];
+
+  // Chiedi conferma con il valore trovato
+  const fmt = v => (v<0?'-':'') + '€' + Math.abs(v).toFixed(2).replace('.',',');
+  const msg = 'Impostare come saldo iniziale: ' + fmt(amount) + ' al ' + new Date().toLocaleDateString('it-IT') + '?';
+  if(!confirm(msg)) return;
+
+  saveCCSaldoIniziale({ amount, date: today });
+  fbPushToCloud();
+  renderCC();
+  renderDashSaldoBanca();
+  showToast('✅ Saldo iniziale impostato: ' + fmt(amount));
+}
+
 function ccOpenSetSaldo() {
   const saved = getCCSaldoIniziale();
   const inp = document.getElementById('cc-input-saldo');
@@ -17695,6 +17888,7 @@ function ccSaveSaldoIniziale() {
   fbPushToCloud();
   ccCloseSetSaldo();
   renderCC();
+  renderDashCCBanner();
   showToast('✅ Saldo iniziale salvato — registro aggiornato!');
 }
 
@@ -17763,6 +17957,33 @@ function ccGetAllMovimenti() {
   // Ordina per data crescente
   movimenti.sort((a, b) => a.dateObj - b.dateObj || a.id - b.id);
   return movimenti;
+}
+
+// Aggiorna il banner Conto Corrente nella Dashboard
+function renderDashCCBanner() {
+  const banner = document.getElementById('dash-cc-banner');
+  if(!banner) return;
+  const saldoIniz = getCCSaldoIniziale();
+  const saldoEl   = document.getElementById('dash-cc-saldo');
+  const subEl     = document.getElementById('dash-cc-sub');
+  const dataEl    = document.getElementById('dash-cc-data');
+  if(!saldoIniz) {
+    if(saldoEl) { saldoEl.textContent = '—'; saldoEl.style.color = 'var(--text-muted)'; }
+    if(dataEl)  dataEl.textContent = 'Vai a Conto Corrente per impostare il saldo →';
+    if(subEl)   subEl.textContent = 'Saldo reale non ancora configurato';
+    banner.style.borderColor = 'rgba(74,144,232,0.2)';
+    return;
+  }
+  // Calcola saldo attuale = iniziale + entrate - uscite
+  const movimenti = ccGetAllMovimenti();
+  let totE = 0, totU = 0;
+  movimenti.forEach(m => { if(m.tipo==='entrata') totE+=m.amount; else totU+=m.amount; });
+  const saldoAtt = saldoIniz.amount + totE - totU;
+  const fmt = v => (v<0?'-':'')+'€'+Math.abs(v).toFixed(2).replace('.', ',');
+  if(saldoEl) { saldoEl.textContent = fmt(saldoAtt); saldoEl.style.color = saldoAtt>=0?'#4a90e8':'var(--red)'; }
+  if(dataEl)  dataEl.textContent = 'Aggiornato · ' + movimenti.length + ' movimenti · clicca per dettaglio';
+  if(subEl)   subEl.textContent  = 'Dal ' + new Date(saldoIniz.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+  banner.style.borderColor = saldoAtt>=0?'rgba(74,144,232,0.4)':'rgba(224,92,92,0.4)';
 }
 
 function renderCC() {
