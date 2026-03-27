@@ -987,7 +987,8 @@ body.light .stat-mini .s-label { color:#44446a; }
 #app[style*="display:block"] .main-content {
   margin-left: 255px !important;
 }
-@media (max-width: 900px) {
+/* Su mobile (<768px) azzera margin sidebar. Su tablet lo gestisce il blocco tablet sopra */
+@media (max-width: 767px) {
   #app[style*="display: block"] .main-content,
   #app[style*="display:block"] .main-content {
     margin-left: 0 !important;
@@ -1679,7 +1680,79 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 .negative { color: var(--red); }
 
 /* ===== RESPONSIVE ===== */
-@media(max-width:1280px) {
+/* ═══════════════════════════════════════════════════════
+   TABLET LAYOUT — iPad / Samsung Tab / Surface
+   Breakpoints:
+   • 1280px+  → Desktop (sidebar fissa, tutto visibile)
+   • 768–1279px → Tablet (sidebar FISSA a sinistra, contenuto con margine)
+   • <768px   → Mobile (sidebar overlay, hamburger)
+   ═══════════════════════════════════════════════════════ */
+
+/* ── TABLET: 768px–1279px — sidebar fissa sempre visibile ── */
+@media(min-width:768px) and (max-width:1279px) {
+  /* Sidebar sempre visibile, non overlay */
+  .sidebar {
+    transform: translateX(0) !important;
+    position: fixed !important;
+    width: 220px !important;
+    z-index: 100 !important;
+    box-shadow: none !important;
+  }
+  --sidebar-w: 220px;
+
+  /* Contenuto con margine uguale alla sidebar */
+  .main-content {
+    margin-left: 220px !important;
+    padding: 16px !important;
+    width: calc(100% - 220px) !important;
+    box-sizing: border-box !important;
+  }
+  #app[style*="display:block"] .main-content,
+  #app[style*="display: block"] .main-content {
+    margin-left: 220px !important;
+  }
+
+  /* Hamburger nascosto — sidebar sempre aperta */
+  .hamburger-btn { display: none !important; }
+  .sidebar-overlay { display: none !important; }
+
+  /* Topbar: testo bottoni visibile ma compatto */
+  .topbar { padding: 10px 16px; gap: 8px; flex-wrap: nowrap; }
+  .topbar-actions { gap: 6px; flex-wrap: wrap; }
+  .topbar-actions .btn { font-size: 12px; padding: 6px 10px; }
+  .topbar-actions .btn-txt,
+  .theme-toggle .btn-txt { display: none; }
+
+  /* Month selector */
+  .month-selector { padding: 10px 14px; }
+
+  /* Griglia dashboard: 2 colonne */
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  .charts-row { grid-template-columns: 1fr; }
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+
+  /* Week grid: 4 colonne landscape, 3 portrait */
+  .week-grid { grid-template-columns: repeat(4, minmax(0,1fr)) !important; gap: 8px !important; }
+}
+
+/* ── TABLET PORTRAIT stretta (768–900px) — week grid 3 col ── */
+@media(min-width:768px) and (max-width:900px) {
+  .sidebar { width: 200px !important; }
+  .main-content { margin-left: 200px !important; width: calc(100% - 200px) !important; }
+  #app[style*="display:block"] .main-content,
+  #app[style*="display: block"] .main-content { margin-left: 200px !important; }
+  .week-grid { grid-template-columns: repeat(3, minmax(0,1fr)) !important; gap: 6px !important; }
+  [style*="grid-template-columns:1fr 1fr"],
+  [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* ── MOBILE: sotto 768px — sidebar overlay con hamburger ── */
+@media(max-width:767px) {
   .sidebar {
     transform: translateX(calc(-1 * var(--sidebar-w)));
     z-index: 150;
@@ -1688,13 +1761,7 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
     transform: translateX(0);
     box-shadow: 6px 0 40px rgba(0,0,0,0.6);
   }
-  .main-content { margin-left: 0; padding: 16px; }
-  .charts-row { grid-template-columns: 1fr; }
-  .grid-2 { grid-template-columns: 1fr; }
-  .topbar { padding: 10px 16px; gap: 6px; }
-  .topbar-actions { gap: 5px; flex-wrap: wrap; }
-  .topbar-actions .btn { font-size: 12px; padding: 7px 12px; }
-  .month-selector { padding: 10px 16px; }
+  .main-content { margin-left: 0 !important; padding: 12px; }
   .hamburger-btn { display: flex !important; }
   .sidebar-overlay {
     display: block !important;
@@ -1706,14 +1773,6 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
     opacity: 1;
     pointer-events: all;
   }
-  /* iPad landscape (1024–1280px) — sidebar overlay, full width = ~1024px → 5-6 day cols */
-  .week-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; gap: 8px !important; }
-}
-
-/* iPad portrait / small tablet */
-@media(max-width:768px) {
-  .main-content { padding: 12px; }
-  .week-grid { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 8px !important; }
   .topbar { padding: 8px 12px; gap: 6px; }
   .topbar-actions .btn-txt,
   .theme-toggle .btn-txt { display: none; }
@@ -3066,6 +3125,20 @@ body.ios-device .hex {
 }
 /* Su iOS: blur ridotto al minimo, solo dove serve davvero */
 /* DARK mode: sfondo solido */
+/* Su iPad (schermo > 768px) ripristina sidebar fissa anche se ios-device */
+@media(min-width:768px) {
+  body.ios-device .sidebar {
+    transform: translateX(0) !important;
+    width: 220px !important;
+  }
+  body.ios-device .main-content {
+    margin-left: 220px !important;
+    width: calc(100% - 220px) !important;
+  }
+  body.ios-device .hamburger-btn { display: none !important; }
+  body.ios-device .sidebar-overlay { display: none !important; }
+}
+
 body.ios-device:not(.light) .card,
 body.ios-device:not(.light) .summary-card,
 body.ios-device:not(.light) .day-card,
@@ -3600,6 +3673,57 @@ body.ios-device .btn-gold:hover {
         </div>
       </div>
 
+      <!-- ROW 2b: Saldo Reale Banca vs TradoCroods -->
+      <div id="saldo-banca-card" style="background:var(--card);border-radius:18px;padding:18px 22px;margin-bottom:14px;border:1.5px solid rgba(74,144,232,0.25);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;">
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:2px;">🏦 Saldo Reale Banca</div>
+            <div style="font-size:11px;color:var(--text-muted);">Confronto con rimanenza TradoCroods</div>
+          </div>
+          <button id="saldo-banca-edit-btn" onclick="saldoBancaToggleEdit()"
+            style="background:rgba(74,144,232,0.12);border:1px solid rgba(74,144,232,0.35);color:#4a90e8;border-radius:8px;padding:5px 12px;font-size:11px;font-weight:600;cursor:pointer;font-family:var(--font);">
+            ✏️ Modifica
+          </button>
+        </div>
+
+        <!-- Riga principale: saldo banca + differenza -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+
+          <!-- Saldo banca -->
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">💳 Saldo in banca</div>
+            <!-- Vista statica -->
+            <div id="saldo-banca-display" style="font-size:28px;font-weight:900;font-family:'Playfair Display',serif;color:#4a90e8;">—</div>
+            <!-- Input edit -->
+            <div id="saldo-banca-edit-row" style="display:none;align-items:center;gap:6px;">
+              <span style="font-size:14px;color:var(--text-muted);font-weight:600;">€</span>
+              <input type="number" id="saldo-banca-input" step="0.01" placeholder="es. 319.66"
+                style="flex:1;background:rgba(74,144,232,0.08);border:1.5px solid #4a90e8;border-radius:8px;padding:6px 10px;font-size:18px;font-weight:700;color:#4a90e8;font-family:'Playfair Display',serif;outline:none;width:100%;box-sizing:border-box;"
+                oninput="saldoBancaUpdateLive(this.value)"
+                onkeydown="if(event.key==='Enter')saldoBancaToggleEdit()">
+              <button onclick="saldoBancaToggleEdit()"
+                style="background:rgba(74,232,122,0.15);border:1px solid rgba(74,232,122,0.4);color:#4ae87a;border-radius:8px;padding:6px 10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:var(--font);">✅</button>
+            </div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px;" id="saldo-banca-date">—</div>
+          </div>
+
+          <!-- Differenza -->
+          <div>
+            <div style="font-size:10px;color:var(--text-muted);margin-bottom:4px;">📊 Differenza</div>
+            <div style="font-size:24px;font-weight:900;font-family:'Playfair Display',serif;" id="saldo-banca-diff">—</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px;line-height:1.4;" id="saldo-banca-diff-hint">Inserisci il saldo per confrontare</div>
+          </div>
+        </div>
+
+        <!-- Spiegazione differenza -->
+        <div id="saldo-banca-explain" style="display:none;background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;font-size:11px;color:var(--text-muted);line-height:1.7;">
+          <div style="font-weight:700;color:var(--text);margin-bottom:4px;">ℹ️ Perché sono diversi?</div>
+          <div>• <strong>Saldo banca</strong> = tutti i soldi accumulati nel tempo</div>
+          <div>• <strong>Rimanenza TradoCroods</strong> = entrate − spese del mese corrente</div>
+          <div style="margin-top:4px;color:rgba(255,255,255,0.4);">I valori coincidono solo se inserisci tutte le spese storiche.</div>
+        </div>
+      </div>
+
       <!-- ROW 3: Grafico Trend Mensile -->
       <div style="background:var(--card);border-radius:18px;padding:20px 22px;margin-bottom:14px;">
         <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:14px;">📈 Trend Spese del Mese</div>
@@ -4038,14 +4162,17 @@ body.ios-device .btn-gold:hover {
         </div>
 
         <!-- Stato notifiche -->
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;margin-bottom:16px;">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <div style="font-size:11px;color:var(--text-muted);flex:1;">Stato notifiche:</div>
-            <div id="notifPermStatus" style="font-size:12px;"></div>
+        <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:12px 14px;margin-bottom:16px;border:1px solid rgba(255,255,255,0.06);">
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">🔔 Stato notifiche</div>
+          <div id="notifPermStatus" style="font-size:13px;margin-bottom:10px;"></div>
+          <!-- Avviso iOS se non PWA -->
+          <div id="iosNotifWarning" style="display:none;background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);border-radius:8px;padding:8px 12px;font-size:12px;color:var(--gold);margin-bottom:10px;line-height:1.5;">
+            📲 <strong>iPhone/iPad:</strong> le notifiche funzionano solo se installi l'app.<br>
+            Tocca <strong>📲 Installa App</strong> nella barra in alto.
           </div>
-          <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
-            <button onclick="testNotification()" style="background:rgba(74,232,122,0.12);border:1px solid rgba(74,232,122,0.3);color:#4ae87a;border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;">🧪 Test notifica</button>
-            <button onclick="Notification.requestPermission().then(checkNotifPermission)" style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;">🔔 Richiedi permesso</button>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button onclick="testNotification()" style="background:rgba(74,232,122,0.12);border:1.5px solid rgba(74,232,122,0.35);color:#4ae87a;border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🧪 Test notifica</button>
+            <button onclick="Notification.requestPermission().then(p=>{checkNotifPermission();if(p==='granted')showToast('✅ Notifiche abilitate!')})" style="background:rgba(201,168,76,0.12);border:1.5px solid rgba(201,168,76,0.35);color:var(--gold);border-radius:10px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;">🔔 Abilita notifiche</button>
           </div>
         </div>
 
@@ -8574,6 +8701,8 @@ function getTotalExpenses() { return getExpenses().reduce((s,e)=>s+e.amount,0); 
 // ===== DASHBOARD =====
 function renderDashboard() {
   if(!document.getElementById('sum-income')) return;
+  // Aggiorna saldo banca dopo che sum-balance è stato calcolato
+  setTimeout(renderSaldoBanca, 100);
   if(!document.getElementById('latestExpenses')) return;
   const yr = parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear());
   const mo = parseInt(document.getElementById('globalMonth')?.value || new Date().getMonth()+1);
@@ -13243,6 +13372,29 @@ function parseSellaText(text) {
 }
 
 
+// ═══════════════════════════════════════════════════════
+// CONFRONTO PDF vs SPESE GIÀ REGISTRATE
+// ═══════════════════════════════════════════════════════
+function confrontaSellaPDF(expenses) {
+  // Per ogni transazione del PDF, verifica se è già in localStorage
+  // Criterio: stessa data + stesso importo (con tolleranza 0.02€) + fonte 'sella'
+  return expenses.map(t => {
+    const d   = new Date(t.date + 'T12:00:00');
+    const key = `tc_${currentUser?.email}_expenses_${d.getFullYear()}_${d.getMonth()+1}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+
+    // Cerca corrispondenza: stessa data E importo simile
+    const match = existing.find(e => {
+      const sameDate   = e.date === t.date || e.date === t.date.split('-').reverse().join('/');
+      const sameAmount = Math.abs(e.amount - t.amount) < 0.03;
+      return sameDate && sameAmount;
+    });
+
+    return { ...t, _registered: !!match, _matchDesc: match?.desc || null };
+  });
+}
+
 function renderSellaPreview(expenses, incomes, fixed, librietto, rate) {
   fixed = fixed || [];
   librietto = librietto || [];
@@ -13252,15 +13404,34 @@ function renderSellaPreview(expenses, incomes, fixed, librietto, rate) {
   const summEl  = document.getElementById('sellaPreviewSummary');
   preview.style.display = 'block';
 
+  // ── CONFRONTO: tagga ogni spesa come già registrata o mancante ──
+  const expTagged = confrontaSellaPDF(expenses);
+  const missing   = expTagged.filter(t => !t._registered);
+  const already   = expTagged.filter(t => t._registered);
+  // Aggiorna sellaParsed globale con dati tagged
+  sellaParsed = expTagged;
+
   const totalExp   = expenses.reduce((s,t)=>s+t.amount,0);
   const totalInc   = incomes.reduce((s,t)=>s+t.amount,0);
   const totalFixed = fixed.reduce((s,t)=>s+t.amount,0);
   const matchedFixed = fixed.filter(f=>f.matched).length;
 
+  // Calcoli confronto
+  const nMissing = missing.length;
+  const nAlready = already.length;
+  const totalMissing = missing.reduce((s,t)=>s+t.amount,0);
+
   summEl.innerHTML = `
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+      <!-- Badge mancanti — evidenziato -->
+      ${nMissing > 0 ? `<div onclick="sellaScrollToMissing()" style="background:rgba(224,92,92,0.18);border:2px solid rgba(224,92,92,0.6);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;transition:all 0.2s;" title="Vai alle spese mancanti">
+        🔴 <strong>${nMissing}</strong> MANCANTI · €${totalMissing.toFixed(2).replace('.',',')} <span style="font-size:10px;opacity:0.7;">↓ clicca</span>
+      </div>` : '<div style="background:rgba(74,232,122,0.15);border:1.5px solid rgba(74,232,122,0.5);border-radius:10px;padding:8px 14px;font-size:13px;">✅ Tutte già registrate!</div>'}
+      ${nAlready > 0 ? `<div style="background:rgba(74,232,122,0.08);border:1px solid rgba(74,232,122,0.25);border-radius:10px;padding:8px 14px;font-size:13px;color:var(--text-muted);">
+        ✅ <strong>${nAlready}</strong> già registrate
+      </div>` : ''}
       <div style="background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);border-radius:10px;padding:8px 14px;font-size:13px;">
-        💸 <strong>${expenses.length}</strong> uscite · €${totalExp.toFixed(2).replace('.',',')}
+        💸 <strong>${expenses.length}</strong> uscite totali · €${totalExp.toFixed(2).replace('.',',')}
       </div>
       ${fixed.length ? `<div style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.5);border-radius:10px;padding:8px 14px;font-size:13px;">
         🏠 <strong>${fixed.length}</strong> spese fisse · €${totalFixed.toFixed(2).replace('.',',')} <span style="color:#4ae87a;font-size:11px;">(${matchedFixed} abbinate ✅)</span>
@@ -13362,11 +13533,66 @@ function renderSellaPreview(expenses, incomes, fixed, librietto, rate) {
     }
   }
 
-  // ── Uscite per mese
+  // ── Sezione MANCANTI — mostrata per prima se ci sono
+  if(missing.length) {
+    html += `<div id="sella-missing-section" style="padding:10px 14px;background:rgba(224,92,92,0.15);border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:#e05c5c;display:flex;justify-content:space-between;align-items:center;">
+      <span>🔴 SPESE MANCANTI DA IMPORTARE (${missing.length})</span>
+      <button onclick="confirmSellaMissingOnly()" style="background:rgba(224,92,92,0.25);border:1.5px solid rgba(224,92,92,0.6);color:#e05c5c;border-radius:8px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">⬇️ Importa solo mancanti</button>
+    </div>`;
+    const byMonthM = {};
+    for(const t of missing) {
+      const mk = t.date.substring(0,7);
+      if(!byMonthM[mk]) byMonthM[mk] = [];
+      byMonthM[mk].push(t);
+    }
+    for(const mk of Object.keys(byMonthM).sort()) {
+      const [y,m] = mk.split('-');
+      const mName = new Date(parseInt(y),parseInt(m)-1,1).toLocaleString('it-IT',{month:'long',year:'numeric'});
+      const mTotal = byMonthM[mk].reduce((s,t)=>s+t.amount,0);
+      html += `<div style="padding:8px 14px;background:rgba(224,92,92,0.07);border-bottom:1px solid var(--border);font-size:12px;color:var(--gold);display:flex;justify-content:space-between;font-weight:700;">
+        <span>📅 ${mName.charAt(0).toUpperCase()+mName.slice(1)}</span>
+        <span style="color:#e05c5c;">${byMonthM[mk].length} voci · €${mTotal.toFixed(2).replace('.',',')}</span>
+      </div>`;
+      for(const t of byMonthM[mk]) {
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid rgba(224,92,92,0.08);font-size:12px;background:rgba(224,92,92,0.04);">
+          <span style="font-size:16px;">${catIconHtml(t.cat)}</span>
+          <span style="color:var(--text-muted);white-space:nowrap;">${t.date.split('-').reverse().join('/')}</span>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">${t.desc}</span>
+          <span style="background:rgba(224,92,92,0.15);color:#e05c5c;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">🔴 MANCANTE</span>
+          <span style="color:#e05c5c;font-weight:700;white-space:nowrap;">-€${t.amount.toFixed(2).replace('.',',')}</span>
+        </div>`;
+      }
+    }
+  }
+
+  // ── Sezione GIÀ REGISTRATE (collassata)
+  if(already.length) {
+    html += `<div style="padding:10px 14px;background:rgba(74,232,122,0.06);border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:#4ae87a;cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+      <span>✅ GIÀ REGISTRATE (${already.length})</span>
+      <span style="font-size:11px;color:var(--text-muted);">▼ mostra/nascondi</span>
+    </div>
+    <div style="display:none;">`;
+    for(const t of already) {
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;opacity:0.6;">
+        <span style="font-size:14px;">${catIconHtml(t.cat)}</span>
+        <span style="color:var(--text-muted);white-space:nowrap;">${t.date.split('-').reverse().join('/')}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.desc}</span>
+        <span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">✅ OK</span>
+        <span style="color:var(--text-muted);white-space:nowrap;">-€${t.amount.toFixed(2).replace('.',',')}</span>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  // ── Tutte le uscite (per mese) — collassate
   if(expenses.length) {
-    html += `<div style="padding:10px 14px;background:rgba(224,92,92,0.08);border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:#e05c5c;">💸 USCITE VARIABILI</div>`;
+    html += `<div style="padding:10px 14px;background:rgba(224,92,92,0.05);border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:var(--text-muted);cursor:pointer;user-select:none;display:flex;justify-content:space-between;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+      <span>💸 TUTTE LE USCITE (${expenses.length})</span>
+      <span style="font-size:11px;">▼ mostra/nascondi</span>
+    </div>
+    <div style="display:none;">`;
     const byMonth = {};
-    for(const t of expenses) {
+    for(const t of expTagged) {
       const mk = t.date.substring(0,7);
       if(!byMonth[mk]) byMonth[mk] = [];
       byMonth[mk].push(t);
@@ -13375,22 +13601,64 @@ function renderSellaPreview(expenses, incomes, fixed, librietto, rate) {
       const [y,m] = mk.split('-');
       const mName = new Date(parseInt(y),parseInt(m)-1,1).toLocaleString('it-IT',{month:'long',year:'numeric'});
       const mTotal = byMonth[mk].reduce((s,t)=>s+t.amount,0);
-      html += `<div style="padding:8px 14px;background:rgba(201,168,76,0.07);border-bottom:1px solid var(--border);font-weight:700;font-size:12px;color:var(--gold);display:flex;justify-content:space-between;">
+      html += `<div style="padding:8px 14px;background:rgba(201,168,76,0.05);border-bottom:1px solid var(--border);font-weight:700;font-size:12px;color:var(--gold);display:flex;justify-content:space-between;">
         <span>📅 ${mName.charAt(0).toUpperCase()+mName.slice(1)}</span>
         <span>${byMonth[mk].length} voci · €${mTotal.toFixed(2).replace('.',',')}</span>
       </div>`;
       for(const t of byMonth[mk]) {
-        html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;">
+        const statusBadge = t._registered
+          ? '<span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:5px;padding:2px 6px;font-size:9px;font-weight:700;">✅</span>'
+          : '<span style="background:rgba(224,92,92,0.15);color:#e05c5c;border-radius:5px;padding:2px 6px;font-size:9px;font-weight:700;">🔴</span>';
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;${t._registered?'opacity:0.55;':''}">
+          <span style="font-size:14px;">${catIconHtml(t.cat)}</span>
           <span style="color:var(--text-muted);white-space:nowrap;">${t.date.split('-').reverse().join('/')}</span>
           <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.desc}</span>
-          <span style="color:var(--text-muted);font-size:11px;">${CAT_LABELS[t.cat]||t.cat}</span>
-          <span style="color:#e05c5c;font-weight:700;white-space:nowrap;">-€${t.amount.toFixed(2).replace('.',',')}</span>
+          ${statusBadge}
+          <span style="color:${t._registered?'var(--text-muted)':'#e05c5c'};font-weight:700;white-space:nowrap;">-€${t.amount.toFixed(2).replace('.',',')}</span>
         </div>`;
       }
     }
+    html += '</div>';
   }
 
   tableEl.innerHTML = html;
+}
+
+// Importa solo le spese mancanti (non ancora registrate)
+function confirmSellaMissingOnly() {
+  const missing = sellaParsed.filter(t => !t._registered);
+  if (!missing.length) { showToast('✅ Nessuna spesa mancante — tutto già registrato!'); return; }
+
+  const byMonth = {};
+  for (const t of missing) {
+    const mk = t.date.substring(0, 7);
+    if (!byMonth[mk]) byMonth[mk] = [];
+    byMonth[mk].push(t);
+  }
+  let count = 0;
+  for (const [mk, txns] of Object.entries(byMonth)) {
+    const [y, m] = mk.split('-').map(Number);
+    const key = `tc_${currentUser?.email}_expenses_${y}_${m}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+    for (const t of txns) {
+      existing.push({ id: Date.now() + Math.random(), cat: t.cat, amount: t.amount, desc: t.desc, pay: t.pay, date: t.date, source: 'sella' });
+      count++;
+    }
+    localStorage.setItem(key, JSON.stringify(existing));
+  }
+  bumpVersion();
+  fbPushToCloud();
+  refreshAll();
+  showToast(`✅ Importate ${count} spese mancanti da Sella!`);
+  // Ricarica preview con dati aggiornati
+  renderSellaPreview(sellaParsed, sellaIncomeParsed, sellaFixedParsed, sellaLibriettoP, sellaRataP);
+}
+
+// Scroll alla sezione mancanti
+function sellaScrollToMissing() {
+  const el = document.getElementById('sella-missing-section');
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function confirmSellaImport() {
@@ -14033,48 +14301,165 @@ function renderBankPreview(bank, parsed) {
   const summEl  = document.getElementById(bank+'PreviewSummary');
   preview.style.display = 'block';
 
-  const byMonth = {};
-  for(const t of parsed) {
-    const key = t.date.substring(0,7);
-    if(!byMonth[key]) byMonth[key] = [];
-    byMonth[key].push(t);
-  }
-  const months = Object.keys(byMonth).sort();
-  const total  = parsed.reduce((s,t) => s+t.amount, 0);
+  // ── Confronto con spese già registrate ──
+  const tagged   = confrontaSellaPDF(parsed); // riuso stesso confronto (data+importo)
+  const missing  = tagged.filter(t => !t._registered);
+  const already  = tagged.filter(t =>  t._registered);
+  const total    = parsed.reduce((s,t) => s+t.amount, 0);
+  const totMiss  = missing.reduce((s,t) => s+t.amount, 0);
+  const months   = [...new Set(parsed.map(t => t.date.substring(0,7)))].sort();
+
+  // Aggiorna array globale con dati tagged
+  if(bank === 'revolut')  revolutParsed  = tagged;
+  if(bank === 'satispay') satispayParsed = tagged;
+
+  const bankIcon = bank === 'revolut' ? '💜' : bank === 'satispay' ? '📱' : '🏦';
 
   summEl.innerHTML = `
-    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
-      <div style="background:rgba(74,232,122,0.1);border:1px solid rgba(74,232,122,0.3);border-radius:10px;padding:8px 14px;font-size:13px;">
-        📊 <strong>${parsed.length}</strong> uscite trovate
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px;">
+      ${missing.length > 0
+        ? `<div onclick="bankScrollToMissing('${bank}')" style="background:rgba(224,92,92,0.18);border:2px solid rgba(224,92,92,0.6);border-radius:10px;padding:8px 14px;font-size:13px;cursor:pointer;" title="Vai alle spese mancanti">
+             🔴 <strong>${missing.length}</strong> MANCANTI · €${totMiss.toFixed(2).replace('.',',')} <span style="font-size:10px;opacity:0.7;">↓ clicca</span>
+           </div>`
+        : `<div style="background:rgba(74,232,122,0.15);border:1.5px solid rgba(74,232,122,0.5);border-radius:10px;padding:8px 14px;font-size:13px;">✅ Tutte già registrate!</div>`
+      }
+      ${already.length > 0 ? `<div style="background:rgba(74,232,122,0.08);border:1px solid rgba(74,232,122,0.25);border-radius:10px;padding:8px 14px;font-size:13px;color:var(--text-muted);">
+        ✅ <strong>${already.length}</strong> già registrate
+      </div>` : ''}
+      <div style="background:rgba(224,92,92,0.08);border:1px solid rgba(224,92,92,0.25);border-radius:10px;padding:8px 14px;font-size:13px;">
+        ${bankIcon} <strong>${parsed.length}</strong> totali · €${total.toFixed(2).replace('.',',')}
       </div>
-      <div style="background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);border-radius:10px;padding:8px 14px;font-size:13px;">
-        💸 Totale: <strong>€${total.toFixed(2).replace('.',',')}</strong>
-      </div>
-      <div style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:8px 14px;font-size:13px;">
+      <div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:10px;padding:8px 14px;font-size:13px;">
         📅 <strong>${months.length}</strong> mes${months.length===1?'e':'i'}
       </div>
     </div>
-    <div style="font-size:12px;color:var(--text-muted);margin-top:8px;">Le categorie sono assegnate automaticamente — puoi modificarle dopo l'importazione.</div>`;
+    <div style="font-size:12px;color:var(--text-muted);">Le categorie sono assegnate automaticamente — puoi modificarle dopo l'importazione.</div>`;
 
   let html = '';
-  for(const mk of months) {
-    const [y, m] = mk.split('-');
-    const mName  = new Date(parseInt(y), parseInt(m)-1, 1).toLocaleString('it-IT', {month:'long', year:'numeric'});
-    const mTotal = byMonth[mk].reduce((s,t) => s+t.amount, 0);
-    html += `<div style="padding:10px 14px;background:rgba(201,168,76,0.07);border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:var(--gold);display:flex;justify-content:space-between;">
-      <span>📅 ${mName.charAt(0).toUpperCase()+mName.slice(1)}</span>
-      <span>${byMonth[mk].length} voci · €${mTotal.toFixed(2).replace('.',',')}</span>
+
+  // ── Sezione MANCANTI ──
+  if(missing.length) {
+    html += `<div id="${bank}-missing-section" style="padding:10px 14px;background:rgba(224,92,92,0.15);border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:#e05c5c;display:flex;justify-content:space-between;align-items:center;">
+      <span>🔴 SPESE MANCANTI (${missing.length})</span>
+      <button onclick="bankImportMissingOnly('${bank}')" style="background:rgba(224,92,92,0.25);border:1.5px solid rgba(224,92,92,0.6);color:#e05c5c;border-radius:8px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">⬇️ Importa solo mancanti</button>
     </div>`;
-    for(const t of byMonth[mk]) {
-      html += `<div style="display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;">
+    const byMon = {};
+    for(const t of missing) {
+      const mk = t.date.substring(0,7);
+      if(!byMon[mk]) byMon[mk] = [];
+      byMon[mk].push(t);
+    }
+    for(const mk of Object.keys(byMon).sort()) {
+      const [y,m] = mk.split('-');
+      const mName = new Date(parseInt(y),parseInt(m)-1,1).toLocaleString('it-IT',{month:'long',year:'numeric'});
+      const mTot  = byMon[mk].reduce((s,t)=>s+t.amount,0);
+      html += `<div style="padding:8px 14px;background:rgba(224,92,92,0.06);border-bottom:1px solid var(--border);font-size:12px;color:var(--gold);font-weight:700;display:flex;justify-content:space-between;">
+        <span>📅 ${mName.charAt(0).toUpperCase()+mName.slice(1)}</span>
+        <span style="color:#e05c5c;">${byMon[mk].length} voci · €${mTot.toFixed(2).replace('.',',')}</span>
+      </div>`;
+      for(const t of byMon[mk]) {
+        html += `<div style="display:flex;align-items:center;gap:8px;padding:9px 14px;border-bottom:1px solid rgba(224,92,92,0.07);font-size:12px;background:rgba(224,92,92,0.03);">
+          <span style="font-size:15px;">${catIconHtml(t.cat)}</span>
+          <span style="color:var(--text-muted);white-space:nowrap;">${t.date.split('-').reverse().join('/')}</span>
+          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500;">${t.desc}</span>
+          <span style="background:rgba(224,92,92,0.15);color:#e05c5c;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;">🔴 MANCANTE</span>
+          <span style="color:#e05c5c;font-weight:700;white-space:nowrap;">-€${t.amount.toFixed(2).replace('.',',')}</span>
+        </div>`;
+      }
+    }
+  }
+
+  // ── Sezione GIÀ REGISTRATE (collassata) ──
+  if(already.length) {
+    html += `<div style="padding:10px 14px;background:rgba(74,232,122,0.06);border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:#4ae87a;cursor:pointer;user-select:none;display:flex;justify-content:space-between;align-items:center;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+      <span>✅ GIÀ REGISTRATE (${already.length})</span>
+      <span style="font-size:11px;color:var(--text-muted);">▼ mostra/nascondi</span>
+    </div>
+    <div style="display:none;">`;
+    for(const t of already) {
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;opacity:0.55;">
+        <span style="font-size:14px;">${catIconHtml(t.cat)}</span>
+        <span style="color:var(--text-muted);white-space:nowrap;">${t.date.split('-').reverse().join('/')}</span>
+        <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.desc}</span>
+        <span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;">✅ OK</span>
+        <span style="color:var(--text-muted);white-space:nowrap;">-€${t.amount.toFixed(2).replace('.',',')}</span>
+      </div>`;
+    }
+    html += '</div>';
+  }
+
+  // ── Tutte le uscite per mese (collassate) ──
+  html += `<div style="padding:10px 14px;background:rgba(255,255,255,0.03);border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:var(--text-muted);cursor:pointer;user-select:none;display:flex;justify-content:space-between;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+    <span>${bankIcon} TUTTE LE USCITE (${parsed.length})</span>
+    <span style="font-size:11px;">▼ mostra/nascondi</span>
+  </div>
+  <div style="display:none;">`;
+  for(const mk of months) {
+    const [y,m] = mk.split('-');
+    const mName = new Date(parseInt(y),parseInt(m)-1,1).toLocaleString('it-IT',{month:'long',year:'numeric'});
+    const byMon = tagged.filter(t=>t.date.startsWith(mk));
+    const mTot  = byMon.reduce((s,t)=>s+t.amount,0);
+    html += `<div style="padding:8px 14px;background:rgba(201,168,76,0.05);border-bottom:1px solid var(--border);font-weight:700;font-size:12px;color:var(--gold);display:flex;justify-content:space-between;">
+      <span>📅 ${mName.charAt(0).toUpperCase()+mName.slice(1)}</span>
+      <span>${byMon.length} voci · €${mTot.toFixed(2).replace('.',',')}</span>
+    </div>`;
+    for(const t of byMon) {
+      const badge = t._registered
+        ? '<span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:5px;padding:2px 6px;font-size:9px;font-weight:700;">✅</span>'
+        : '<span style="background:rgba(224,92,92,0.15);color:#e05c5c;border-radius:5px;padding:2px 6px;font-size:9px;font-weight:700;">🔴</span>';
+      html += `<div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:12px;${t._registered?'opacity:0.5;':''}">
+        <span style="font-size:14px;">${catIconHtml(t.cat)}</span>
         <span style="color:var(--text-muted);white-space:nowrap;">${t.date.split('-').reverse().join('/')}</span>
         <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${t.desc}</span>
         <span style="color:var(--text-muted);font-size:11px;">${CAT_LABELS[t.cat]||t.cat}</span>
-        <span style="color:#e05c5c;font-weight:700;white-space:nowrap;">-€${t.amount.toFixed(2).replace('.',',')}</span>
+        ${badge}
+        <span style="color:${t._registered?'var(--text-muted)':'#e05c5c'};font-weight:700;white-space:nowrap;">-€${t.amount.toFixed(2).replace('.',',')}</span>
       </div>`;
     }
   }
+  html += '</div>';
+
   tableEl.innerHTML = html;
+}
+
+// Scroll alla sezione mancanti del banco specifico
+function bankScrollToMissing(bank) {
+  const el = document.getElementById(bank + '-missing-section');
+  if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Importa solo le spese mancanti per Revolut/Satispay
+function bankImportMissingOnly(bank) {
+  const parsed = bank === 'revolut' ? revolutParsed : satispayParsed;
+  const missing = parsed.filter(t => !t._registered);
+  if(!missing.length) { showToast('✅ Nessuna spesa mancante!'); return; }
+
+  const src = bank;
+  const byMonth = {};
+  for(const t of missing) {
+    const mk = t.date.substring(0,7);
+    if(!byMonth[mk]) byMonth[mk] = [];
+    byMonth[mk].push(t);
+  }
+  let count = 0;
+  for(const [mk, txns] of Object.entries(byMonth)) {
+    const [y,m] = mk.split('-').map(Number);
+    const key = `tc_${currentUser?.email}_expenses_${y}_${m}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+    for(const t of txns) {
+      existing.push({ id: Date.now()+Math.random(), cat:t.cat, amount:t.amount, desc:t.desc, pay:t.pay, date:t.date, source: src });
+      count++;
+    }
+    localStorage.setItem(key, JSON.stringify(existing));
+  }
+  bumpVersion();
+  fbPushToCloud();
+  refreshAll();
+  const icon = bank === 'revolut' ? '💜 Revolut' : '📱 Satispay';
+  showToast(`✅ Importate ${count} spese mancanti da ${icon}!`);
+  // Ricarica preview con dati aggiornati
+  renderBankPreview(bank, parsed);
 }
 
 // Import generico: scrive in localStorage per ogni mese, poi sync Firebase
@@ -16793,6 +17178,7 @@ function checkRemindersMain() {
 
 function updateReminderBadge() {
   const now = Date.now();
+  const list = getReminders();
   const pending = list.filter(r => !r.completed && r.ts > now).length;
   const overdue = list.filter(r => !r.completed && r.ts <= now && r.notified).length;
   const badge = document.getElementById('reminderNavBadge');
@@ -17053,21 +17439,89 @@ function renderReminderList() {
   cont.innerHTML = html;
 }
 
+async function testNotification() {
+  // Controlla supporto
+  if (!('Notification' in window)) {
+    showToast('❌ Questo browser non supporta le notifiche');
+    return;
+  }
+
+  // Su iOS: le notifiche web funzionano solo come PWA installata
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  const isStandalone = window.navigator.standalone === true ||
+                       window.matchMedia('(display-mode: standalone)').matches;
+  if (isIOS && !isStandalone) {
+    showToast('📲 Su iPhone/iPad installa l\'app per ricevere notifiche!');
+    setTimeout(() => {
+      const g = document.getElementById('iosInstallGuide');
+      if (g) g.style.display = 'block';
+    }, 1000);
+    return;
+  }
+
+  // Richiedi permesso se non ancora concesso
+  if (Notification.permission === 'default') {
+    const perm = await Notification.requestPermission();
+    checkNotifPermission();
+    if (perm !== 'granted') {
+      showToast('🚫 Permesso notifiche negato');
+      return;
+    }
+  }
+
+  if (Notification.permission === 'denied') {
+    showToast('🚫 Notifiche bloccate — abilitale nelle impostazioni del browser');
+    return;
+  }
+
+  // Invia notifica di test
+  try {
+    const n = new Notification('🧪 Test TradoCroods', {
+      body: 'Le notifiche funzionano! Riceverai avvisi per i promemoria.',
+      icon: 'icon-192.png',
+      tag: 'test-' + Date.now(),
+      requireInteraction: false
+    });
+    showToast('✅ Notifica di test inviata!');
+    setTimeout(() => n.close(), 5000);
+  } catch(e) {
+    showToast('❌ Errore notifica: ' + e.message);
+    console.error('Test notification error:', e);
+  }
+}
+
 function checkNotifPermission() {
   const el = document.getElementById('notifPermStatus');
   if (!el) return;
+
+  // Rileva iOS non installato come PWA
+  const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
+                (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
+  const isStandalone = window.navigator.standalone === true ||
+                       window.matchMedia('(display-mode: standalone)').matches;
+  const iosWarn = document.getElementById('iosNotifWarning');
+
+  if (isIOS && !isStandalone) {
+    el.innerHTML = '⚠️ Su iPhone/iPad le notifiche richiedono l\'app installata';
+    el.style.color = 'var(--gold)';
+    if (iosWarn) iosWarn.style.display = 'block';
+    return;
+  }
+  if (iosWarn) iosWarn.style.display = 'none';
+
   if (!('Notification' in window)) {
     el.innerHTML = '❌ Notifiche non supportate da questo browser';
     el.style.color = 'var(--red)';
   } else if (Notification.permission === 'granted') {
-    el.innerHTML = '✅ Notifiche abilitate';
+    el.innerHTML = '✅ Notifiche abilitate — riceverai avvisi per i promemoria';
     el.style.color = '#4ae87a';
   } else if (Notification.permission === 'denied') {
-    el.innerHTML = '🚫 Notifiche bloccate — vai nelle impostazioni del browser per sbloccarle';
+    el.innerHTML = '🚫 Notifiche bloccate — abilitale nelle impostazioni del browser/sistema';
     el.style.color = 'var(--red)';
   } else {
-    el.innerHTML = '<button onclick="Notification.requestPermission().then(p=>checkNotifPermission())" style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.4);color:var(--gold);border-radius:8px;padding:6px 14px;font-size:12px;cursor:pointer;">🔔 Abilita notifiche</button>';
-    el.style.color = '';
+    el.innerHTML = '⏳ Permesso non ancora concesso — clicca "Abilita notifiche"';
+    el.style.color = 'var(--gold)';
   }
 }
 
@@ -17145,6 +17599,113 @@ function checkIOSInstallPrompt() {
 }
 
 // Gestisce il click su "Installa App": nativo su Android/desktop, guida su iOS
+// ═══════════════════════════════════════
+// SALDO REALE BANCA
+// ═══════════════════════════════════════
+function getSaldoBanca() {
+  try { return JSON.parse(localStorage.getItem(getKey('saldo_banca')) || 'null'); } catch(e) { return null; }
+}
+function saveSaldoBanca(val) {
+  localStorage.setItem(getKey('saldo_banca'), JSON.stringify(val));
+  bumpVersion();
+}
+
+function saldoBancaToggleEdit() {
+  const editRow = document.getElementById('saldo-banca-edit-row');
+  const display  = document.getElementById('saldo-banca-display');
+  const btn      = document.getElementById('saldo-banca-edit-btn');
+  const isOpen   = editRow.style.display !== 'none';
+
+  if (isOpen) {
+    // Salva
+    const val = parseFloat(document.getElementById('saldo-banca-input').value);
+    if (!isNaN(val)) {
+      const data = { amount: val, date: new Date().toLocaleDateString('it-IT') };
+      saveSaldoBanca(data);
+      fbPushToCloud();
+    }
+    editRow.style.display = 'none';
+    display.style.display = '';
+    btn.textContent = '✏️ Modifica';
+    renderSaldoBanca();
+  } else {
+    // Apri edit
+    const saved = getSaldoBanca();
+    document.getElementById('saldo-banca-input').value = saved ? saved.amount : '';
+    editRow.style.display = 'flex';
+    display.style.display = 'none';
+    btn.textContent = '✕ Annulla';
+    setTimeout(() => document.getElementById('saldo-banca-input').focus(), 50);
+  }
+}
+
+function saldoBancaUpdateLive(val) {
+  // Aggiorna la differenza in tempo reale mentre si digita
+  const amount = parseFloat(val);
+  if (!isNaN(amount)) {
+    _renderSaldoBancaDiff(amount);
+  }
+}
+
+function _renderSaldoBancaDiff(bancaAmount) {
+  const diffEl = document.getElementById('saldo-banca-diff');
+  const hintEl = document.getElementById('saldo-banca-diff-hint');
+  const explEl = document.getElementById('saldo-banca-explain');
+  const balText = document.getElementById('sum-balance')?.textContent || '0';
+  const tradoVal = parseFloat(balText.replace('€','').replace('.','').replace(',','.').replace('−','-').replace('-','').trim()) * (balText.includes('−') || balText.includes('-') ? -1 : 1);
+
+  if (isNaN(tradoVal)) return;
+  const diff = bancaAmount - tradoVal;
+  const sign = diff >= 0 ? '+' : '';
+  const col  = diff >= 0 ? '#4ae87a' : '#e05c5c';
+  const fmt  = v => '€' + Math.abs(v).toFixed(2).replace('.', ',');
+
+  if (diffEl) {
+    diffEl.textContent = sign + (diff < 0 ? '-' : '') + fmt(diff);
+    diffEl.style.color = col;
+  }
+  if (hintEl) {
+    if (Math.abs(diff) < 1) {
+      hintEl.textContent = '✅ Saldo banca e TradoCroods coincidono!';
+      hintEl.style.color = '#4ae87a';
+    } else if (diff > 0) {
+      hintEl.textContent = 'La banca ha ' + fmt(diff) + ' in più (risparmi storici o entrate non registrate)';
+      hintEl.style.color = 'var(--text-muted)';
+    } else {
+      hintEl.textContent = 'La banca ha ' + fmt(Math.abs(diff)) + ' in meno (spese non ancora registrate?)';
+      hintEl.style.color = '#ffb400';
+    }
+  }
+  if (explEl) explEl.style.display = 'block';
+}
+
+function renderSaldoBanca() {
+  const saved   = getSaldoBanca();
+  const display = document.getElementById('saldo-banca-display');
+  const dateEl  = document.getElementById('saldo-banca-date');
+  const diffEl  = document.getElementById('saldo-banca-diff');
+  const hintEl  = document.getElementById('saldo-banca-diff-hint');
+  const explEl  = document.getElementById('saldo-banca-explain');
+
+  if (!display) return;
+
+  if (!saved || saved.amount === null) {
+    display.textContent = '—';
+    display.style.color = 'var(--text-muted)';
+    if (dateEl) dateEl.textContent = 'Non ancora inserito';
+    if (diffEl) { diffEl.textContent = '—'; diffEl.style.color = 'var(--text-muted)'; }
+    if (hintEl) hintEl.textContent = 'Clicca ✏️ Modifica per inserire il saldo';
+    if (explEl) explEl.style.display = 'none';
+    return;
+  }
+
+  const fmt = v => '€' + v.toFixed(2).replace('.', ',');
+  display.textContent = fmt(saved.amount);
+  display.style.color = '#4a90e8';
+  if (dateEl) dateEl.textContent = 'Aggiornato il ' + saved.date;
+  _renderSaldoBancaDiff(saved.amount);
+}
+
 function toggleTopbarMenu() {
   const m = document.getElementById('topbarMobileMenu');
   if(m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
