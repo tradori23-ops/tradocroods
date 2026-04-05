@@ -4200,6 +4200,29 @@ body.ios-device .btn-gold:hover {
         </div>
       </div>
 
+      <!-- SATISPAY RICEVUTA SINGOLA -->
+      <div class="card mb-20" style="border:2px dashed rgba(255,140,0,0.45);background:rgba(255,140,0,0.04);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <span style="font-size:28px;">🧾</span>
+          <div>
+            <div class="card-title" style="margin:0;">Carica Ricevuta Satispay</div>
+            <div style="font-size:12px;color:var(--text-muted);">Carica la ricevuta PDF di un singolo pagamento — viene aggiunta automaticamente alle spese</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="satispayRicevutaInput" accept=".pdf" style="display:none;" onchange="importSatispayRicevuta(event)" multiple>
+          <button class="btn" onclick="document.getElementById('satispayRicevutaInput').click()" style="background:linear-gradient(135deg,#ff8c00,#e07000);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">🧾 Scegli ricevuta/e PDF</button>
+          <span id="satispayRicevutaStatus" style="font-size:13px;color:var(--text-muted);"></span>
+        </div>
+        <div id="satispayRicevutaPreview" style="display:none;margin-top:16px;">
+          <div id="satispayRicevutaList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-gold" onclick="confirmSatispayRicevute()" style="flex:1;min-width:140px;">✅ Importa tutte</button>
+            <button class="btn btn-outline" onclick="cancelSatispayRicevute()" style="flex:1;min-width:120px;">❌ Annulla</button>
+          </div>
+        </div>
+      </div>
+
       <!-- SATISPAY PDF IMPORT CARD -->
       <div class="card mb-20" style="border:2px dashed rgba(255,92,92,0.45);background:rgba(255,92,92,0.04);">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
@@ -4239,6 +4262,30 @@ body.ios-device .btn-gold:hover {
       </div>
 
 
+      <!-- BANCA SELLA SCREENSHOT IMPORT -->
+      <div class="card mb-20" style="border:2px dashed rgba(74,184,232,0.6);background:rgba(74,184,232,0.06);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <span style="font-size:28px;">📷</span>
+          <div>
+            <div class="card-title" style="margin:0;">Screenshot App Banca Sella</div>
+            <div style="font-size:12px;color:var(--text-muted);">Carica uno screenshot della home Sella — l'AI legge i movimenti, aggiorna le spese e il saldo</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="sellaScreenshotInput" accept="image/*" style="display:none;" onchange="importSellaScreenshot(event)" multiple>
+          <button class="btn" onclick="document.getElementById('sellaScreenshotInput').click()" style="background:linear-gradient(135deg,#4ab8e8,#2a8fc9);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📷 Scegli screenshot/i</button>
+          <span id="sellaScreenshotStatus" style="font-size:13px;color:var(--text-muted);"></span>
+        </div>
+        <div id="sellaScreenshotPreview" style="display:none;margin-top:16px;">
+          <div id="sellaScreenshotInfo" style="margin-bottom:10px;font-size:13px;font-weight:600;color:#4a90e8;"></div>
+          <div id="sellaScreenshotList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-gold" onclick="confirmSellaScreenshots()" style="flex:1;min-width:140px;">✅ Importa spese</button>
+            <button class="btn btn-outline" onclick="cancelSellaScreenshots()" style="flex:1;min-width:120px;">❌ Annulla</button>
+          </div>
+        </div>
+      </div>
+
       <!-- BANCA SELLA PDF IMPORT CARD -->
       <div class="card mb-20" style="border:2px dashed rgba(74,184,232,0.45);background:rgba(74,184,232,0.04);">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
@@ -4259,6 +4306,29 @@ body.ios-device .btn-gold:hover {
           <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
             <button class="btn btn-gold" onclick="confirmSellaImport()" style="flex:1;min-width:140px;">✅ Importa Tutto</button>
             <button class="btn btn-outline" onclick="cancelSellaImport()" style="flex:1;min-width:120px;">❌ Annulla</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- REVOLUT SCREENSHOT IMPORT -->
+      <div class="card mb-20" style="border:2px dashed rgba(130,100,220,0.6);background:rgba(130,100,220,0.06);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <span style="font-size:28px;">💜</span>
+          <div>
+            <div class="card-title" style="margin:0;">Screenshot transazione Revolut</div>
+            <div style="font-size:12px;color:var(--text-muted);">Carica uno screenshot dal dettaglio transazione Revolut — l'AI estrae importo, commerciante e data in automatico</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="revolutScreenshotInput" accept="image/*" style="display:none;" onchange="importRevolutScreenshot(event)" multiple>
+          <button class="btn" onclick="document.getElementById('revolutScreenshotInput').click()" style="background:linear-gradient(135deg,#8264dc,#5a3fb5);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📷 Scegli screenshot/i</button>
+          <span id="revolutScreenshotStatus" style="font-size:13px;color:var(--text-muted);"></span>
+        </div>
+        <div id="revolutScreenshotPreview" style="display:none;margin-top:16px;">
+          <div id="revolutScreenshotList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-gold" onclick="confirmRevolutScreenshots()" style="flex:1;min-width:140px;">✅ Importa tutte</button>
+            <button class="btn btn-outline" onclick="cancelRevolutScreenshots()" style="flex:1;min-width:120px;">❌ Annulla</button>
           </div>
         </div>
       </div>
@@ -13200,7 +13270,17 @@ function parseSellaText(text) {
     /libretto di risparmio/i,
     /contributo.*da\s/i,
     /stipendio|salario/i,
-    /\bsdd\b.*add\.diretto/i,
+    /sdd.*add\.diretto/i,
+    // ── Tasse, commissioni e spese bancarie Sella ──
+    /canone del conto|canone conto/i,
+    /commissioni?\s*(banca|bancarie?|di\s*tenuta|su\s*conto)/i,
+    /spese\s*(di\s*)?(tenuta\s*)?conto/i,
+    /imposta\s*di\s*bollo/i,
+    /tassa\s*(di\s*)?bollo/i,
+    /interessi\s*(debitori?|passivi?)/i,
+    /recupero\s*spese/i,
+    /diritti\s*di\s*segreteria/i,
+    /commissione\s*(pos|bancomat|prelievo)/i,
   ];
 
   // Pattern SPESE FISSE — catturate e abbinate a fixedItems
@@ -18061,36 +18141,81 @@ function renderCC() {
     return;
   }
 
-  // Header tabella
+  // Intestazione colonne
   let html = `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:8px 16px;background:rgba(255,255,255,0.04);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-bottom:1px solid var(--border);">
     <span>Data</span><span>Descrizione</span><span style="text-align:right;">Importo</span><span style="text-align:right;padding-left:12px;">Saldo</span>
   </div>`;
 
-  // Raggruppa per mese
+  const MESI_IT = ['','Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  const fmtV = v => (v<0?'-':'') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
+
+  let currentYear  = '';
   let currentMonth = '';
-  let saldoFineGruppo = saldoProgressivo;
+  // Totali per mese e anno correnti
+  let mEntrate = 0, mUscite = 0;
+  let aEntrate = 0, aUscite = 0;
+  // Saldo a fine mese/anno (per la riga di chiusura)
+  let saldoChiusuraMese = saldoProgressivo;
+  let saldoChiusuraAnno = saldoProgressivo;
+
+  const chiudiMese = () => {
+    if(!currentMonth) return;
+    html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:6px 16px 6px 26px;background:rgba(255,255,255,0.025);border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted);">
+      <span></span>
+      <span>Totale ${MESI_IT[parseInt(currentMonth.split('-')[1])]}</span>
+      <span style="text-align:right;">${mEntrate>0?'<span style=color:#4ae87a>+'+fmtV(mEntrate)+'</span> ':''}<span style="color:#e05c5c;">-${fmtV(mUscite)}</span></span>
+      <span style="color:${saldoChiusuraMese>=0?'#4a90e8':'var(--red)'};font-weight:700;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">${fmtV(saldoChiusuraMese)}</span>
+    </div>`;
+    mEntrate = 0; mUscite = 0;
+  };
+
+  const chiudiAnno = () => {
+    if(!currentYear) return;
+    html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:8px 16px;background:rgba(201,168,76,0.12);border-top:2px solid rgba(201,168,76,0.3);border-bottom:2px solid rgba(201,168,76,0.3);font-size:12px;font-weight:700;color:var(--gold);">
+      <span></span>
+      <span>📊 Totale ${currentYear}</span>
+      <span style="text-align:right;font-size:11px;">${aEntrate>0?'+'+fmtV(aEntrate)+' ':''}-${fmtV(aUscite)}</span>
+      <span style="color:${saldoChiusuraAnno>=0?'#4a90e8':'var(--red)'};font-weight:900;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">${fmtV(saldoChiusuraAnno)}</span>
+    </div>`;
+    aEntrate = 0; aUscite = 0;
+  };
 
   filtrati.forEach((m, idx) => {
+    const year  = m.date.substring(0, 4);
     const month = m.date.substring(0, 7);
     const d = new Date(m.date + 'T12:00:00');
     const dateStr = d.toLocaleDateString('it-IT', {day:'2-digit', month:'short'});
 
-    // Header mese
-    if(month !== currentMonth) {
-      if(currentMonth !== '') {
-        // Totale mese precedente
-      }
-      currentMonth = month;
-      const mName = d.toLocaleDateString('it-IT', {month:'long', year:'numeric'});
-      html += `<div style="padding:8px 16px;background:rgba(201,168,76,0.08);border-bottom:1px solid var(--border);border-top:1px solid var(--border);font-size:12px;font-weight:700;color:var(--gold);">
-        📅 ${mName.charAt(0).toUpperCase() + mName.slice(1)}
+    // ── Header ANNO ──
+    if(year !== currentYear) {
+      chiudiMese();
+      chiudiAnno();
+      currentYear  = year;
+      currentMonth = '';
+      html += `<div style="padding:10px 16px;background:rgba(74,144,232,0.12);border-top:3px solid rgba(74,144,232,0.5);border-bottom:1px solid rgba(74,144,232,0.3);font-size:14px;font-weight:900;color:#4a90e8;letter-spacing:1px;">
+        ═══ ${year} ═══
       </div>`;
     }
 
-    // Calcola saldo dopo questo movimento (lista invertita, quindi sottraggo/aggiungo al contrario)
+    // ── Header MESE ──
+    if(month !== currentMonth) {
+      if(currentMonth) chiudiMese();
+      currentMonth = month;
+      const mo = parseInt(month.split('-')[1]);
+      const movMese = filtrati.filter(x => x.date.startsWith(month));
+      const nMov = movMese.length;
+      html += `<div style="display:grid;grid-template-columns:1fr auto;padding:7px 16px 7px 20px;background:rgba(201,168,76,0.07);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--gold);">
+        <span>📅 ${MESI_IT[mo]} ${year}</span>
+        <span style="font-size:10px;color:var(--text-muted);font-weight:400;">${nMov} moviment${nMov===1?'o':'i'}</span>
+      </div>`;
+    }
+
+    // ── Calcola saldo (lista newest-first, risaliamo) ──
     const saldoDopo = saldoProgressivo;
-    if(m.tipo === 'entrata') saldoProgressivo -= m.amount;
-    else saldoProgressivo += m.amount;
+    if(m.tipo === 'entrata') { saldoProgressivo -= m.amount; mEntrate += m.amount; aEntrate += m.amount; }
+    else                     { saldoProgressivo += m.amount; mUscite  += m.amount; aUscite  += m.amount; }
+    saldoChiusuraMese = saldoDopo;
+    saldoChiusuraAnno = saldoDopo;
 
     const tipoColor = m.tipo === 'entrata' ? '#4ae87a' : (m.tipo === 'bonifico' ? '#ffb400' : '#e05c5c');
     const tipoIcon  = m.tipo === 'entrata' ? '💵' : (m.tipo === 'bonifico' ? '🏦' : '💸');
@@ -18100,16 +18225,20 @@ function renderCC() {
                     : m.source === 'revolut'  ? '<span style="background:rgba(138,92,246,0.2);color:#a78bfa;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;">💜</span>'
                     : '';
 
-    html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;align-items:center;${idx % 2 === 0 ? '' : 'background:rgba(255,255,255,0.015);'}">
+    html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:9px 16px 9px 20px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;align-items:center;${idx%2===0?'':'background:rgba(255,255,255,0.012);'}">
       <span style="color:var(--text-muted);font-size:11px;">${dateStr}</span>
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">
         ${tipoIcon} ${m.desc}${srcBadge}
-        ${m.cat ? `<span style="font-size:9px;color:var(--text-muted);margin-left:4px;">${m.cat}</span>` : ''}
+        ${m.cat&&m.cat!==m.tipo?`<span style="font-size:9px;color:var(--text-muted);margin-left:4px;opacity:0.7;">${m.cat}</span>`:''}
       </span>
       <span style="color:${tipoColor};font-weight:700;white-space:nowrap;text-align:right;">${segno}€${m.amount.toFixed(2).replace('.', ',')}</span>
-      <span style="color:${saldoDopo >= 0 ? '#4a90e8' : 'var(--red)'};font-weight:700;white-space:nowrap;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">€${Math.abs(saldoDopo).toFixed(2).replace('.', ',')}</span>
+      <span style="color:${saldoDopo>=0?'#4a90e8':'var(--red)'};font-weight:700;white-space:nowrap;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">${fmtV(saldoDopo)}</span>
     </div>`;
   });
+
+  // Chiudi ultimo mese e anno
+  chiudiMese();
+  chiudiAnno();
 
   // Riga saldo attuale (punto di riferimento)
   const fmtSI = v => (v<0?'-':'') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
@@ -18121,6 +18250,564 @@ function renderCC() {
   </div>`;
 
   if(listEl) listEl.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPORT RICEVUTE SINGOLE SATISPAY
+// Formato: "Deliveroo", "25,82 €", "04/04/2026, 19:00"
+// ═══════════════════════════════════════════════════════
+
+let _ricevuteParsed = []; // array ricevute pronte per l'import
+
+async function importSatispayRicevuta(event) {
+  const files = Array.from(event.target.files);
+  event.target.value = '';
+  if(!files.length) return;
+
+  const statusEl = document.getElementById('satispayRicevutaStatus');
+  const preview  = document.getElementById('satispayRicevutaPreview');
+  statusEl.textContent = '⏳ Lettura in corso...';
+  preview.style.display = 'none';
+  _ricevuteParsed = [];
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  for(const file of files) {
+    try {
+      const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      let text = '';
+      for(let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map(x => x.str).join(' ') + '\n';
+      }
+      const parsed = parseSatispayRicevuta(text, file.name);
+      if(parsed) _ricevuteParsed.push(parsed);
+    } catch(e) {
+      console.error('Errore ricevuta', file.name, e);
+    }
+  }
+
+  if(!_ricevuteParsed.length) {
+    statusEl.textContent = '⚠️ Nessuna ricevuta Satispay riconosciuta';
+    return;
+  }
+
+  statusEl.textContent = '✅ ' + _ricevuteParsed.length + ' ricevut' + (_ricevuteParsed.length===1?'a':'e') + ' trovata/e';
+  renderSatispayRicevutePreview();
+}
+
+function parseSatispayRicevuta(text, fileName) {
+  // Estrai beneficiario — nome dopo "Beneficiario" o prima del CF/PI
+  let beneficiario = '';
+  const benMatch = text.match(/Beneficiario\s+([A-Za-zÀ-ÿ0-9\s\.\-&']+?)(?:\s+PI|\s+CF|\s+Importo|\s+Dati|\n)/i);
+  if(benMatch) beneficiario = benMatch[1].trim();
+  // Fallback: usa il nome del file
+  if(!beneficiario && fileName) {
+    const fn = fileName.replace(/Ricevuta-Satispay-/i,'').replace(/[-_]/g,' ').replace(/\.pdf$/i,'');
+    const parts = fn.split(' ').filter(p => p && !p.match(/^\d+/));
+    if(parts.length) beneficiario = parts[0];
+  }
+
+  // Estrai importo — cerca pattern "25,82 €" o "25.82 €" o "€ 25,82"
+  let amount = 0;
+  const amtMatch = text.match(/(\d{1,4}[.,]\d{2})\s*€/);
+  if(amtMatch) amount = parseFloat(amtMatch[1].replace(',','.'));
+  if(!amount) {
+    const amtMatch2 = text.match(/Importo totale\s+(\d{1,4}[.,]\d{2})/i);
+    if(amtMatch2) amount = parseFloat(amtMatch2[1].replace(',','.'));
+  }
+
+  // Estrai data — cerca "04/04/2026" o "4 aprile 2026"
+  let date = '';
+  const dateMatch = text.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if(dateMatch) {
+    date = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+  } else {
+    const mesiIT = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+    const dateMatch2 = text.match(/(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(\d{4})/i);
+    if(dateMatch2) {
+      const m = mesiIT.indexOf(dateMatch2[2].toLowerCase()) + 1;
+      date = `${dateMatch2[3]}-${String(m).padStart(2,'0')}-${String(dateMatch2[1]).padStart(2,'0')}`;
+    }
+  }
+
+  if(!amount || !date) return null;
+
+  // Categoria automatica dal beneficiario
+  const cat = _guessCatFromDesc(beneficiario);
+
+  return { beneficiario, amount, date, cat, fileName };
+}
+
+function _guessCatFromDesc(desc) {
+  const d = (desc||'').toLowerCase();
+  if(/deliveroo|justeat|just eat|ubereats|glovo|foodora/i.test(d))  return 'cibo';
+  if(/amazon|zalando|shein|ebay|aliexpress/i.test(d))               return 'shopping';
+  if(/spotify|netflix|disney|prime|dazn|apple/i.test(d))           return 'abbonamenti';
+  if(/bar|caffe|caffè|ristorante|pizza|sushi|trattoria/i.test(d))   return 'cibo';
+  if(/farmacia|medico|dottore/i.test(d))                            return 'salute';
+  if(/supermercato|esselunga|conad|coop|lidl|aldi|carrefour/i.test(d)) return 'spesa';
+  if(/benzina|carburante|eni|q8|ip\b|agip/i.test(d))               return 'auto';
+  if(/tabacchi|tabaccheria/i.test(d))                               return 'altro';
+  return 'altro';
+}
+
+function renderSatispayRicevutePreview() {
+  const listEl  = document.getElementById('satispayRicevutaList');
+  const preview = document.getElementById('satispayRicevutaPreview');
+  if(!listEl) return;
+
+  // Controlla quali sono già registrate
+  const tagged = _ricevuteParsed.map(r => {
+    const d = new Date(r.date + 'T12:00:00');
+    const key = `tc_${currentUser?.email}_expenses_${d.getFullYear()}_${d.getMonth()+1}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+    const match = existing.find(e => e.date === r.date && Math.abs(e.amount - r.amount) < 0.03);
+    return { ...r, _registered: !!match };
+  });
+  _ricevuteParsed = tagged;
+
+  let html = '';
+  tagged.forEach((r, i) => {
+    const fmtD = new Date(r.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+    const badge = r._registered
+      ? '<span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">✅ Già registrata</span>'
+      : '<span style="background:rgba(255,140,0,0.15);color:#ff8c00;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">🆕 Nuova</span>';
+    const catLabel = CAT_LABELS[r.cat] || r.cat;
+    html += `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;${r._registered?'opacity:0.5;':''}">
+      <span style="font-size:22px;">📱</span>
+      <div style="flex:1;">
+        <div style="font-weight:700;">${r.beneficiario}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${fmtD} · ${catLabel}</div>
+      </div>
+      ${badge}
+      <span style="font-size:18px;font-weight:900;font-family:'Playfair Display',serif;color:#e05c5c;">-€${r.amount.toFixed(2).replace('.',',')}</span>
+    </div>`;
+  });
+
+  listEl.innerHTML = html;
+  preview.style.display = 'block';
+}
+
+function confirmSatispayRicevute() {
+  const nuove = _ricevuteParsed.filter(r => !r._registered);
+  if(!nuove.length) { showToast('✅ Tutte le ricevute sono già registrate!'); return; }
+
+  const byMonth = {};
+  for(const r of nuove) {
+    const mk = r.date.substring(0,7);
+    if(!byMonth[mk]) byMonth[mk] = [];
+    byMonth[mk].push(r);
+  }
+  let count = 0;
+  for(const [mk, items] of Object.entries(byMonth)) {
+    const [y,m] = mk.split('-').map(Number);
+    const key = `tc_${currentUser?.email}_expenses_${y}_${m}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+    for(const r of items) {
+      existing.push({
+        id: Date.now()+Math.random(),
+        cat: r.cat,
+        amount: r.amount,
+        desc: r.beneficiario,
+        pay: 'satispay',
+        date: r.date,
+        source: 'satispay'
+      });
+      count++;
+    }
+    localStorage.setItem(key, JSON.stringify(existing));
+  }
+  bumpVersion();
+  fbPushToCloud();
+  refreshAll();
+  showToast('✅ ' + count + ' ricevut' + (count===1?'a':'e') + ' importata/e!');
+  cancelSatispayRicevute();
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPORT SCREENSHOT REVOLUT — usa Claude AI per leggere l'immagine
+// ═══════════════════════════════════════════════════════
+
+let _revolutScreenshots = []; // {file, base64, parsed}
+
+async function importRevolutScreenshot(event) {
+  const files = Array.from(event.target.files);
+  event.target.value = '';
+  if(!files.length) return;
+
+  const statusEl = document.getElementById('revolutScreenshotStatus');
+  const preview  = document.getElementById('revolutScreenshotPreview');
+  statusEl.textContent = '⏳ Analisi AI in corso...';
+  preview.style.display = 'none';
+  _revolutScreenshots = [];
+
+  for(let i = 0; i < files.length; i++) {
+    const file = files[i];
+    statusEl.textContent = `⏳ Analisi ${i+1}/${files.length}: ${file.name}...`;
+    try {
+      const base64 = await _fileToBase64(file);
+      const mediaType = file.type || 'image/jpeg';
+      const parsed = await _aiParseRevolutScreenshot(base64, mediaType);
+      if(parsed) _revolutScreenshots.push({ file, base64, mediaType, parsed });
+      else _revolutScreenshots.push({ file, base64, mediaType, parsed: null, error: 'Non riconosciuta come transazione Revolut' });
+    } catch(e) {
+      _revolutScreenshots.push({ file, parsed: null, error: e.message });
+    }
+  }
+
+  const ok = _revolutScreenshots.filter(x => x.parsed).length;
+  statusEl.textContent = ok > 0
+    ? `✅ ${ok} transazion${ok===1?'e':'i'} trovata/e`
+    : '⚠️ Nessuna transazione riconosciuta';
+
+  renderRevolutScreenshotsPreview();
+}
+
+function _fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Lettura file fallita'));
+    r.readAsDataURL(file);
+  });
+}
+
+async function _aiParseRevolutScreenshot(base64, mediaType) {
+  const systemPrompt = `Sei un parser di screenshot di transazioni Revolut. Estrai SOLO i dati della transazione in JSON.
+Rispondi SOLO con JSON puro, nessun testo, nessun markdown.
+Formato: {"merchant":"nome commerciante","amount":18.58,"date":"2026-03-31","currency":"EUR","category":"categoria revolut"}
+- amount: numero positivo (es. 18.58, non -18.58)
+- date: formato YYYY-MM-DD
+- Se non riesci a identificare una transazione Revolut, rispondi con: {"error":"non riconosciuta"}`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 300,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: [{
+          type: 'image',
+          source: { type: 'base64', media_type: mediaType, data: base64 }
+        }, {
+          type: 'text',
+          text: 'Estrai i dati di questa transazione Revolut in JSON.'
+        }]
+      }]
+    })
+  });
+
+  if(!response.ok) throw new Error('API error: ' + response.status);
+  const data = await response.json();
+  const txt = (data.content?.[0]?.text || '').trim().replace(/```json|```/g,'').trim();
+
+  let parsed;
+  try { parsed = JSON.parse(txt); } catch(e) { return null; }
+  if(parsed.error || !parsed.amount || !parsed.date) return null;
+
+  // Mappa categoria Revolut → categoria TradoCroods
+  const catMap = {
+    'servizi': 'altro', 'shopping': 'shopping', 'cibo': 'cibo', 'ristorante': 'cibo',
+    'viaggi': 'viaggio', 'trasporti': 'trasporti', 'salute': 'salute',
+    'intrattenimento': 'svago', 'abbonamenti': 'abbonamenti', 'vacanze': 'viaggio'
+  };
+  const catKey = Object.keys(catMap).find(k => (parsed.category||'').toLowerCase().includes(k));
+  parsed.cat = catKey ? catMap[catKey] : _guessCatFromDesc(parsed.merchant || '');
+
+  return parsed;
+}
+
+function renderRevolutScreenshotsPreview() {
+  const listEl  = document.getElementById('revolutScreenshotList');
+  const preview = document.getElementById('revolutScreenshotPreview');
+  if(!listEl) return;
+  if(!_revolutScreenshots.length) return;
+
+  // Controlla duplicati
+  _revolutScreenshots.forEach(item => {
+    if(!item.parsed) return;
+    const d = new Date(item.parsed.date + 'T12:00:00');
+    const key = `tc_${currentUser?.email}_expenses_${d.getFullYear()}_${d.getMonth()+1}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+    const match = existing.find(e => e.date === item.parsed.date && Math.abs(e.amount - item.parsed.amount) < 0.03);
+    item.parsed._registered = !!match;
+  });
+
+  let html = '';
+  _revolutScreenshots.forEach((item, i) => {
+    if(!item.parsed) {
+      html += `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;opacity:0.5;">
+        <span style="font-size:22px;">⚠️</span>
+        <div style="flex:1;"><div style="font-weight:700;">${item.file.name}</div><div style="font-size:11px;color:var(--red);">${item.error||'Non riconosciuta'}</div></div>
+      </div>`;
+      return;
+    }
+    const p = item.parsed;
+    const fmtD = new Date(p.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+    const badge = p._registered
+      ? '<span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">✅ Già registrata</span>'
+      : '<span style="background:rgba(130,100,220,0.2);color:#a78bfa;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">🆕 Nuova</span>';
+    html += `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;${p._registered?'opacity:0.5;':''}">
+      <span style="font-size:22px;">💜</span>
+      <div style="flex:1;">
+        <div style="font-weight:700;">${p.merchant}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${fmtD} · ${CAT_LABELS[p.cat]||p.cat}</div>
+      </div>
+      ${badge}
+      <span style="font-size:18px;font-weight:900;font-family:'Playfair Display',serif;color:#e05c5c;">-€${p.amount.toFixed(2).replace('.',',')}</span>
+    </div>`;
+  });
+
+  listEl.innerHTML = html;
+  preview.style.display = 'block';
+}
+
+function confirmRevolutScreenshots() {
+  const nuove = _revolutScreenshots.filter(x => x.parsed && !x.parsed._registered);
+  if(!nuove.length) { showToast('✅ Tutte già registrate!'); return; }
+
+  const byMonth = {};
+  for(const item of nuove) {
+    const mk = item.parsed.date.substring(0,7);
+    if(!byMonth[mk]) byMonth[mk] = [];
+    byMonth[mk].push(item.parsed);
+  }
+  let count = 0;
+  for(const [mk, items] of Object.entries(byMonth)) {
+    const [y,m] = mk.split('-').map(Number);
+    const key = `tc_${currentUser?.email}_expenses_${y}_${m}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+    for(const p of items) {
+      existing.push({ id: Date.now()+Math.random(), cat: p.cat, amount: p.amount, desc: p.merchant, pay: 'revolut', date: p.date, source: 'revolut' });
+      count++;
+    }
+    localStorage.setItem(key, JSON.stringify(existing));
+  }
+  bumpVersion();
+  fbPushToCloud();
+  refreshAll();
+  showToast('✅ ' + count + ' transazion' + (count===1?'e':'i') + ' Revolut importata/e!');
+  cancelRevolutScreenshots();
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPORT SCREENSHOT BANCA SELLA — AI legge movimenti + saldo
+// ═══════════════════════════════════════════════════════
+
+let _sellaScreenshots = []; // {parsed: {saldo, movimenti:[]}}
+
+async function importSellaScreenshot(event) {
+  const files = Array.from(event.target.files);
+  event.target.value = '';
+  if(!files.length) return;
+
+  const statusEl = document.getElementById('sellaScreenshotStatus');
+  const preview  = document.getElementById('sellaScreenshotPreview');
+  statusEl.textContent = '⏳ Analisi AI in corso...';
+  preview.style.display = 'none';
+  _sellaScreenshots = [];
+
+  for(let i = 0; i < files.length; i++) {
+    const file = files[i];
+    statusEl.textContent = `⏳ Lettura ${i+1}/${files.length}...`;
+    try {
+      const base64 = await _fileToBase64(file);
+      const mediaType = file.type || 'image/jpeg';
+      const parsed = await _aiParseSellaScreenshot(base64, mediaType);
+      _sellaScreenshots.push({ file, parsed });
+    } catch(e) {
+      _sellaScreenshots.push({ file, parsed: null, error: e.message });
+    }
+  }
+
+  const ok = _sellaScreenshots.filter(x => x.parsed).length;
+  statusEl.textContent = ok > 0 ? `✅ ${ok} screenshot analizzat${ok===1?'o':'i'}` : '⚠️ Nessun dato riconosciuto';
+  renderSellaScreenshotsPreview();
+}
+
+async function _aiParseSellaScreenshot(base64, mediaType) {
+  const oggi = new Date().getFullYear();
+  const systemPrompt = `Sei un parser di screenshot dell'app Banca Sella. Estrai i dati in JSON puro senza markdown.
+Formato:
+{
+  "saldo": 1438.18,
+  "saldo_contabile": 1454.18,
+  "movimenti": [
+    {"desc":"descrizione","amount":16.00,"date":"2026-04-03","cat":"trasferimenti","skip":false},
+    {"desc":"Canone del conto","amount":4.50,"date":"2026-04-03","cat":"commissioni","skip":true}
+  ]
+}
+REGOLE:
+- amount: sempre positivo
+- date: YYYY-MM-DD, anno corrente ${oggi} se non specificato
+- skip:true per: canone conto, commissioni banca, bollo, tasse bancarie, trasferimenti Revolut, ricariche Satispay, giroconto libretto
+- skip:false per tutte le spese reali (shopping, ristoranti, servizi, ecc.)
+- Se non è uno screenshot Sella, rispondi: {"error":"non riconosciuto"}`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text', text: 'Estrai i dati da questo screenshot Banca Sella.' }
+        ]
+      }]
+    })
+  });
+
+  if(!response.ok) throw new Error('API error ' + response.status);
+  const data = await response.json();
+  const txt = (data.content?.[0]?.text || '').trim().replace(/```json|```/g,'').trim();
+  let parsed;
+  try { parsed = JSON.parse(txt); } catch(e) { return null; }
+  if(parsed.error || !parsed.movimenti) return null;
+  return parsed;
+}
+
+function renderSellaScreenshotsPreview() {
+  const listEl   = document.getElementById('sellaScreenshotList');
+  const infoEl   = document.getElementById('sellaScreenshotInfo');
+  const preview  = document.getElementById('sellaScreenshotPreview');
+  if(!listEl) return;
+
+  let html = '';
+  let totalSaldo = null;
+  let totNuove = 0, totSkip = 0;
+
+  _sellaScreenshots.forEach(item => {
+    if(!item.parsed) {
+      html += `<div style="padding:12px 16px;font-size:13px;color:var(--red);">⚠️ ${item.file.name}: ${item.error||'Non riconosciuto'}</div>`;
+      return;
+    }
+    const p = item.parsed;
+    if(p.saldo !== undefined) totalSaldo = p.saldo;
+
+    // Controlla duplicati per ogni movimento
+    p.movimenti.forEach(m => {
+      if(!m.date) return;
+      const d = new Date(m.date+'T12:00:00');
+      const key = `tc_${currentUser?.email}_expenses_${d.getFullYear()}_${d.getMonth()+1}`;
+      let existing = [];
+      try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+      m._registered = !!existing.find(e => e.date === m.date && Math.abs(e.amount - m.amount) < 0.03);
+      m.cat = m.cat || _guessCatFromDesc(m.desc);
+
+      if(m.skip) { totSkip++; return; }
+
+      const fmtD = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+      const badge = m._registered
+        ? '<span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;">✅ OK</span>'
+        : '<span style="background:rgba(74,184,232,0.2);color:#4ab8e8;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;">🆕 Nuova</span>';
+      if(!m._registered) totNuove++;
+      const catLabel = CAT_LABELS[m.cat] || m.cat || '';
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;${m._registered?'opacity:0.5;':''}">
+        <span style="font-size:18px;">🏦</span>
+        <div style="flex:1;">
+          <div style="font-weight:600;">${m.desc}</div>
+          <div style="font-size:10px;color:var(--text-muted);">${fmtD}${catLabel?' · '+catLabel:''}</div>
+        </div>
+        ${badge}
+        <span style="font-weight:700;color:#e05c5c;white-space:nowrap;">-€${m.amount.toFixed(2).replace('.',',')}</span>
+      </div>`;
+    });
+
+    // Mostra anche voci saltate in grigio collassate
+    const skipItems = p.movimenti.filter(m => m.skip);
+    if(skipItems.length) {
+      html += `<div style="padding:8px 16px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.04);font-size:11px;color:var(--text-muted);cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        🚫 ${skipItems.length} voce/i escluse (tasse/commissioni/bonifici) ▼
+      </div><div style="display:none;">`;
+      skipItems.forEach(m => {
+        html += `<div style="display:flex;gap:10px;padding:7px 16px 7px 28px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:11px;opacity:0.4;">
+          <span style="flex:1;">${m.desc}</span>
+          <span>-€${m.amount.toFixed(2).replace('.',',')}</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+  });
+
+  // Info saldo in cima
+  if(totalSaldo !== null) {
+    const fmtS = v => '€' + v.toFixed(2).replace('.',',');
+    if(infoEl) infoEl.innerHTML = `🏦 Saldo rilevato: <strong>${fmtS(totalSaldo)}</strong> · ${totNuove} spese nuove da importare`;
+  }
+
+  listEl.innerHTML = html || '<div style="padding:20px;text-align:center;color:var(--text-muted);">Nessun movimento trovato</div>';
+  preview.style.display = 'block';
+}
+
+function confirmSellaScreenshots() {
+  let count = 0;
+  const byMonth = {};
+
+  _sellaScreenshots.forEach(item => {
+    if(!item.parsed) return;
+    item.parsed.movimenti.forEach(m => {
+      if(m.skip || m._registered || !m.date) return;
+      const mk = m.date.substring(0,7);
+      if(!byMonth[mk]) byMonth[mk] = [];
+      byMonth[mk].push(m);
+    });
+  });
+
+  for(const [mk, items] of Object.entries(byMonth)) {
+    const [y,mo] = mk.split('-').map(Number);
+    const key = `tc_${currentUser?.email}_expenses_${y}_${mo}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+    for(const m of items) {
+      existing.push({ id: Date.now()+Math.random(), cat: m.cat||'altro', amount: m.amount, desc: m.desc, pay: 'sella', date: m.date, source: 'sella' });
+      count++;
+    }
+    localStorage.setItem(key, JSON.stringify(existing));
+  }
+
+  // Aggiorna anche saldo Conto Corrente se rilevato
+  const latestSaldo = _sellaScreenshots.map(x => x.parsed?.saldo).filter(Boolean).pop();
+  if(latestSaldo) {
+    saveCCSaldoIniziale({ amount: latestSaldo, date: new Date().toISOString().split('T')[0] });
+    renderDashSaldoBanca();
+  }
+
+  bumpVersion();
+  fbPushToCloud();
+  refreshAll();
+  showToast('✅ ' + count + ' spese importate' + (latestSaldo ? ' · Saldo CC aggiornato a €' + latestSaldo.toFixed(2).replace('.',',') : ''));
+  cancelSellaScreenshots();
+}
+
+function cancelSellaScreenshots() {
+  _sellaScreenshots = [];
+  document.getElementById('sellaScreenshotPreview').style.display = 'none';
+  document.getElementById('sellaScreenshotStatus').textContent = '';
+}
+
+function cancelRevolutScreenshots() {
+  _revolutScreenshots = [];
+  document.getElementById('revolutScreenshotPreview').style.display = 'none';
+  document.getElementById('revolutScreenshotStatus').textContent = '';
+}
+
+function cancelSatispayRicevute() {
+  _ricevuteParsed = [];
+  document.getElementById('satispayRicevutaPreview').style.display = 'none';
+  document.getElementById('satispayRicevutaStatus').textContent = '';
 }
 
 function toggleTopbarMenu() {
