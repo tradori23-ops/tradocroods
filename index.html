@@ -4454,6 +4454,8 @@ body.ios-device .btn-gold:hover {
               <option value="contanti">💵 Contanti</option>
               <option value="satispay">📱 Satispay</option>
               <option value="tickets">🎫 Tickets</option>
+              <option value="klarna">🅺 Klarna</option>
+              <option value="scalapay">🔷 Scalapay</option>
               <option value="bonifico">🏦 Bonifico</option>
             </select>
           </div>
@@ -4581,6 +4583,8 @@ body.ios-device .btn-gold:hover {
               <option value="contanti">💵 Contanti</option>
               <option value="satispay">📱 Satispay</option>
               <option value="tickets">🎫 Tickets</option>
+              <option value="klarna">🅺 Klarna</option>
+              <option value="scalapay">🔷 Scalapay</option>
               <option value="bonifico">🏦 Bonifico</option>
             </select>
           </div>
@@ -5067,6 +5071,8 @@ body.ios-device .btn-gold:hover {
               <option value="contanti">💵 Contanti</option>
               <option value="satispay">📱 Satispay</option>
               <option value="tickets">🎫 Tickets</option>
+              <option value="klarna">🅺 Klarna</option>
+              <option value="scalapay">🔷 Scalapay</option>
               <option value="bonifico">🏦 Bonifico</option>
             </select>
           </div>
@@ -10654,9 +10660,9 @@ function renderCatDetail() {
   });
 
   const sorted = Object.values(grouped).sort((a,b)=>b.total-a.total);
-  const PAY_NAMES  = {satispay:'Satispay',revolut:'Revolut',sella:'Sella',contanti:'Contanti',bonifico:'Bonifico',carta:'Carta',bancomat:'Bancomat Sella',vs_manual:'Manuale'};
-  const PAY_ICONS  = {satispay:'📱',revolut:'💜',sella:'🏦',contanti:'💵',bonifico:'📋',carta:'💳',bancomat:'🏧',vs_manual:'✏️'};
-  const PAY_COLORS = {satispay:'#ff6b6b',revolut:'#a78bfa',sella:'#4a90e8',contanti:'#10b981',bonifico:'#f59e0b',carta:'#ec4899',bancomat:'#64748b',vs_manual:'#d4a843'};
+  const PAY_NAMES  = {satispay:'Satispay',revolut:'Revolut',sella:'Sella',contanti:'Contanti',bonifico:'Bonifico',carta:'Carta',bancomat:'Bancomat Sella',vs_manual:'Manuale',klarna:'Klarna',scalapay:'Scalapay'};
+  const PAY_ICONS  = {satispay:'📱',revolut:'💜',sella:'🏦',contanti:'💵',bonifico:'📋',carta:'💳',bancomat:'🏧',vs_manual:'✏️',klarna:'🅺',scalapay:'🔷'};
+  const PAY_COLORS = {satispay:'#ff6b6b',revolut:'#a78bfa',sella:'#4a90e8',contanti:'#10b981',bonifico:'#f59e0b',carta:'#ec4899',bancomat:'#64748b',vs_manual:'#d4a843',klarna:'#ff69b4',scalapay:'#6fd4b7'};
 
   document.getElementById('catDetailList').innerHTML = `
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">
@@ -14726,6 +14732,16 @@ const VS_BUILTIN_PATTERNS = [
   { re: /bollo\s*auto|tassa\s*circol/i,      reason: 'Bollo Auto' },
   { re: /imu\b|tari\b|tasi\b/i,              reason: 'Tasse Comunali' },
   { re: /agos\s*ducato|cofidis|findomestic/i,reason: 'Finanziamento' },
+
+  // ── REVOLUT SPICCIOLI / SALVADANAIO ──
+  { re: /accredita\s*eur\s*vacanze/i,         reason: 'Spiccioli Revolut (Vacanze)' },
+  { re: /accredita\s*eur\s*\w+\s*da\s*eur/i,  reason: 'Spiccioli Revolut (Vault)' },
+  { re: /savings?\s*vault|spare\s*change/i,    reason: 'Revolut Vault' },
+  { re: /round[\s-]?up/i,                      reason: 'Roundup Revolut' },
+
+  // ── PAGAMENTI MENSILI FISSI A PERSONE ──
+  { re: /piticariu/i,                          reason: 'Pagamento mensile (Piticariu)' },
+  { re: /pagamento\s+(?:da|a)\s+[A-Z]{3,}/i,  reason: 'Pagamento mensile a persona' },
 ];
 
 // Carica parole custom aggiunte dall'utente
@@ -14747,8 +14763,10 @@ function vsCheckExclusion(e) {
   // 2. Categoria spesa fissa
   if(VS_FIXED_CATS.has(cat)) return { excluded: true, reason: 'Categoria fissa: ' + cat };
 
-  // 3. Bonifico
+  // 3. Bonifico / Rate dilazionate
   if(e.pay === 'bonifico') return { excluded: true, reason: 'Bonifico' };
+  if(e.pay === 'klarna')   return { excluded: true, reason: 'Rata Klarna' };
+  if(e.pay === 'scalapay') return { excluded: true, reason: 'Rata Scalapay' };
 
   // 4. Auto-detect: trasferimento verso se stesso (nome utente in descrizione + parole chiave)
   const userName = (currentUser?.name || '').split(' ')[0].toLowerCase();
@@ -18518,6 +18536,9 @@ Formato: {"merchant":"nome commerciante","amount":18.58,"date":"2026-03-31","cur
     'viaggi': 'viaggio', 'trasporti': 'trasporti', 'salute': 'salute',
     'intrattenimento': 'svago', 'abbonamenti': 'abbonamenti', 'vacanze': 'viaggio'
   };
+  // Privalia e simili → Klarna come metodo
+  const KLARNA_MERCHANTS = /privalia|klarna/i;
+  const SCALAPAY_MERCHANTS = /scalapay/i;
   const catKey = Object.keys(catMap).find(k => (parsed.category||'').toLowerCase().includes(k));
   parsed.cat = catKey ? catMap[catKey] : _guessCatFromDesc(parsed.merchant || '');
 
@@ -18587,7 +18608,8 @@ function confirmRevolutScreenshots() {
     let existing = [];
     try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
     for(const p of items) {
-      existing.push({ id: Date.now()+Math.random(), cat: p.cat, amount: p.amount, desc: p.merchant, pay: 'revolut', date: p.date, source: 'revolut' });
+      const payMeth = /privalia|klarna/i.test(p.merchant||'') ? 'klarna' : /scalapay/i.test(p.merchant||'') ? 'scalapay' : 'revolut';
+      existing.push({ id: Date.now()+Math.random(), cat: p.cat, amount: p.amount, desc: p.merchant, pay: payMeth, date: p.date, source: 'revolut' });
       count++;
     }
     localStorage.setItem(key, JSON.stringify(existing));
@@ -18952,16 +18974,29 @@ function openWeekDayModal(ds, label) {
     const allExp = (load('expenses_'+key, [])||[]).filter(e => e.date===ds || e.date===ds2);
     const allInc = (load('income_'+key, [])||[]).filter(x => (x.date===ds||x.date===ds2) && x.type!=='ferrino');
 
-    const libere    = allExp.filter(e => e.pay!=='bonifico' && e.cat!=='rata');
-    const bonifici  = allExp.filter(e => e.pay==='bonifico' || e.cat==='rata');
-    const totAll    = allExp.reduce((s,e)=>s+e.amount,0);
+    // Filtra spiccioli Revolut (nascosti completamente)
+    const SPICCIOLI_RE = /accredita\s*eur\s*vacanze|accredita\s*eur\s*\w+\s*da\s*eur|savings?\s*vault|spare\s*change|round[\s-]?up/i;
+    const visibili = allExp.filter(e => !SPICCIOLI_RE.test(e.desc || ''));
+    const spiccioli = allExp.filter(e => SPICCIOLI_RE.test(e.desc || ''));
+
+    // Usa vsCheckExclusion per classificare correttamente
+    const libere    = visibili.filter(e => {
+      if(e.pay === 'bonifico' || e.cat === 'rata') return false;
+      return !vsIsExcluded(e);
+    });
+    const fisse     = visibili.filter(e => {
+      if(e.pay === 'bonifico' || e.cat === 'rata') return false;
+      return vsIsExcluded(e);
+    });
+    const bonifici  = visibili.filter(e => e.pay==='bonifico' || e.cat==='rata');
+    const totAll    = visibili.reduce((s,e)=>s+e.amount,0);
     const totLib    = libere.reduce((s,e)=>s+e.amount,0);
-    const totBon    = bonifici.reduce((s,e)=>s+e.amount,0);
+    const totBon    = bonifici.reduce((s,e)=>s+e.amount,0) + fisse.reduce((s,e)=>s+e.amount,0);
     const totInc    = allInc.reduce((s,e)=>s+e.amount,0);
     const fmt = v => '€'+v.toFixed(2).replace('.',',');
 
     document.getElementById('weekDetailTitle').textContent = label;
-    document.getElementById('weekDetailSubtitle').textContent = ds + ' · ' + allExp.length + ' spese';
+    document.getElementById('weekDetailSubtitle').textContent = ds + ' · ' + visibili.length + ' spese' + (spiccioli.length ? ' · ' + spiccioli.length + ' spiccioli nascosti' : '');
 
     document.getElementById('weekDetailStats').innerHTML = [
       { label:'Totale', value: fmt(totAll), c:'var(--red)' },
@@ -18991,10 +19026,20 @@ function openWeekDayModal(ds, label) {
       html += '<div style="font-size:11px;color:var(--text-muted);font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">🛒 SPESE LIBERE</div>';
       html += _weekExpRows(libere, fmt);
     }
-    // Bonifici
+    // Spese fisse/escluse (affitto, condominio, piticariu, ecc.)
+    if(fisse.length) {
+      html += '<div style="font-size:11px;color:#ffb400;font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">🏠 SPESE FISSE / MENSILI</div>';
+      html += _weekExpRowsWithRata(fisse, fmt);
+    }
+    // Bonifici e rate
     if(bonifici.length) {
       html += '<div style="font-size:11px;color:#ffb400;font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">🏦 BONIFICI & RATE</div>';
-      html += _weekExpRows(bonifici, fmt);
+      html += _weekExpRowsWithRata(bonifici, fmt);
+    }
+    // Spiccioli nascosti (collassati)
+    if(spiccioli.length) {
+      const spicciHtml = _weekExpRows(spiccioli, fmt);
+      html += `<div style="margin-top:10px;padding:6px 10px;background:rgba(255,255,255,0.03);border-radius:8px;cursor:pointer;font-size:10px;color:var(--text-muted);" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">💊 ${spiccioli.length} spiccioli Revolut nascosti (salvadanaio viaggi) ▼</div><div style="display:none;">${spicciHtml}</div>`;
     }
     if(!allExp.length && !allInc.length) {
       html = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Nessuna spesa in questo giorno.</div>';
@@ -19016,22 +19061,73 @@ function openWeekDayModal(ds, label) {
   }
 }
 
+// Conta quante volte un merchant/desc simile appare nella storia
+function _contaRatePagate(e) {
+  const merchant = (e.desc || '').split(/[—\-–]/)[0].trim().toLowerCase().substring(0, 20);
+  if(!merchant || merchant.length < 3) return null;
+  const nowY = new Date().getFullYear();
+  let count = 0;
+  for(let y = 2023; y <= nowY + 1; y++) {
+    for(let m = 1; m <= 12; m++) {
+      const exps = load('expenses_' + y + '_' + m, []) || [];
+      count += exps.filter(x => (x.desc||'').toLowerCase().includes(merchant)).length;
+    }
+  }
+  return count > 1 ? count : null;
+}
+
+// Come _weekExpRows ma con badge rata N/tot
+function _weekExpRowsWithRata(exps, fmt) {
+  const SRC_LABEL = {
+    satispay: { label:'Satispay', bg:'rgba(255,92,92,0.2)',  color:'#ff6b6b' },
+    sella:    { label:'Sella',    bg:'rgba(74,144,232,0.2)', color:'#4a90e8' },
+    revolut:  { label:'Revolut',  bg:'rgba(138,92,246,0.2)', color:'#a78bfa' },
+    vs_manual:{ label:'Manuale',  bg:'rgba(201,168,76,0.2)', color:'#d4a843' },
+    klarna:   { label:'Klarna',   bg:'rgba(255,105,180,0.2)',color:'#ff69b4' },
+    scalapay: { label:'Scalapay', bg:'rgba(111,212,183,0.2)',color:'#6fd4b7' }
+  };
+  return exps.map(e => {
+    const src = e.source || '';
+    const srcInfo = SRC_LABEL[src] || SRC_LABEL[e.pay];
+    const payName = srcInfo ? srcInfo.label : (e.pay || '—');
+    const badge = srcInfo
+      ? `<span style="background:${srcInfo.bg};color:${srcInfo.color};border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${payName}</span>`
+      : (payName !== '—' ? `<span style="background:rgba(255,255,255,0.08);color:var(--text-muted);border-radius:5px;padding:2px 7px;font-size:10px;font-weight:600;white-space:nowrap;">${payName}</span>` : '');
+    // Contatore rate pagate
+    const nRate = _contaRatePagate(e);
+    const rataBadge = nRate ? `<span style="background:rgba(255,180,0,0.15);color:#ffb400;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">📦 Rata ${nRate}</span>` : '';
+    const excl = vsCheckExclusion(e);
+    const exclBadge = excl.excluded ? `<span style="background:rgba(255,255,255,0.06);color:var(--text-muted);border-radius:5px;padding:2px 6px;font-size:9px;white-space:nowrap;">${excl.reason}</span>` : '';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,180,0,0.04);border:1px solid rgba(255,180,0,0.2);border-radius:10px;margin-bottom:5px;">
+      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap;">
+        ${badge}${rataBadge}${exclBadge}
+        <span style="font-size:13px;">${catIconHtml(e.cat)}</span>
+        <span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc==='—'?e.cat:e.desc}</span>
+      </div>
+      <span style="font-size:14px;font-weight:700;color:#ffb400;margin-left:10px;white-space:nowrap;">${fmt(e.amount)}</span>
+    </div>`;
+  }).join('');
+}
+
 function _weekExpRows(exps, fmt) {
   const SRC_LABEL = {
     satispay: { label:'Satispay', bg:'rgba(255,92,92,0.2)',  color:'#ff6b6b' },
     sella:    { label:'Sella',    bg:'rgba(74,144,232,0.2)', color:'#4a90e8' },
     revolut:  { label:'Revolut',  bg:'rgba(138,92,246,0.2)', color:'#a78bfa' },
-    vs_manual:{ label:'Manuale',  bg:'rgba(201,168,76,0.2)', color:'#d4a843' }
+    vs_manual:{ label:'Manuale',  bg:'rgba(201,168,76,0.2)', color:'#d4a843' },
+    klarna:   { label:'Klarna',   bg:'rgba(255,105,180,0.2)',color:'#ff69b4' },
+    scalapay: { label:'Scalapay', bg:'rgba(111,212,183,0.2)',color:'#6fd4b7' }
   };
   const PAY_LABEL = {
     satispay:'Satispay', revolut:'Revolut', bancomat:'Bancomat Sella',
-    bonifico:'Bonifico', contanti:'Contanti', tickets:'Tickets'
+    bonifico:'Bonifico', contanti:'Contanti', tickets:'Tickets',
+    klarna:'Klarna', scalapay:'Scalapay'
   };
   return exps.map(e => {
     const src = e.source || '';
     const pay = e.pay || '';
     // Determina label metodo: prima da source, poi da pay
-    const srcInfo = SRC_LABEL[src];
+    const srcInfo = SRC_LABEL[src] || SRC_LABEL[pay];
     const payName = srcInfo ? srcInfo.label : (PAY_LABEL[pay] || pay || '—');
     const badge = srcInfo
       ? `<span style="background:${srcInfo.bg};color:${srcInfo.color};border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${payName}</span>`
@@ -19391,6 +19487,8 @@ document.addEventListener('click', function(e) {
                   <option value="contanti">💵 Contanti</option>
                   <option value="satispay">📱 Satispay</option>
                   <option value="tickets">🎫 Tickets</option>
+                  <option value="klarna">🅺 Klarna</option>
+                  <option value="scalapay">🔷 Scalapay</option>
                   <option value="bonifico">🏦 Bonifico</option>
                 </select>
               </div>
