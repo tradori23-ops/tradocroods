@@ -5009,7 +5009,7 @@ body.ios-device .btn-gold:hover {
     <div id="cc-modal-saldo" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:20px;">
       <div style="background:var(--surface);border:1.5px solid rgba(74,144,232,0.4);border-radius:20px;padding:28px;max-width:420px;width:100%;">
         <div style="font-size:18px;font-weight:800;color:#4a90e8;margin-bottom:6px;">💳 Saldo Iniziale Conto</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Inserisci il saldo che avevi in banca in una data precisa. Da quella data, tutte le entrate/uscite registrate vengono applicate per ricostruire il saldo cronologico.</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Inserisci il saldo che avevi in banca il <strong>01/01/2023</strong> (o altra data da cui parti). Tutte le entrate e uscite registrate da quella data in poi verranno applicate automaticamente.</div>
         <div style="margin-bottom:14px;">
           <label style="font-size:11px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:6px;">💶 Saldo in quella data (€)</label>
           <input type="number" id="cc-input-saldo" step="0.01" placeholder="es. 319.66"
@@ -5021,8 +5021,8 @@ body.ios-device .btn-gold:hover {
             style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--text);outline:none;box-sizing:border-box;font-family:var(--font);">
         </div>
         <div id="cc-saldo-hint" style="background:rgba(74,144,232,0.06);border-radius:8px;padding:10px 12px;margin-bottom:20px;line-height:1.6;font-size:11px;color:var(--text-muted);">
-          💡 <strong style="color:#4a90e8;">Per lo storico completo:</strong> imposta la data al <strong>01/01/2023</strong> e inserisci il saldo che avevi in banca in quel giorno.<br>
-          <span style="opacity:0.8;">Se non lo ricordi, puoi stimarlo o usare un estratto conto dell'epoca.</span>
+          💡 <strong style="color:#4a90e8;">Come funziona:</strong> imposta il saldo che avevi il <strong>01/01/2023</strong> (o la data più lontana che hai). Da lì, ogni spesa/entrata che aggiungi o importi viene automaticamente sommata o sottratta.<br>
+          <span style="opacity:0.8;">Il saldo si aggiorna da solo ad ogni import di PDF da Sella, Revolut e Satispay.</span>
         </div>
         <div style="display:flex;gap:10px;">
           <button onclick="ccCloseSetSaldo()" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text-muted);border-radius:10px;padding:11px;font-size:13px;cursor:pointer;font-family:var(--font);">Annulla</button>
@@ -13241,6 +13241,8 @@ async function importSellaPDF(event) {
     statusEl.textContent = '🔍 Analisi movimenti...';
     const sellaResult = parseSellaText(fullText);
     sellaParsed = sellaResult.expenses;
+    // Estrai saldo di chiusura dal PDF Sella
+    window._sellaSaldoFound = extractSaldoFromText(fullText, 'sella');
     sellaIncomeParsed = sellaResult.incomes;
     sellaFixedParsed = sellaResult.fixed;
     sellaLibriettoP = sellaResult.librietto;
@@ -13805,6 +13807,8 @@ function confirmSellaMissingOnly() {
   fbPushToCloud();
   refreshAll();
   showToast(`✅ Importate ${count} spese mancanti da Sella!`);
+  // Auto-aggiorna saldo CC se trovato nel PDF
+  if(window._sellaSaldoFound) autoAggiornaSaldoCC(window._sellaSaldoFound, 'sella');
   // Ricarica preview con dati aggiornati
   renderSellaPreview(sellaParsed, sellaIncomeParsed, sellaFixedParsed, sellaLibriettoP, sellaRataP);
 }
@@ -14021,6 +14025,7 @@ async function importRevolutPDF(event) {
       fullText += '\n\n';
     }
     statusEl.textContent = '🔍 Analisi movimenti...';
+    window._revSaldoChiusura = null; // reset
     revolutParsed = parseRevolutText(fullText);
     if(!revolutParsed.length) {
       statusEl.textContent = '⚠️ Nessuna uscita trovata. Verifica che sia un estratto Revolut.';
@@ -14074,6 +14079,11 @@ function parseRevolutText(text) {
   for(const line of lines) {
     // Salta header/footer Revolut
     if(/^(estratto conto|revolut bank|© 20\d\d revolut|segnala carta|ottieni assistenza|scansiona codice|condizioni economiche|pagina \d+ di \d+|se desideri sapere|le normative|i depositi|avviso|attenzione)/i.test(line)) continue;
+    // Salva saldo di chiusura prima di skippare la riga
+    if(/saldo\s+di\s+chiusura/i.test(line)) {
+      const sm = line.match(/([0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2})/);
+      if(sm && !window._revSaldoChiusura) window._revSaldoChiusura = parseFloat(sm[1].replace(/\./g,'').replace(',','.'));
+    }
     if(/^(riepilogo del saldo|in sospeso da|transazioni del conto|data d'inizio|prodotto|saldo iniziale|saldo di chiusura|denaro in uscita|denaro in entrata|data\s+descrizione|numero di conto|iban|bic|\d{12,})/i.test(line)) continue;
     if(/^(via |torino|san mauro|REVOITM|IT\d{2}[A-Z])/i.test(line)) continue;
     if(/piano standard|piano plus|piano premium|piano metal|piano ultra|https:\/\//i.test(line)) continue;
@@ -14165,7 +14175,15 @@ function parseRevolutText(text) {
   return results.sort((a,b) => a.date.localeCompare(b.date));
 }
 
-function confirmRevolutImport()  { genericConfirmImport(revolutParsed, 'revolutPreview', 'revolutStatus', '💜 Revolut'); }
+function confirmRevolutImport()  {
+  genericConfirmImport(revolutParsed, 'revolutPreview', 'revolutStatus', '💜 Revolut');
+  // Auto-aggiorna saldo CC da saldo di chiusura Revolut
+  if(window._revSaldoChiusura) {
+    // Data = ultima data dei movimenti
+    const lastDate = revolutParsed.length ? revolutParsed[revolutParsed.length-1].date : new Date().toISOString().split('T')[0];
+    autoAggiornaSaldoCC({ amount: window._revSaldoChiusura, date: lastDate }, 'revolut');
+  }
+}
 function cancelRevolutImport()   { revolutParsed = []; document.getElementById('revolutPreview').style.display='none'; document.getElementById('revolutStatus').textContent=''; }
 
 // ═══════════════════════════════════════════════════════════
@@ -14467,6 +14485,17 @@ function parseRevolutCSV(text) {
     // Skip interni Revolut
     if(/to eur personal|from eur personal|spiccioli|revpoints|savings vault|accredita\s*eur|spare change|cashback revolut/i.test(desc)) continue;
 
+    // Salva il balance più recente (prima riga = più recente nel CSV Revolut)
+    if(!window._revolutCsvBalance) {
+      const balIdx2 = Object.keys(cols).findIndex ? null : null; // già gestito sopra
+      // Leggo il balance dalla riga corrente
+      const rowBal = row[cols['balance'] ?? -1];
+      if(rowBal !== undefined) {
+        const balVal = parseFloat(rowBal.replace(/[^0-9.\-]/g,''));
+        if(!isNaN(balVal)) window._revolutCsvBalance = { amount: balVal, date: dateStr };
+      }
+    }
+
     const key = `${dateStr}_${absAmount.toFixed(2)}_${desc.substring(0,10)}`;
     if(seen.has(key)) continue;
     seen.add(key);
@@ -14485,6 +14514,8 @@ function parseRevolutCSV(text) {
 
 function confirmRevolutCSV() {
   genericConfirmImport(revolutCsvParsed, 'revolutCsvPreview', 'revolutCsvStatus', '💜 Revolut CSV');
+  // Auto-aggiorna saldo CC dalla colonna Balance del CSV
+  if(window._revolutCsvBalance) autoAggiornaSaldoCC(window._revolutCsvBalance, 'revolut_csv');
   revolutCsvParsed = [];
 }
 function cancelRevolutCSV() {
@@ -14716,6 +14747,11 @@ function bankImportMissingOnly(bank) {
   refreshAll();
   const icon = bank === 'revolut' ? '💜 Revolut' : '📱 Satispay';
   showToast(`✅ Importate ${count} spese mancanti da ${icon}!`);
+  // Auto-aggiorna saldo CC per Revolut
+  if(bank === 'revolut' && window._revSaldoChiusura) {
+    const lastDate = parsed.length ? parsed[parsed.length-1].date : new Date().toISOString().split('T')[0];
+    autoAggiornaSaldoCC({ amount: window._revSaldoChiusura, date: lastDate }, 'revolut');
+  }
   // Ricarica preview con dati aggiornati
   renderBankPreview(bank, parsed);
 }
@@ -17902,16 +17938,21 @@ function renderDashSaldoBanca() {
     return;
   }
 
-  // Calcola saldo attuale da tutti i movimenti
+  // Calcola saldo attuale — solo movimenti POST la data del saldo iniziale
   const tutti = ccGetAllMovimenti();
-  let totE = 0, totU = 0;
-  tutti.forEach(m => { if(m.tipo==='entrata') totE+=m.amount; else totU+=m.amount; });
+  const _sdS = new Date(saved.date + 'T00:00:00');
+  let totE = 0, totU = 0, nPost = 0;
+  tutti.forEach(m => {
+    if(m.dateObj < _sdS) return;
+    nPost++;
+    if(m.tipo==='entrata') totE+=m.amount; else totU+=m.amount;
+  });
   const saldoAtt = saved.amount + totE - totU;
   const fmt = v => (v<0?'-':'') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
 
   if(val)  { val.textContent = fmt(saldoAtt); val.style.color = saldoAtt>=0 ? '#4a90e8' : 'var(--red)'; }
   if(date) date.textContent = 'Base: ' + fmt(saved.amount) + ' dal ' + new Date(saved.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
-  if(sub)  sub.textContent = 'Saldo calcolato · ' + tutti.length + ' movimenti';
+  if(sub)  sub.textContent = 'Saldo calcolato · ' + nPost + ' movimenti dal ' + new Date(saved.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
   if(row)  row.style.borderColor = saldoAtt>=0 ? 'rgba(74,144,232,0.3)' : 'rgba(224,92,92,0.4)';
 }
 
@@ -18061,6 +18102,85 @@ function ccUsaRimanenzaTradoCroods() {
   showToast('✅ Saldo iniziale impostato: ' + fmt(amount));
 }
 
+// ═══════════════════════════════════════════════════════════════
+// AUTO-AGGIORNAMENTO SALDO CC DA PDF/CSV
+// ═══════════════════════════════════════════════════════════════
+
+// Estrae il saldo di chiusura da un testo PDF (Revolut o Sella)
+function extractSaldoFromText(text, bank) {
+  let saldo = null;
+  let dataStr = null;
+
+  if(bank === 'revolut') {
+    // Revolut PDF: "Saldo di chiusura EUR 1.272,96" o "Saldo di chiusura 1272.96"
+    const m = text.match(/saldo\s+di\s+chiusura\s+(?:EUR\s+)?([0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2})/i);
+    if(m) saldo = parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+    // Data fine periodo: "01/01/2025 – 31/03/2025" → prendi la seconda
+    const dm = text.match(/(\d{2})\/(\d{2})\/(\d{4})\s*[–\-]\s*(\d{2})\/(\d{2})\/(\d{4})/);
+    if(dm) dataStr = `${dm[6]}-${dm[5]}-${dm[4]}`;
+  }
+
+  if(bank === 'sella') {
+    // Sella PDF: "Saldo al DD/MM/YYYY EUR XX.XXX,XX" o "Saldo finale"
+    const m1 = text.match(/saldo\s+(?:finale|al\s+\d{2}\/\d{2}\/\d{4}|disponibile|contabile)[^\d]*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i);
+    if(m1) saldo = parseFloat(m1[1].replace(/\./g,'').replace(',','.'));
+    // Data: ultima data trovata nel documento
+    const dates = [...text.matchAll(/(\d{2})\/(\d{2})\/(\d{4})/g)];
+    if(dates.length) {
+      const last = dates[dates.length - 1];
+      dataStr = `${last[3]}-${last[2]}-${last[1]}`;
+    }
+  }
+
+  if(bank === 'revolut_csv') {
+    // CSV Revolut: colonna Balance, prende l'ultima riga
+    const lines = text.split('\n');
+    const header = lines.findIndex(l => /balance/i.test(l));
+    if(header >= 0) {
+      const cols = lines[header].split(',');
+      const balIdx = cols.findIndex(c => /balance/i.test(c));
+      const dateIdx = cols.findIndex(c => /completed_date|started_date/i.test(c));
+      // Prendi la prima riga valida (più recente)
+      for(let i = header + 1; i < lines.length; i++) {
+        const row = lines[i].split(',');
+        if(row[balIdx]) {
+          const v = parseFloat(row[balIdx].replace(/[^0-9.\-]/g,''));
+          if(!isNaN(v)) { saldo = v; break; }
+        }
+      }
+    }
+  }
+
+  return (saldo !== null && !isNaN(saldo)) ? { amount: saldo, date: dataStr || new Date().toISOString().split('T')[0] } : null;
+}
+
+// Aggiorna automaticamente il saldo CC dopo un import PDF
+// Mostra un toast con la possibilità di confermare
+function autoAggiornaSaldoCC(saldoInfo, bank) {
+  if(!saldoInfo) return;
+  const attuale = getCCSaldoIniziale();
+  // Non sovrascrivere un saldo storico (2023) con uno recente da PDF
+  // Aggiorna solo se non c'è ancora un saldo O se quello nuovo è più recente
+  if(attuale) {
+    // Se l'utente ha già un saldo storico dal 2023, non aggiornarlo con saldo da PDF
+    if(attuale.date <= '2024-01-01' && saldoInfo.date > attuale.date) {
+      // Mostra solo info senza sovrascrivere
+      const fmt = v => '€' + v.toFixed(2).replace('.', ',');
+      const bankName = bank === 'revolut' || bank === 'revolut_csv' ? '💜 Revolut' : bank === 'sella' ? '🏦 Sella' : '📱 Satispay';
+      showToast(`🏦 ${bankName} chiusura: ${fmt(saldoInfo.amount)} al ${new Date(saldoInfo.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short'})}`);
+      return;
+    }
+    if(attuale.date > saldoInfo.date) return; // saldo attuale più recente, non aggiornare
+  }
+  const fmt = v => '€' + v.toFixed(2).replace('.', ',');
+  const bankName = bank === 'revolut' || bank === 'revolut_csv' ? '💜 Revolut' : bank === 'sella' ? '🏦 Sella' : '📱 Satispay';
+  saveCCSaldoIniziale(saldoInfo);
+  fbPushToCloud();
+  renderDashSaldoBanca();
+  if(document.getElementById('sec-contocorrente')?.classList.contains('active')) renderCC();
+  showToast(`💳 Saldo CC aggiornato da ${bankName}: ${fmt(saldoInfo.amount)} al ${new Date(saldoInfo.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'})}`);
+}
+
 function ccOpenSetSaldo() {
   const saved = getCCSaldoIniziale();
   const inp = document.getElementById('cc-input-saldo');
@@ -18166,14 +18286,19 @@ function renderDashCCBanner() {
     banner.style.borderColor = 'rgba(74,144,232,0.2)';
     return;
   }
-  // Calcola saldo attuale = iniziale + entrate - uscite
+  // Calcola saldo attuale = iniziale + entrate/uscite POST data riferimento
   const movimenti = ccGetAllMovimenti();
-  let totE = 0, totU = 0;
-  movimenti.forEach(m => { if(m.tipo==='entrata') totE+=m.amount; else totU+=m.amount; });
+  const _sd = new Date(saldoIniz.date + 'T00:00:00');
+  let totE = 0, totU = 0, nPost = 0;
+  movimenti.forEach(m => {
+    if(m.dateObj < _sd) return;
+    nPost++;
+    if(m.tipo === 'entrata') totE += m.amount; else totU += m.amount;
+  });
   const saldoAtt = saldoIniz.amount + totE - totU;
   const fmt = v => (v<0?'-':'')+'€'+Math.abs(v).toFixed(2).replace('.', ',');
   if(saldoEl) { saldoEl.textContent = fmt(saldoAtt); saldoEl.style.color = saldoAtt>=0?'#4a90e8':'var(--red)'; }
-  if(dataEl)  dataEl.textContent = 'Aggiornato · ' + movimenti.length + ' movimenti · clicca per dettaglio';
+  if(dataEl)  dataEl.textContent = 'Aggiornato · ' + nPost + ' movimenti · clicca per dettaglio';
   if(subEl)   subEl.textContent  = 'Dal ' + new Date(saldoIniz.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
   banner.style.borderColor = saldoAtt>=0?'rgba(74,144,232,0.4)':'rgba(224,92,92,0.4)';
 }
@@ -18205,13 +18330,16 @@ function renderCC() {
   }
 
   const tutti = ccGetAllMovimenti();
+  const startDate = new Date(saldoIniz.date + 'T00:00:00');
+
   let totEntrate = 0, totUscite = 0;
   tutti.forEach(m => {
+    if(m.dateObj < startDate) return;
     if(m.tipo === 'entrata') totEntrate += m.amount;
     else totUscite += m.amount;
   });
 
-  // Saldo attuale = iniziale + entrate - uscite
+  // saldo iniziale 01/01/2023 + tutte le entrate - tutte le uscite = saldo oggi
   const saldoAttuale = saldoIniz.amount + totEntrate - totUscite;
   const fmt = v => (v < 0 ? '-' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
 
@@ -18227,14 +18355,14 @@ function renderCC() {
   if(siEl) { siEl.textContent = fmt(saldoIniz.amount); }
   const sidEl = document.getElementById('cc-saldo-iniziale-data');
   if(sidEl) sidEl.textContent = 'Dal ' + new Date(saldoIniz.date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'});
+  const movPost = tutti.filter(m => m.dateObj >= startDate);
   const nmEl = document.getElementById('cc-n-movimenti');
-  if(nmEl) nmEl.textContent = tutti.length;
+  if(nmEl) nmEl.textContent = movPost.length;
   const pmEl = document.getElementById('cc-periodo-movimenti');
-  if(pmEl && tutti.length) {
-    const first = new Date(tutti[0].date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'});
-    const last  = new Date(tutti[tutti.length-1].date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'});
-    const anni = new Set(tutti.map(t => t.date.substring(0,4))).size;
-    pmEl.textContent = first + ' → ' + last + ' (' + anni + (anni===1?' anno':' anni') + ')';
+  if(pmEl && movPost.length) {
+    const first = new Date(movPost[0].date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'});
+    const last  = new Date(movPost[movPost.length-1].date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'});
+    pmEl.textContent = first + ' → ' + last;
   }
   const teEl = document.getElementById('cc-tot-entrate');
   if(teEl) teEl.textContent = '+' + fmt(totEntrate);
@@ -18244,9 +18372,11 @@ function renderCC() {
   if(deEl) { const d = totEntrate - totUscite; deEl.textContent = fmt(d); deEl.style.color = d >= 0 ? '#4ae87a' : 'var(--red)'; }
 
   // Costruisci lista con saldo progressivo — dal più recente al più vecchio
-  // Partiamo dal saldo attuale e risaliamo nel tempo sottraendo/aggiungendo ogni movimento
+  // Partiamo dal saldo attuale e risaliamo nel tempo
   const tuttiInv = [...tutti].reverse(); // newest first
-  let saldoProgressivo = saldoAttuale; // saldo DOPO l'ultimo movimento
+  // Il saldo progressivo parte dal saldo attuale (calcolato dai movimenti post-data-iniziale)
+  // I movimenti precedenti alla data iniziale non influenzano il saldo ma sono mostrati come storico
+  let saldoProgressivo = saldoAttuale;
 
   // Applica filtri
   const filtrati = tuttiInv.filter(m => {
@@ -18254,6 +18384,8 @@ function renderCC() {
     if(filterYear !== 'all' && !m.date.startsWith(filterYear)) return false;
     return true;
   });
+
+
 
   if(!filtrati.length) {
     if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Nessun movimento per i filtri selezionati</div>';
@@ -18330,11 +18462,14 @@ function renderCC() {
     }
 
     // ── Calcola saldo (lista newest-first, risaliamo) ──
-    const saldoDopo = saldoProgressivo;
-    if(m.tipo === 'entrata') { saldoProgressivo -= m.amount; mEntrate += m.amount; aEntrate += m.amount; }
-    else                     { saldoProgressivo += m.amount; mUscite  += m.amount; aUscite  += m.amount; }
-    saldoChiusuraMese = saldoDopo;
-    saldoChiusuraAnno = saldoDopo;
+    const isStorico = m.dateObj < startDate; // prima del saldo iniziale → non influenza
+    const saldoDopo = isStorico ? null : saldoProgressivo;
+    if(!isStorico) {
+      if(m.tipo === 'entrata') { saldoProgressivo -= m.amount; mEntrate += m.amount; aEntrate += m.amount; }
+      else                     { saldoProgressivo += m.amount; mUscite  += m.amount; aUscite  += m.amount; }
+      saldoChiusuraMese = saldoDopo;
+      saldoChiusuraAnno = saldoDopo;
+    }
 
     const tipoColor = m.tipo === 'entrata' ? '#4ae87a' : (m.tipo === 'bonifico' ? '#ffb400' : '#e05c5c');
     const tipoIcon  = m.tipo === 'entrata' ? '💵' : (m.tipo === 'bonifico' ? '🏦' : '💸');
@@ -18344,14 +18479,17 @@ function renderCC() {
                     : m.source === 'revolut'  ? '<span style="background:rgba(138,92,246,0.2);color:#a78bfa;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;">💜</span>'
                     : '';
 
-    html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:9px 16px 9px 20px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;align-items:center;${idx%2===0?'':'background:rgba(255,255,255,0.012);'}">
+    const saldoCell = saldoDopo === null
+      ? `<span style="color:var(--text-muted);font-size:10px;text-align:right;padding-left:12px;font-style:italic;">storico</span>`
+      : `<span style="color:${saldoDopo>=0?'#4a90e8':'var(--red)'};font-weight:700;white-space:nowrap;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">${fmtV(saldoDopo)}</span>`;
+    html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:9px 16px 9px 20px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;align-items:center;${isStorico?'opacity:0.4;':''}${idx%2===0?'':'background:rgba(255,255,255,0.012);'}">
       <span style="color:var(--text-muted);font-size:11px;">${dateStr}</span>
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">
         ${tipoIcon} ${m.source==='revolut'?cleanRevolutDesc(m.desc):m.source==='sella'?cleanSellaDesc(m.desc):m.source==='satispay'?cleanSatispayDesc(m.desc):m.desc}${srcBadge}
         ${m.cat&&m.cat!==m.tipo?`<span style="font-size:9px;color:var(--text-muted);margin-left:4px;opacity:0.7;">${m.cat}</span>`:''}
       </span>
       <span style="color:${tipoColor};font-weight:700;white-space:nowrap;text-align:right;">${segno}€${m.amount.toFixed(2).replace('.', ',')}</span>
-      <span style="color:${saldoDopo>=0?'#4a90e8':'var(--red)'};font-weight:700;white-space:nowrap;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">${fmtV(saldoDopo)}</span>
+      ${saldoCell}
     </div>`;
   });
 
