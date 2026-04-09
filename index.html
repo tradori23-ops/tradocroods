@@ -18316,11 +18316,14 @@ function renderDashCCBanner() {
   // Calcola saldo attuale = iniziale + entrate/uscite POST data riferimento
   const movimenti = ccGetAllMovimenti();
   const _sd = new Date(saldoIniz.date + 'T00:00:00');
+  const _TRASF2 = [/satispay\s*europe/i,/revolut\*+\d+\*/i,/giro\s*al[l]?\s/i,/giroconto/i,/libretto\s*di\s*risparmio/i,/accredita\s*eur/i,/savings?\s*vault/i,/spare\s*change/i,/to\s*eur\s*personal/i];
+  const _isT2 = m => _TRASF2.some(r=>r.test(m.desc||'')) || (m.tipo!=='entrata'&&m.pay==='bonifico'&&/revolut|satispay/i.test(m.desc||''));
   let totE = 0, totU = 0, nPost = 0;
   movimenti.forEach(m => {
     if(m.dateObj < _sd) return;
     nPost++;
-    if(m.tipo === 'entrata') totE += m.amount; else totU += m.amount;
+    if(m.tipo === 'entrata') totE += m.amount;
+    else if(!_isT2(m)) totU += m.amount;
   });
   const saldoAtt = saldoIniz.amount + totE - totU;
   const fmt = v => (v<0?'-':'')+'€'+Math.abs(v).toFixed(2).replace('.', ',');
@@ -18359,14 +18362,31 @@ function renderCC() {
   const tutti = ccGetAllMovimenti();
   const startDate = new Date(saldoIniz.date + 'T00:00:00');
 
-  let totEntrate = 0, totUscite = 0;
+  // Pattern trasferimenti interni da escludere dal saldo (doppio conteggio)
+  const _TRASF_RE = [
+    /satispay\s*europe/i,
+    /revolut\*+\d+\*/i,
+    /giro\s*al[l]?\s/i,
+    /giroconto/i,
+    /libretto\s*di\s*risparmio/i,
+    /accredita\s*eur/i,
+    /savings?\s*vault/i,
+    /spare\s*change/i,
+    /to\s*eur\s*personal/i,
+    /from\s*eur\s*personal/i,
+  ];
+  const _isTrasf = m => _TRASF_RE.some(r => r.test(m.desc || '')) ||
+    (m.tipo !== 'entrata' && m.pay === 'bonifico' && /revolut|satispay/i.test(m.desc || ''));
+
+  let totEntrate = 0, totUscite = 0, totTrasf = 0;
   tutti.forEach(m => {
     if(m.dateObj < startDate) return;
-    if(m.tipo === 'entrata') totEntrate += m.amount;
-    else totUscite += m.amount;
+    if(m.tipo === 'entrata') { totEntrate += m.amount; return; }
+    if(_isTrasf(m)) { totTrasf += m.amount; return; }
+    totUscite += m.amount;
   });
 
-  // saldo iniziale 01/01/2023 + tutte le entrate - tutte le uscite = saldo oggi
+  // saldo iniziale + entrate - uscite reali (esclusi trasferimenti interni)
   const saldoAttuale = saldoIniz.amount + totEntrate - totUscite;
   const fmt = v => (v < 0 ? '-' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
 
@@ -18393,6 +18413,8 @@ function renderCC() {
   }
   const teEl = document.getElementById('cc-tot-entrate');
   if(teEl) teEl.textContent = '+' + fmt(totEntrate);
+  // Aggiorna label saldo attuale con info trasferimenti esclusi
+  if(saCc) saCc.textContent = 'Calcolato al ' + new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'}) + ' · ' + fmt(totTrasf) + ' trasf. interni esclusi';
   const tuEl = document.getElementById('cc-tot-uscite');
   if(tuEl) tuEl.textContent = '-' + fmt(totUscite);
   const deEl = document.getElementById('cc-delta');
