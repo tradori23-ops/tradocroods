@@ -17926,19 +17926,55 @@ function renderDashSaldoBanca() {
   const sub  = document.getElementById('dash-saldo-banca-sub');
   const row  = document.getElementById('dash-saldo-banca-row');
   if(!val) return;
+
   const fmt = v => (v < 0 ? '-' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
-  const saved = load('saldo_banca_manuale', null);
-  if(!saved) {
-    val.textContent = '—'; val.style.color = 'var(--text-muted)';
-    if(date) date.textContent = 'Clicca ✏️ Aggiorna per inserire il saldo da Sella';
-    if(sub)  sub.textContent = 'Non ancora inserito';
-    return;
+  const nowY = new Date().getFullYear();
+
+  // Formula corretta da analisi dati reali (09/04/2026):
+  // Sella ha 1627 spese includendo ricariche Revolut (~34k) e Satispay (~5k) → doppio conteggio
+  // Soluzione: da Sella escludiamo le righe che riguardano Revolut/Satispay/trasferimenti
+  // e contiamo separatamente Revolut e Satispay come fonti dirette
+  const SKIP_SELLA = [/satispay/i, /revolut/i, /giro\s*al/i, /giroconto/i, /libretto/i, /accredita/i];
+
+  let E = 0, totSel = 0, totRev = 0, totSat = 0, totMan = 0, nMesi = 0;
+
+  for(let y = 2023; y <= nowY + 1; y++) {
+    for(let m = 1; m <= 12; m++) {
+      const exp = load('expenses_' + y + '_' + m, []) || [];
+      const inc = load('income_'   + y + '_' + m, []) || [];
+      if(!exp.length && !inc.length) continue;
+      nMesi++;
+      inc.forEach(i => { E += (i.amount || 0); });
+      exp.forEach(e => {
+        const s   = e.source || '';
+        const d   = (e.desc || '').toLowerCase();
+        const p   = e.pay || '';
+        const amt = e.amount || 0;
+        if(s === 'revolut')   { totRev += amt; return; }
+        if(s === 'satispay')  { totSat += amt; return; }
+        if(s === 'sella') {
+          // Escludi ricariche e trasferimenti interni
+          if(SKIP_SELLA.some(r => r.test(d))) return;
+          if(p === 'bonifico' && /revolut|satispay/i.test(d)) return;
+          totSel += amt; return;
+        }
+        totMan += amt;
+      });
+    }
   }
-  val.textContent = fmt(saved.amount);
-  val.style.color = saved.amount >= 0 ? '#4a90e8' : 'var(--red)';
-  if(date) date.textContent = 'Aggiornato il ' + new Date(saved.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
-  if(sub)  sub.textContent = 'Saldo reale inserito dall\'app Sella';
-  if(row)  row.style.borderColor = saved.amount >= 0 ? 'rgba(74,144,232,0.35)' : 'rgba(224,92,92,0.4)';
+
+  const saldoBase = getCCSaldoIniziale();
+  const base  = saldoBase ? saldoBase.amount : 0;
+  const saldo = base + E - totRev - totSat - totSel - totMan;
+
+  val.textContent = fmt(saldo);
+  val.style.color = saldo >= 0 ? '#4a90e8' : 'var(--red)';
+  if(sub)  sub.textContent = '+' + fmt(E) + ' entrate − ' + fmt(totRev+totSat+totSel+totMan) + ' uscite';
+  const dataLabel = saldoBase
+    ? 'Base ' + fmt(base) + ' dal ' + new Date(saldoBase.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}) + ' · ' + nMesi + ' mesi'
+    : 'Imposta saldo iniziale in Conto Corrente';
+  if(date) date.textContent = dataLabel;
+  if(row)  row.style.borderColor = saldo >= 0 ? 'rgba(74,144,232,0.35)' : 'rgba(224,92,92,0.4)';
 }
 
 function getSaldoBanca() {
