@@ -17934,7 +17934,19 @@ function renderDashSaldoBanca() {
   // Sella ha 1627 spese includendo ricariche Revolut (~34k) e Satispay (~5k) → doppio conteggio
   // Soluzione: da Sella escludiamo le righe che riguardano Revolut/Satispay/trasferimenti
   // e contiamo separatamente Revolut e Satispay come fonti dirette
-  const SKIP_SELLA = [/satispay/i, /revolut/i, /giro\s*al/i, /giroconto/i, /libretto/i, /accredita/i];
+  // Sella: escludi trasferimenti interni e auto-trasferimenti
+  // Analisi dati reali 09/04/2026: "RISPARMIO A SERGIO TRADORI" e simili
+  // sono trasferimenti a se stesso (risparmio affitto, PC, ecc.) = non spese reali
+  const SKIP_SELLA = [
+    /satispay/i,       // ricarica Satispay
+    /revolut/i,        // ricarica Revolut (es. "CROCIERA A SERGIO REVOLUT")
+    /giro\s*al/i,     // giro al conto
+    /giroconto/i,
+    /libretto/i,       // libretto risparmio
+    /accredita/i,      // accrediti vault
+    /risparmio/i,      // risparmio a se stesso (es. "RISPARMIO A SERGIO TRADORI")
+    /tradori/i,        // qualsiasi giro a Sergio Tradori stesso
+  ];
 
   let E = 0, totSel = 0, totRev = 0, totSat = 0, totMan = 0, nMesi = 0;
 
