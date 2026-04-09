@@ -3671,16 +3671,17 @@ body.ios-device .btn-gold:hover {
       </div>
 
       <!-- ROW 2b: Saldo Conto Corrente -->
-      <!-- SALDO CALCOLATO: Entrate − Uscite totali -->
+      <!-- SALDO REALE BANCA — inserito manualmente -->
       <div id="dash-saldo-banca-row" style="background:var(--card);border-radius:18px;padding:18px 24px;margin-bottom:14px;border:2px solid rgba(74,144,232,0.35);">
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
           <div style="flex:1;">
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">💰 Saldo Netto Calcolato</div>
-            <div style="font-size:11px;color:var(--text-muted);" id="dash-saldo-banca-sub">Entrate − Uscite (2023 → oggi)</div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:3px;" id="dash-saldo-banca-date">—</div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">🏦 Saldo Reale Banca</div>
+            <div style="font-size:11px;color:var(--text-muted);" id="dash-saldo-banca-sub">Inserito dall'app Sella</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px;" id="dash-saldo-banca-date">Non ancora inserito</div>
           </div>
-          <div style="text-align:right;">
-            <div style="font-size:40px;font-weight:900;font-family:'Playfair Display',serif;" id="dash-saldo-banca-val">—</div>
+          <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+            <div style="font-size:40px;font-weight:900;font-family:'Playfair Display',serif;text-align:right;" id="dash-saldo-banca-val">—</div>
+            <button onclick="dashQuickSaldo()" style="background:rgba(74,144,232,0.12);border:1.5px solid rgba(74,144,232,0.4);color:#4a90e8;border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;">✏️ Aggiorna</button>
           </div>
         </div>
       </div>
@@ -17892,17 +17893,17 @@ function checkIOSInstallPrompt() {
 // Popup rapido per aggiornare saldo banca direttamente dalla card dashboard
 // Input rapido saldo reale banca dalla Dashboard
 function dashQuickSaldo() {
-  const saved = getCCSaldoIniziale();
+  const saved = load('saldo_banca_manuale', null);
   const cur = saved ? saved.amount.toFixed(2) : '';
   const val = prompt('Saldo reale attuale della banca (€) — es. 1272.96', cur);
   if(val === null) return;
   const amount = parseFloat(val.replace(',', '.'));
   if(isNaN(amount)) { showToast('⚠️ Importo non valido'); return; }
   const today = new Date().toISOString().split('T')[0];
-  saveCCSaldoIniziale({ amount, date: today });
+  save('saldo_banca_manuale', { amount, date: today });
   fbPushToCloud();
   renderDashSaldoBanca();
-  showToast('✅ Saldo aggiornato: €' + amount.toFixed(2).replace('.', ','));
+  showToast('✅ Saldo banca aggiornato: €' + amount.toFixed(2).replace('.', ','));
 }
 
 function dashQuickEditSaldo() {
@@ -17925,67 +17926,19 @@ function renderDashSaldoBanca() {
   const sub  = document.getElementById('dash-saldo-banca-sub');
   const row  = document.getElementById('dash-saldo-banca-row');
   if(!val) return;
-
   const fmt = v => (v < 0 ? '-' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
-  const nowY = new Date().getFullYear();
-
-  // Calcola: tutte le entrate - tutte le uscite (Sella + Revolut + Satispay + manuali)
-  // da tutti gli anni 2023 → oggi
-  let totEntrate = 0, totUscite = 0;
-  let nMesi = 0;
-
-  // Pattern trasferimenti interni da ESCLUDERE (doppio conteggio tra conti)
-  const TRASF_INTERNI = [
-    /satispay\s*europe/i,
-    /revolut\*+\d+\*/i,
-    /revolut.*dublin/i,
-    /giro\s*al[l]?\s/i,
-    /giroconto/i,
-    /libretto\s*di\s*risparmio/i,
-    /accredita\s*eur/i,
-    /savings?\s*vault/i,
-    /spare\s*change/i,
-    /to\s*eur\s*personal/i,
-    /from\s*eur\s*personal/i,
-    /top[\s-]*up/i,
-    /instant\s*top/i,
-    /ricarica.*revolut/i,
-    /ricarica.*satispay/i,
-  ];
-
-  const isInterno = e => {
-    const d = (e.desc || '').toLowerCase();
-    if(TRASF_INTERNI.some(r => r.test(d))) return true;
-    // bonifico a se stesso (pay=bonifico da Sella verso Revolut/Satispay)
-    if(e.pay === 'bonifico' && e.source === 'sella' && /revolut|satispay/i.test(d)) return true;
-    return false;
-  };
-
-  let totTrasf = 0, nEsp = 0;
-
-  for(let y = 2023; y <= nowY + 1; y++) {
-    for(let m = 1; m <= 12; m++) {
-      const key = y + '_' + m;
-      const inc = load('income_' + key, []) || [];
-      const exp = load('expenses_' + key, []) || [];
-      if(!inc.length && !exp.length) continue;
-      nMesi++;
-      inc.forEach(i => { totEntrate += (i.amount || 0); });
-      exp.forEach(e => {
-        if(isInterno(e)) { totTrasf += (e.amount || 0); return; }
-        totUscite += (e.amount || 0);
-        nEsp++;
-      });
-    }
+  const saved = load('saldo_banca_manuale', null);
+  if(!saved) {
+    val.textContent = '—'; val.style.color = 'var(--text-muted)';
+    if(date) date.textContent = 'Clicca ✏️ Aggiorna per inserire il saldo da Sella';
+    if(sub)  sub.textContent = 'Non ancora inserito';
+    return;
   }
-
-  const saldo = totEntrate - totUscite;
-  const colore = saldo >= 0 ? '#4a90e8' : 'var(--red)';
-
-  if(val)  { val.textContent = fmt(saldo); val.style.color = colore; }
-  if(sub)  sub.textContent = fmt(totEntrate) + ' entrate − ' + fmt(totUscite) + ' uscite reali (' + fmt(totTrasf) + ' trasf. esclusi)';
-  if(date) date.textContent = nEsp + ' spese reali su ' + nMesi + ' mesi (2023 → oggi)';
-  if(row)  row.style.borderColor = saldo >= 0 ? 'rgba(74,144,232,0.35)' : 'rgba(224,92,92,0.4)';
+  val.textContent = fmt(saved.amount);
+  val.style.color = saved.amount >= 0 ? '#4a90e8' : 'var(--red)';
+  if(date) date.textContent = 'Aggiornato il ' + new Date(saved.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+  if(sub)  sub.textContent = 'Saldo reale inserito dall\'app Sella';
+  if(row)  row.style.borderColor = saved.amount >= 0 ? 'rgba(74,144,232,0.35)' : 'rgba(224,92,92,0.4)';
 }
 
 function getSaldoBanca() {
