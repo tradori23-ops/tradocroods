@@ -18388,21 +18388,23 @@ function renderCC() {
 
   // Pattern trasferimenti interni da escludere dal saldo (doppio conteggio)
   const _TRASF_RE = [
-    /satispay\s*europe/i,          // ricarica Satispay da Sella
-    /revolut\*+\d+\*/i,            // ricarica Revolut da Sella POS
-    /revolut.*dublin/i,              // top-up Revolut via Dublin
-    /giro\s*al[l]?\s/i,             // giroconti
+    /satispay\s*europe/i,
+    /revolut\*+\d+\*/i,
+    /revolut.*dublin/i,
+    /giro\s*al[l]?\s/i,
     /giroconto/i,
-    /libretto\s*di\s*risparmio/i,   // giro libretto
-    /accredita\s*eur/i,              // vault Revolut
+    /libretto\s*di\s*risparmio/i,
+    /accredita\s*eur/i,
     /savings?\s*vault/i,
     /spare\s*change/i,
     /to\s*eur\s*personal/i,
     /from\s*eur\s*personal/i,
-    /top[\s-]*up/i,                  // top-up generico
-    /instant\s*top/i,                // instant top-up Revolut
-    /ricarica.*revolut/i,             // ricarica a Revolut
-    /ricarica.*satispay/i,            // ricarica a Satispay
+    /top[\s-]*up/i,
+    /instant\s*top/i,
+    /ricarica.*revolut/i,
+    /ricarica.*satispay/i,
+    /risparmio/i,    // autoversamenti risparmio
+    /tradori/i,      // giri a se stesso (Sergio Tradori)
   ];
   // È un trasferimento interno se: desc corrisponde OR (è bonifico verso Revolut/Satispay)
   const _isTrasf = m => {
