@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v118';
+  var BUILD = '20260409-v119';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3430,7 +3430,7 @@ body.ios-device .btn-gold:hover {
   <!-- LOGIN FOOTER -->
   <div class="footer-copy" id="loginFooter">
     <div class="copy-line">© 2026/2027 TradoCroods by Family</div>
-    <div class="copy-line version" id="loginVersion">v.2.40</div>
+    <div class="copy-line version" id="loginVersion">v.2.41</div>
   </div>
 
   <!-- UPDATE TOAST BANNER (appare solo se disponibile aggiornamento) -->
@@ -3524,7 +3524,7 @@ body.ios-device .btn-gold:hover {
     <!-- SIDEBAR FOOTER -->
     <div style="padding:16px 24px 8px;border-top:1px solid var(--border);margin-top:auto;">
       <div style="font-size:10px;color:rgba(201,168,76,0.55);font-weight:500;letter-spacing:0.5px;">© 2026/2027 TradoCroods by Family</div>
-      <div style="font-size:9px;color:rgba(201,168,76,0.35);margin-top:2px;" id="appVersion">v.2.40</div>
+      <div style="font-size:9px;color:rgba(201,168,76,0.35);margin-top:2px;" id="appVersion">v.2.41</div>
     </div>
   </nav>
 
@@ -17936,16 +17936,21 @@ function renderDashSaldoBanca() {
 
   // Pattern trasferimenti interni da ESCLUDERE (doppio conteggio tra conti)
   const TRASF_INTERNI = [
-    /satispay\s*europe/i,           // ricarica Satispay da Sella
-    /revolut\*+\d+\*/i,             // ricarica Revolut da Sella
-    /giro\s*al[l]?\s/i,             // giroconti
+    /satispay\s*europe/i,
+    /revolut\*+\d+\*/i,
+    /revolut.*dublin/i,
+    /giro\s*al[l]?\s/i,
     /giroconto/i,
-    /libretto\s*di\s*risparmio/i,   // giro al libretto
-    /accredita\s*eur/i,             // spiccioli vault Revolut
+    /libretto\s*di\s*risparmio/i,
+    /accredita\s*eur/i,
     /savings?\s*vault/i,
     /spare\s*change/i,
-    /to\s*eur\s*personal/i,         // cambio valuta interno Revolut
+    /to\s*eur\s*personal/i,
     /from\s*eur\s*personal/i,
+    /top[\s-]*up/i,
+    /instant\s*top/i,
+    /ricarica.*revolut/i,
+    /ricarica.*satispay/i,
   ];
 
   const isInterno = e => {
@@ -18316,7 +18321,7 @@ function renderDashCCBanner() {
   // Calcola saldo attuale = iniziale + entrate/uscite POST data riferimento
   const movimenti = ccGetAllMovimenti();
   const _sd = new Date(saldoIniz.date + 'T00:00:00');
-  const _TRASF2 = [/satispay\s*europe/i,/revolut\*+\d+\*/i,/giro\s*al[l]?\s/i,/giroconto/i,/libretto\s*di\s*risparmio/i,/accredita\s*eur/i,/savings?\s*vault/i,/spare\s*change/i,/to\s*eur\s*personal/i];
+  const _TRASF2 = [/satispay\s*europe/i,/revolut\*+\d+\*/i,/revolut.*dublin/i,/giro\s*al[l]?\s/i,/giroconto/i,/libretto\s*di\s*risparmio/i,/accredita\s*eur/i,/savings?\s*vault/i,/spare\s*change/i,/to\s*eur\s*personal/i,/top[\s-]*up/i,/instant\s*top/i,/ricarica.*revolut/i,/ricarica.*satispay/i];
   const _isT2 = m => _TRASF2.some(r=>r.test(m.desc||'')) || (m.tipo!=='entrata'&&m.pay==='bonifico'&&/revolut|satispay/i.test(m.desc||''));
   let totE = 0, totU = 0, nPost = 0;
   movimenti.forEach(m => {
@@ -18364,19 +18369,28 @@ function renderCC() {
 
   // Pattern trasferimenti interni da escludere dal saldo (doppio conteggio)
   const _TRASF_RE = [
-    /satispay\s*europe/i,
-    /revolut\*+\d+\*/i,
-    /giro\s*al[l]?\s/i,
+    /satispay\s*europe/i,          // ricarica Satispay da Sella
+    /revolut\*+\d+\*/i,            // ricarica Revolut da Sella POS
+    /revolut.*dublin/i,              // top-up Revolut via Dublin
+    /giro\s*al[l]?\s/i,             // giroconti
     /giroconto/i,
-    /libretto\s*di\s*risparmio/i,
-    /accredita\s*eur/i,
+    /libretto\s*di\s*risparmio/i,   // giro libretto
+    /accredita\s*eur/i,              // vault Revolut
     /savings?\s*vault/i,
     /spare\s*change/i,
     /to\s*eur\s*personal/i,
     /from\s*eur\s*personal/i,
+    /top[\s-]*up/i,                  // top-up generico
+    /instant\s*top/i,                // instant top-up Revolut
+    /ricarica.*revolut/i,             // ricarica a Revolut
+    /ricarica.*satispay/i,            // ricarica a Satispay
   ];
-  const _isTrasf = m => _TRASF_RE.some(r => r.test(m.desc || '')) ||
-    (m.tipo !== 'entrata' && m.pay === 'bonifico' && /revolut|satispay/i.test(m.desc || ''));
+  // È un trasferimento interno se: desc corrisponde OR (è bonifico verso Revolut/Satispay)
+  const _isTrasf = m => {
+    if(_TRASF_RE.some(r => r.test(m.desc || ''))) return true;
+    if(m.tipo !== 'entrata' && m.pay === 'bonifico' && /revolut|satispay/i.test(m.desc || '')) return true;
+    return false;
+  };
 
   let totEntrate = 0, totUscite = 0, totTrasf = 0;
   tutti.forEach(m => {
