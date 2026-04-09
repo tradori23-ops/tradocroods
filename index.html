@@ -3671,35 +3671,17 @@ body.ios-device .btn-gold:hover {
       </div>
 
       <!-- ROW 2b: Saldo Conto Corrente -->
-      <div id="dash-cc-banner" style="background:var(--card);border-radius:18px;padding:16px 22px;margin-bottom:14px;border:2px solid rgba(74,144,232,0.3);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;cursor:pointer;" onclick="showSection('contocorrente', document.querySelector('.nav-item[onclick*=contocorrente]'))">
-        <div>
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">🏦 Saldo Conto Corrente</div>
-          <div style="font-size:11px;color:var(--text-muted);" id="dash-cc-sub">Saldo reale aggiornato</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:20px;">
-          <div style="text-align:right;">
-            <div style="font-size:36px;font-weight:900;font-family:'Playfair Display',serif;" id="dash-cc-saldo">—</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="dash-cc-data">Imposta saldo in Conto Corrente →</div>
+      <!-- SALDO CALCOLATO: Entrate − Uscite totali -->
+      <div id="dash-saldo-banca-row" style="background:var(--card);border-radius:18px;padding:18px 24px;margin-bottom:14px;border:2px solid rgba(74,144,232,0.35);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+          <div style="flex:1;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">💰 Saldo Netto Calcolato</div>
+            <div style="font-size:11px;color:var(--text-muted);" id="dash-saldo-banca-sub">Entrate − Uscite (2023 → oggi)</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px;" id="dash-saldo-banca-date">—</div>
           </div>
-          <div style="font-size:20px;color:rgba(74,144,232,0.4);">›</div>
-        </div>
-      </div>
-
-      <!-- ROW 2b: Saldo Reale Banca (da Conto Corrente) -->
-      <div id="dash-saldo-banca-row" style="background:var(--card);border-radius:18px;padding:16px 22px;margin-bottom:14px;border:1.5px solid rgba(74,144,232,0.3);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-        <div>
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">💳 Saldo Reale Conto Corrente</div>
-          <div style="font-size:11px;color:var(--text-muted);" id="dash-saldo-banca-sub">Aggiornato dal Conto Corrente</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
           <div style="text-align:right;">
-            <div style="font-size:36px;font-weight:900;font-family:'Playfair Display',serif;" id="dash-saldo-banca-val">—</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="dash-saldo-banca-date">Non ancora impostato</div>
+            <div style="font-size:40px;font-weight:900;font-family:'Playfair Display',serif;" id="dash-saldo-banca-val">—</div>
           </div>
-          <button onclick="showSection('contocorrente', document.querySelector('.nav-item[onclick*=contocorrente]'))" 
-            style="background:rgba(74,144,232,0.12);border:1.5px solid rgba(74,144,232,0.4);color:#4a90e8;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;">
-            💳 Vai a Conto Corrente
-          </button>
         </div>
       </div>
 
@@ -17908,6 +17890,21 @@ function checkIOSInstallPrompt() {
 // SALDO REALE BANCA
 // ═══════════════════════════════════════
 // Popup rapido per aggiornare saldo banca direttamente dalla card dashboard
+// Input rapido saldo reale banca dalla Dashboard
+function dashQuickSaldo() {
+  const saved = getCCSaldoIniziale();
+  const cur = saved ? saved.amount.toFixed(2) : '';
+  const val = prompt('Saldo reale attuale della banca (€) — es. 1272.96', cur);
+  if(val === null) return;
+  const amount = parseFloat(val.replace(',', '.'));
+  if(isNaN(amount)) { showToast('⚠️ Importo non valido'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  saveCCSaldoIniziale({ amount, date: today });
+  fbPushToCloud();
+  renderDashSaldoBanca();
+  showToast('✅ Saldo aggiornato: €' + amount.toFixed(2).replace('.', ','));
+}
+
 function dashQuickEditSaldo() {
   const saved = getSaldoBanca();
   const val = prompt('Inserisci il saldo attuale del conto (€):', saved ? saved.amount : '');
@@ -17923,37 +17920,39 @@ function dashQuickEditSaldo() {
 }
 
 function renderDashSaldoBanca() {
-  const row  = document.getElementById('dash-saldo-banca-row');
   const val  = document.getElementById('dash-saldo-banca-val');
   const date = document.getElementById('dash-saldo-banca-date');
   const sub  = document.getElementById('dash-saldo-banca-sub');
-  if(!row) return;
+  const row  = document.getElementById('dash-saldo-banca-row');
+  if(!val) return;
 
-  const saved = getCCSaldoIniziale();
-  if(!saved) {
-    row.style.display = 'flex';
-    if(val)  { val.textContent = '—'; val.style.color = 'var(--text-muted)'; }
-    if(date) date.textContent = 'Non ancora impostato — vai a Conto Corrente';
-    if(sub)  sub.textContent = 'Clicca per impostare il saldo iniziale';
-    return;
+  const fmt = v => (v < 0 ? '-' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
+  const nowY = new Date().getFullYear();
+
+  // Calcola: tutte le entrate - tutte le uscite (Sella + Revolut + Satispay + manuali)
+  // da tutti gli anni 2023 → oggi
+  let totEntrate = 0, totUscite = 0;
+  let nMesi = 0;
+
+  for(let y = 2023; y <= nowY + 1; y++) {
+    for(let m = 1; m <= 12; m++) {
+      const key = y + '_' + m;
+      const inc = load('income_' + key, []) || [];
+      const exp = load('expenses_' + key, []) || [];
+      if(!inc.length && !exp.length) continue;
+      nMesi++;
+      inc.forEach(i => { totEntrate += (i.amount || 0); });
+      exp.forEach(e => { totUscite  += (e.amount || 0); });
+    }
   }
 
-  // Calcola saldo attuale — solo movimenti POST la data del saldo iniziale
-  const tutti = ccGetAllMovimenti();
-  const _sdS = new Date(saved.date + 'T00:00:00');
-  let totE = 0, totU = 0, nPost = 0;
-  tutti.forEach(m => {
-    if(m.dateObj < _sdS) return;
-    nPost++;
-    if(m.tipo==='entrata') totE+=m.amount; else totU+=m.amount;
-  });
-  const saldoAtt = saved.amount + totE - totU;
-  const fmt = v => (v<0?'-':'') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
+  const saldo = totEntrate - totUscite;
+  const colore = saldo >= 0 ? '#4a90e8' : 'var(--red)';
 
-  if(val)  { val.textContent = fmt(saldoAtt); val.style.color = saldoAtt>=0 ? '#4a90e8' : 'var(--red)'; }
-  if(date) date.textContent = 'Base: ' + fmt(saved.amount) + ' dal ' + new Date(saved.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
-  if(sub)  sub.textContent = 'Saldo calcolato · ' + nPost + ' movimenti dal ' + new Date(saved.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
-  if(row)  row.style.borderColor = saldoAtt>=0 ? 'rgba(74,144,232,0.3)' : 'rgba(224,92,92,0.4)';
+  if(val)  { val.textContent = fmt(saldo); val.style.color = colore; }
+  if(sub)  sub.textContent = fmt(totEntrate) + ' entrate − ' + fmt(totUscite) + ' uscite';
+  if(date) date.textContent = 'Calcolato su ' + nMesi + ' mes' + (nMesi === 1 ? 'e' : 'i') + ' di dati (2023 → oggi)';
+  if(row)  row.style.borderColor = saldo >= 0 ? 'rgba(74,144,232,0.35)' : 'rgba(224,92,92,0.4)';
 }
 
 function getSaldoBanca() {
@@ -19399,6 +19398,28 @@ function _cleanDescBySource(e) {
   return d;
 }
 
+// Aggiunge/modifica nota a una spesa
+function weekExpAddNota(expId, expDate, btn) {
+  const d = new Date(expDate + 'T12:00:00');
+  const key = `tc_${currentUser?.email}_expenses_${d.getFullYear()}_${d.getMonth()+1}`;
+  let exps = [];
+  try { exps = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+  const idx = exps.findIndex(e => String(e.id) === String(expId));
+  if(idx === -1) { showToast('⚠️ Spesa non trovata'); return; }
+
+  const cur = exps[idx].nota || '';
+  const label = (exps[idx].desc || '') + ' €' + (exps[idx].amount||0).toFixed(2);
+  const nota = prompt('📝 Nota per: ' + label, cur);
+  if(nota === null) return; // annullato
+
+  exps[idx].nota = nota.trim();
+  localStorage.setItem(key, JSON.stringify(exps));
+  bumpVersion();
+  fbPushToCloud();
+  // Riapri il modal per aggiornare la lista
+  openWeekDayModal(_weekDetailCurrentDs, document.getElementById('weekDetailTitle')?.textContent || '');
+}
+
 function _weekExpRows(exps, fmt) {
   const SRC_LABEL = {
     satispay: { label:'Satispay', bg:'rgba(255,92,92,0.2)',  color:'#ff6b6b' },
@@ -19422,12 +19443,19 @@ function _weekExpRows(exps, fmt) {
     const badge = srcInfo
       ? `<span style="background:${srcInfo.bg};color:${srcInfo.color};border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${payName}</span>`
       : (payName !== '—' ? `<span style="background:rgba(255,255,255,0.08);color:var(--text-muted);border-radius:5px;padding:2px 7px;font-size:10px;font-weight:600;white-space:nowrap;">${payName}</span>` : '');
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:5px;">
-      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
-        ${badge}<span style="font-size:13px;">${catIconHtml(e.cat)}</span>
-        <span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc==='—'?e.cat:_cleanDescBySource(e)}</span>
+    const notaHtml = e.nota ? `<div style="font-size:11px;color:var(--text-muted);padding:2px 6px 4px 6px;font-style:italic;">📝 ${e.nota}</div>` : '';
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:5px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;">
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+          ${badge}<span style="font-size:13px;">${catIconHtml(e.cat)}</span>
+          <span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc==='—'?e.cat:_cleanDescBySource(e)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <button onclick="weekExpAddNota('${e.id}','${e.date}',this)" style="background:none;border:none;cursor:pointer;font-size:14px;opacity:0.5;padding:2px 4px;" title="Aggiungi nota">${e.nota?'📝':'📄'}</button>
+          <span style="font-size:14px;font-weight:700;color:var(--red);white-space:nowrap;">${fmt(e.amount)}</span>
+        </div>
       </div>
-      <span style="font-size:14px;font-weight:700;color:var(--red);margin-left:10px;white-space:nowrap;">${fmt(e.amount)}</span>
+      ${notaHtml}
     </div>`;
   }).join('');
 }
