@@ -17934,6 +17934,30 @@ function renderDashSaldoBanca() {
   let totEntrate = 0, totUscite = 0;
   let nMesi = 0;
 
+  // Pattern trasferimenti interni da ESCLUDERE (doppio conteggio tra conti)
+  const TRASF_INTERNI = [
+    /satispay\s*europe/i,           // ricarica Satispay da Sella
+    /revolut\*+\d+\*/i,             // ricarica Revolut da Sella
+    /giro\s*al[l]?\s/i,             // giroconti
+    /giroconto/i,
+    /libretto\s*di\s*risparmio/i,   // giro al libretto
+    /accredita\s*eur/i,             // spiccioli vault Revolut
+    /savings?\s*vault/i,
+    /spare\s*change/i,
+    /to\s*eur\s*personal/i,         // cambio valuta interno Revolut
+    /from\s*eur\s*personal/i,
+  ];
+
+  const isInterno = e => {
+    const d = (e.desc || '').toLowerCase();
+    if(TRASF_INTERNI.some(r => r.test(d))) return true;
+    // bonifico a se stesso (pay=bonifico da Sella verso Revolut/Satispay)
+    if(e.pay === 'bonifico' && e.source === 'sella' && /revolut|satispay/i.test(d)) return true;
+    return false;
+  };
+
+  let totTrasf = 0, nEsp = 0;
+
   for(let y = 2023; y <= nowY + 1; y++) {
     for(let m = 1; m <= 12; m++) {
       const key = y + '_' + m;
@@ -17942,7 +17966,11 @@ function renderDashSaldoBanca() {
       if(!inc.length && !exp.length) continue;
       nMesi++;
       inc.forEach(i => { totEntrate += (i.amount || 0); });
-      exp.forEach(e => { totUscite  += (e.amount || 0); });
+      exp.forEach(e => {
+        if(isInterno(e)) { totTrasf += (e.amount || 0); return; }
+        totUscite += (e.amount || 0);
+        nEsp++;
+      });
     }
   }
 
@@ -17950,8 +17978,8 @@ function renderDashSaldoBanca() {
   const colore = saldo >= 0 ? '#4a90e8' : 'var(--red)';
 
   if(val)  { val.textContent = fmt(saldo); val.style.color = colore; }
-  if(sub)  sub.textContent = fmt(totEntrate) + ' entrate − ' + fmt(totUscite) + ' uscite';
-  if(date) date.textContent = 'Calcolato su ' + nMesi + ' mes' + (nMesi === 1 ? 'e' : 'i') + ' di dati (2023 → oggi)';
+  if(sub)  sub.textContent = fmt(totEntrate) + ' entrate − ' + fmt(totUscite) + ' uscite reali (' + fmt(totTrasf) + ' trasf. esclusi)';
+  if(date) date.textContent = nEsp + ' spese reali su ' + nMesi + ' mesi (2023 → oggi)';
   if(row)  row.style.borderColor = saldo >= 0 ? 'rgba(74,144,232,0.35)' : 'rgba(224,92,92,0.4)';
 }
 
