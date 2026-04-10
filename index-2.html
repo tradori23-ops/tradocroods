@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260317-v118';
+  var BUILD = '20260409-v119';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3430,7 +3430,7 @@ body.ios-device .btn-gold:hover {
   <!-- LOGIN FOOTER -->
   <div class="footer-copy" id="loginFooter">
     <div class="copy-line">© 2026/2027 TradoCroods by Family</div>
-    <div class="copy-line version" id="loginVersion">v.2.40</div>
+    <div class="copy-line version" id="loginVersion">v.2.41</div>
   </div>
 
   <!-- UPDATE TOAST BANNER (appare solo se disponibile aggiornamento) -->
@@ -3524,7 +3524,7 @@ body.ios-device .btn-gold:hover {
     <!-- SIDEBAR FOOTER -->
     <div style="padding:16px 24px 8px;border-top:1px solid var(--border);margin-top:auto;">
       <div style="font-size:10px;color:rgba(201,168,76,0.55);font-weight:500;letter-spacing:0.5px;">© 2026/2027 TradoCroods by Family</div>
-      <div style="font-size:9px;color:rgba(201,168,76,0.35);margin-top:2px;" id="appVersion">v.2.40</div>
+      <div style="font-size:9px;color:rgba(201,168,76,0.35);margin-top:2px;" id="appVersion">v.2.41</div>
     </div>
   </nav>
 
@@ -3671,35 +3671,21 @@ body.ios-device .btn-gold:hover {
       </div>
 
       <!-- ROW 2b: Saldo Conto Corrente -->
-      <div id="dash-cc-banner" style="background:var(--card);border-radius:18px;padding:16px 22px;margin-bottom:14px;border:2px solid rgba(74,144,232,0.3);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;cursor:pointer;" onclick="showSection('contocorrente', document.querySelector('.nav-item[onclick*=contocorrente]'))">
-        <div>
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">🏦 Saldo Conto Corrente</div>
-          <div style="font-size:11px;color:var(--text-muted);" id="dash-cc-sub">Saldo reale aggiornato</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:20px;">
-          <div style="text-align:right;">
-            <div style="font-size:36px;font-weight:900;font-family:'Playfair Display',serif;" id="dash-cc-saldo">—</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="dash-cc-data">Imposta saldo in Conto Corrente →</div>
+      <!-- SALDO BANCA: calcolato automaticamente + correzione manuale -->
+      <div id="dash-saldo-banca-row" style="background:var(--card);border-radius:18px;padding:18px 24px;margin-bottom:14px;border:2px solid rgba(74,144,232,0.35);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">🏦 Saldo Reale Banca</div>
+            <div style="font-size:11px;color:var(--text-muted);" id="dash-saldo-banca-sub">Calcolato automaticamente</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px;" id="dash-saldo-banca-date">—</div>
           </div>
-          <div style="font-size:20px;color:rgba(74,144,232,0.4);">›</div>
-        </div>
-      </div>
-
-      <!-- ROW 2b: Saldo Reale Banca (da Conto Corrente) -->
-      <div id="dash-saldo-banca-row" style="background:var(--card);border-radius:18px;padding:16px 22px;margin-bottom:14px;border:1.5px solid rgba(74,144,232,0.3);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
-        <div>
-          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">💳 Saldo Reale Conto Corrente</div>
-          <div style="font-size:11px;color:var(--text-muted);" id="dash-saldo-banca-sub">Aggiornato dal Conto Corrente</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;">
-          <div style="text-align:right;">
-            <div style="font-size:36px;font-weight:900;font-family:'Playfair Display',serif;" id="dash-saldo-banca-val">—</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="dash-saldo-banca-date">Non ancora impostato</div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="text-align:right;">
+              <div style="font-size:36px;font-weight:900;font-family:'Playfair Display',serif;" id="dash-saldo-banca-val">—</div>
+              <div style="font-size:10px;color:var(--text-muted);margin-top:2px;" id="dash-saldo-banca-manual-label"></div>
+            </div>
+            <button onclick="dashQuickSaldo()" title="Correggi con il saldo reale da Sella" style="background:rgba(74,144,232,0.12);border:1.5px solid rgba(74,144,232,0.4);color:#4a90e8;border-radius:10px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;">✏️ Correggi</button>
           </div>
-          <button onclick="showSection('contocorrente', document.querySelector('.nav-item[onclick*=contocorrente]'))" 
-            style="background:rgba(74,144,232,0.12);border:1.5px solid rgba(74,144,232,0.4);color:#4a90e8;border-radius:10px;padding:9px 16px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;">
-            💳 Vai a Conto Corrente
-          </button>
         </div>
       </div>
 
@@ -4200,6 +4186,29 @@ body.ios-device .btn-gold:hover {
         </div>
       </div>
 
+      <!-- SATISPAY RICEVUTA SINGOLA -->
+      <div class="card mb-20" style="border:2px dashed rgba(255,140,0,0.45);background:rgba(255,140,0,0.04);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <span style="font-size:28px;">🧾</span>
+          <div>
+            <div class="card-title" style="margin:0;">Carica Ricevuta Satispay</div>
+            <div style="font-size:12px;color:var(--text-muted);">Carica la ricevuta PDF di un singolo pagamento — viene aggiunta automaticamente alle spese</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="satispayRicevutaInput" accept=".pdf" style="display:none;" onchange="importSatispayRicevuta(event)" multiple>
+          <button class="btn" onclick="document.getElementById('satispayRicevutaInput').click()" style="background:linear-gradient(135deg,#ff8c00,#e07000);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">🧾 Scegli ricevuta/e PDF</button>
+          <span id="satispayRicevutaStatus" style="font-size:13px;color:var(--text-muted);"></span>
+        </div>
+        <div id="satispayRicevutaPreview" style="display:none;margin-top:16px;">
+          <div id="satispayRicevutaList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-gold" onclick="confirmSatispayRicevute()" style="flex:1;min-width:140px;">✅ Importa tutte</button>
+            <button class="btn btn-outline" onclick="cancelSatispayRicevute()" style="flex:1;min-width:120px;">❌ Annulla</button>
+          </div>
+        </div>
+      </div>
+
       <!-- SATISPAY PDF IMPORT CARD -->
       <div class="card mb-20" style="border:2px dashed rgba(255,92,92,0.45);background:rgba(255,92,92,0.04);">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
@@ -4239,6 +4248,30 @@ body.ios-device .btn-gold:hover {
       </div>
 
 
+      <!-- BANCA SELLA SCREENSHOT IMPORT -->
+      <div class="card mb-20" style="border:2px dashed rgba(74,184,232,0.6);background:rgba(74,184,232,0.06);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <span style="font-size:28px;">📷</span>
+          <div>
+            <div class="card-title" style="margin:0;">Screenshot App Banca Sella</div>
+            <div style="font-size:12px;color:var(--text-muted);">Carica uno screenshot della home Sella — l'AI legge i movimenti, aggiorna le spese e il saldo</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="sellaScreenshotInput" accept="image/*" style="display:none;" onchange="importSellaScreenshot(event)" multiple>
+          <button class="btn" onclick="document.getElementById('sellaScreenshotInput').click()" style="background:linear-gradient(135deg,#4ab8e8,#2a8fc9);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📷 Scegli screenshot/i</button>
+          <span id="sellaScreenshotStatus" style="font-size:13px;color:var(--text-muted);"></span>
+        </div>
+        <div id="sellaScreenshotPreview" style="display:none;margin-top:16px;">
+          <div id="sellaScreenshotInfo" style="margin-bottom:10px;font-size:13px;font-weight:600;color:#4a90e8;"></div>
+          <div id="sellaScreenshotList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-gold" onclick="confirmSellaScreenshots()" style="flex:1;min-width:140px;">✅ Importa spese</button>
+            <button class="btn btn-outline" onclick="cancelSellaScreenshots()" style="flex:1;min-width:120px;">❌ Annulla</button>
+          </div>
+        </div>
+      </div>
+
       <!-- BANCA SELLA PDF IMPORT CARD -->
       <div class="card mb-20" style="border:2px dashed rgba(74,184,232,0.45);background:rgba(74,184,232,0.04);">
         <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
@@ -4259,6 +4292,29 @@ body.ios-device .btn-gold:hover {
           <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
             <button class="btn btn-gold" onclick="confirmSellaImport()" style="flex:1;min-width:140px;">✅ Importa Tutto</button>
             <button class="btn btn-outline" onclick="cancelSellaImport()" style="flex:1;min-width:120px;">❌ Annulla</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- REVOLUT SCREENSHOT IMPORT -->
+      <div class="card mb-20" style="border:2px dashed rgba(130,100,220,0.6);background:rgba(130,100,220,0.06);">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+          <span style="font-size:28px;">💜</span>
+          <div>
+            <div class="card-title" style="margin:0;">Screenshot transazione Revolut</div>
+            <div style="font-size:12px;color:var(--text-muted);">Carica uno screenshot dal dettaglio transazione Revolut — l'AI estrae importo, commerciante e data in automatico</div>
+          </div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <input type="file" id="revolutScreenshotInput" accept="image/*" style="display:none;" onchange="importRevolutScreenshot(event)" multiple>
+          <button class="btn" onclick="document.getElementById('revolutScreenshotInput').click()" style="background:linear-gradient(135deg,#8264dc,#5a3fb5);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📷 Scegli screenshot/i</button>
+          <span id="revolutScreenshotStatus" style="font-size:13px;color:var(--text-muted);"></span>
+        </div>
+        <div id="revolutScreenshotPreview" style="display:none;margin-top:16px;">
+          <div id="revolutScreenshotList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="btn btn-gold" onclick="confirmRevolutScreenshots()" style="flex:1;min-width:140px;">✅ Importa tutte</button>
+            <button class="btn btn-outline" onclick="cancelRevolutScreenshots()" style="flex:1;min-width:120px;">❌ Annulla</button>
           </div>
         </div>
       </div>
@@ -4384,6 +4440,8 @@ body.ios-device .btn-gold:hover {
               <option value="contanti">💵 Contanti</option>
               <option value="satispay">📱 Satispay</option>
               <option value="tickets">🎫 Tickets</option>
+              <option value="klarna">🅺 Klarna</option>
+              <option value="scalapay">🔷 Scalapay</option>
               <option value="bonifico">🏦 Bonifico</option>
             </select>
           </div>
@@ -4511,6 +4569,8 @@ body.ios-device .btn-gold:hover {
               <option value="contanti">💵 Contanti</option>
               <option value="satispay">📱 Satispay</option>
               <option value="tickets">🎫 Tickets</option>
+              <option value="klarna">🅺 Klarna</option>
+              <option value="scalapay">🔷 Scalapay</option>
               <option value="bonifico">🏦 Bonifico</option>
             </select>
           </div>
@@ -4868,20 +4928,34 @@ body.ios-device .btn-gold:hover {
           </div>
         </div>
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button onclick="ccUsaRimanenzaTradoCroods()" style="background:rgba(74,232,122,0.12);border:1.5px solid rgba(74,232,122,0.4);color:#4ae87a;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">
-            📊 Usa rimanenza TradoCroods
-          </button>
           <button onclick="ccOpenSetSaldo()" style="background:rgba(74,144,232,0.15);border:1.5px solid rgba(74,144,232,0.5);color:#4a90e8;border-radius:12px;padding:10px 18px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">
-            ⚙️ Imposta saldo manuale
+            ⚙️ Imposta saldo iniziale
           </button>
         </div>
       </div>
 
-      <!-- Card saldo -->
+      <!-- Card saldo reale banca confermato -->
+      <div id="cc-saldo-reale-banca-card" style="display:none;background:var(--card);border-radius:18px;padding:16px 24px;margin-bottom:10px;border:2px solid rgba(74,232,122,0.4);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+          <div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4ae87a;margin-bottom:4px;">🏦 Saldo Reale Confermato</div>
+            <div style="font-size:11px;color:var(--text-muted);" id="cc-saldo-reale-sub">Da app Sella</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:14px;">
+            <div style="text-align:right;">
+              <div style="font-size:36px;font-weight:900;font-family:'Playfair Display',serif;color:#4ae87a;" id="cc-saldo-reale-val">—</div>
+              <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="cc-saldo-reale-date">—</div>
+            </div>
+            <button onclick="dashQuickSaldo();setTimeout(renderCC,400);" style="background:rgba(74,232,122,0.1);border:1.5px solid rgba(74,232,122,0.35);color:#4ae87a;border-radius:10px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">✏️ Aggiorna</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Card saldo stimato -->
       <div style="background:var(--card);border-radius:18px;padding:20px 24px;margin-bottom:14px;border:2px solid rgba(74,144,232,0.35);">
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;align-items:center;">
           <div>
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">💳 Saldo Attuale</div>
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:4px;">💳 Saldo Stimato Oggi</div>
             <div style="font-size:40px;font-weight:900;font-family:'Playfair Display',serif;" id="cc-saldo-attuale">—</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:4px;" id="cc-saldo-data">—</div>
           </div>
@@ -4938,7 +5012,7 @@ body.ios-device .btn-gold:hover {
     <div id="cc-modal-saldo" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;background:rgba(0,0,0,0.8);align-items:center;justify-content:center;padding:20px;">
       <div style="background:var(--surface);border:1.5px solid rgba(74,144,232,0.4);border-radius:20px;padding:28px;max-width:420px;width:100%;">
         <div style="font-size:18px;font-weight:800;color:#4a90e8;margin-bottom:6px;">💳 Saldo Iniziale Conto</div>
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Inserisci il saldo reale del tuo conto in una data precisa. Da lì ogni entrata/uscita verrà sommata o sottratta automaticamente.</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:20px;">Inserisci il saldo che avevi in banca il <strong>01/01/2023</strong> (o altra data da cui parti). Tutte le entrate e uscite registrate da quella data in poi verranno applicate automaticamente.</div>
         <div style="margin-bottom:14px;">
           <label style="font-size:11px;color:var(--text-muted);font-weight:700;display:block;margin-bottom:6px;">💶 Saldo in quella data (€)</label>
           <input type="number" id="cc-input-saldo" step="0.01" placeholder="es. 319.66"
@@ -4949,8 +5023,9 @@ body.ios-device .btn-gold:hover {
           <input type="date" id="cc-input-data"
             style="width:100%;background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;color:var(--text);outline:none;box-sizing:border-box;font-family:var(--font);">
         </div>
-        <div style="font-size:11px;color:var(--text-muted);background:rgba(74,144,232,0.06);border-radius:8px;padding:10px 12px;margin-bottom:20px;line-height:1.6;">
-          💡 Puoi usare il saldo di oggi dall'app Banca Sella, oppure la rimanenza calcolata da TradoCroods.
+        <div id="cc-saldo-hint" style="background:rgba(74,144,232,0.06);border-radius:8px;padding:10px 12px;margin-bottom:20px;line-height:1.6;font-size:11px;color:var(--text-muted);">
+          💡 <strong style="color:#4a90e8;">Come funziona:</strong> imposta il saldo che avevi il <strong>01/01/2023</strong> (o la data più lontana che hai). Da lì, ogni spesa/entrata che aggiungi o importi viene automaticamente sommata o sottratta.<br>
+          <span style="opacity:0.8;">Il saldo si aggiorna da solo ad ogni import di PDF da Sella, Revolut e Satispay.</span>
         </div>
         <div style="display:flex;gap:10px;">
           <button onclick="ccCloseSetSaldo()" style="flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text-muted);border-radius:10px;padding:11px;font-size:13px;cursor:pointer;font-family:var(--font);">Annulla</button>
@@ -4999,6 +5074,8 @@ body.ios-device .btn-gold:hover {
               <option value="contanti">💵 Contanti</option>
               <option value="satispay">📱 Satispay</option>
               <option value="tickets">🎫 Tickets</option>
+              <option value="klarna">🅺 Klarna</option>
+              <option value="scalapay">🔷 Scalapay</option>
               <option value="bonifico">🏦 Bonifico</option>
             </select>
           </div>
@@ -10586,9 +10663,9 @@ function renderCatDetail() {
   });
 
   const sorted = Object.values(grouped).sort((a,b)=>b.total-a.total);
-  const PAY_NAMES  = {satispay:'Satispay',revolut:'Revolut',sella:'Sella',contanti:'Contanti',bonifico:'Bonifico',carta:'Carta',bancomat:'Bancomat Sella',vs_manual:'Manuale'};
-  const PAY_ICONS  = {satispay:'📱',revolut:'💜',sella:'🏦',contanti:'💵',bonifico:'📋',carta:'💳',bancomat:'🏧',vs_manual:'✏️'};
-  const PAY_COLORS = {satispay:'#ff6b6b',revolut:'#a78bfa',sella:'#4a90e8',contanti:'#10b981',bonifico:'#f59e0b',carta:'#ec4899',bancomat:'#64748b',vs_manual:'#d4a843'};
+  const PAY_NAMES  = {satispay:'Satispay',revolut:'Revolut',sella:'Sella',contanti:'Contanti',bonifico:'Bonifico',carta:'Carta',bancomat:'Bancomat Sella',vs_manual:'Manuale',klarna:'Klarna',scalapay:'Scalapay'};
+  const PAY_ICONS  = {satispay:'📱',revolut:'💜',sella:'🏦',contanti:'💵',bonifico:'📋',carta:'💳',bancomat:'🏧',vs_manual:'✏️',klarna:'🅺',scalapay:'🔷'};
+  const PAY_COLORS = {satispay:'#ff6b6b',revolut:'#a78bfa',sella:'#4a90e8',contanti:'#10b981',bonifico:'#f59e0b',carta:'#ec4899',bancomat:'#64748b',vs_manual:'#d4a843',klarna:'#ff69b4',scalapay:'#6fd4b7'};
 
   document.getElementById('catDetailList').innerHTML = `
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">
@@ -12986,7 +13063,7 @@ function parseSatispayText(text) {
     if(seenIds.has(key)) continue;
     seenIds.add(key);
 
-    results.push({ date: dateStr, desc, amount, cat: guessCategorySatispay(desc), pay: 'satispay' });
+    results.push({ date: dateStr, desc: cleanSatispayDesc(desc), amount, cat: guessCategorySatispay(desc), pay: 'satispay' });
   }
 
   // ── PASSO 2: fallback blocchi (nel caso PDF.js metta colonne su righe separate) ──
@@ -13032,7 +13109,7 @@ function parseSatispayText(text) {
       const key2 = `${dateStr}_${amount2.toFixed(2)}_${desc2.substring(0,12)}`;
       if(seenIds.has(key2)) continue;
       seenIds.add(key2);
-      results.push({ date: dateStr, desc: desc2, amount: amount2, cat: guessCategorySatispay(desc2), pay: 'satispay' });
+      results.push({ date: dateStr, desc: cleanSatispayDesc(desc2), amount: amount2, cat: guessCategorySatispay(desc2), pay: 'satispay' });
     }
   }
 
@@ -13167,6 +13244,8 @@ async function importSellaPDF(event) {
     statusEl.textContent = '🔍 Analisi movimenti...';
     const sellaResult = parseSellaText(fullText);
     sellaParsed = sellaResult.expenses;
+    // Estrai saldo di chiusura dal PDF Sella
+    window._sellaSaldoFound = extractSaldoFromText(fullText, 'sella');
     sellaIncomeParsed = sellaResult.incomes;
     sellaFixedParsed = sellaResult.fixed;
     sellaLibriettoP = sellaResult.librietto;
@@ -13202,7 +13281,17 @@ function parseSellaText(text) {
     /libretto di risparmio/i,
     /contributo.*da\s/i,
     /stipendio|salario/i,
-    /\bsdd\b.*add\.diretto/i,
+    /sdd.*add\.diretto/i,
+    // ── Tasse, commissioni e spese bancarie Sella ──
+    /canone del conto|canone conto/i,
+    /commissioni?\s*(banca|bancarie?|di\s*tenuta|su\s*conto)/i,
+    /spese\s*(di\s*)?(tenuta\s*)?conto/i,
+    /imposta\s*di\s*bollo/i,
+    /tassa\s*(di\s*)?bollo/i,
+    /interessi\s*(debitori?|passivi?)/i,
+    /recupero\s*spese/i,
+    /diritti\s*di\s*segreteria/i,
+    /commissione\s*(pos|bancomat|prelievo)/i,
   ];
 
   // Pattern SPESE FISSE — catturate e abbinate a fixedItems
@@ -13435,7 +13524,7 @@ function parseSellaText(text) {
       }
     }
 
-    results.push({ date: dateStr, desc, amount, cat: rataMatch ? 'rata' : guessCategorySatispay(desc), pay: payType, source: 'sella' });
+    results.push({ date: dateStr, desc: cleanSellaDesc(desc), amount, cat: rataMatch ? 'rata' : guessCategorySatispay(desc), pay: payType, source: 'sella' });
   }
 
   return { expenses: results.sort((a,b) => a.date.localeCompare(b.date)), incomes: incomeResults.sort((a,b) => a.date.localeCompare(b.date)), fixed: fixedResults.sort((a,b) => a.date.localeCompare(b.date)), librietto: libriettoResults.sort((a,b) => a.date.localeCompare(b.date)), rate: rataResults.sort((a,b) => a.date.localeCompare(b.date)) };
@@ -13721,6 +13810,8 @@ function confirmSellaMissingOnly() {
   fbPushToCloud();
   refreshAll();
   showToast(`✅ Importate ${count} spese mancanti da Sella!`);
+  // Auto-aggiorna saldo CC se trovato nel PDF
+  if(window._sellaSaldoFound) autoAggiornaSaldoCC(window._sellaSaldoFound, 'sella');
   // Ricarica preview con dati aggiornati
   renderSellaPreview(sellaParsed, sellaIncomeParsed, sellaFixedParsed, sellaLibriettoP, sellaRataP);
 }
@@ -13937,6 +14028,7 @@ async function importRevolutPDF(event) {
       fullText += '\n\n';
     }
     statusEl.textContent = '🔍 Analisi movimenti...';
+    window._revSaldoChiusura = null; // reset
     revolutParsed = parseRevolutText(fullText);
     if(!revolutParsed.length) {
       statusEl.textContent = '⚠️ Nessuna uscita trovata. Verifica che sia un estratto Revolut.';
@@ -13968,6 +14060,10 @@ function parseRevolutText(text) {
     /\bto eur personal\b/i,               // cambio valuta entrata
     /\bto \w+ personal\b/i,               // cambio valuta generico
     /spiccioli revpoints/i,                // roundup RevPoints
+    /accredita\s*eur\s*\w/i,              // accrediti pocket/vault Revolut (es. "Accredita EUR Vacanze")
+    /\bfrom\s+eur\s+\w/i,                // trasferimento da pocket in entrata
+    /savings\s*vault|spare\s*change/i,    // salvadanaio spiccioli
+    /cashback\s*revolut/i,                // cashback interni
   ];
 
   // Skip come spesa (spese fisse o rate già tracciate altrove)
@@ -13986,6 +14082,11 @@ function parseRevolutText(text) {
   for(const line of lines) {
     // Salta header/footer Revolut
     if(/^(estratto conto|revolut bank|© 20\d\d revolut|segnala carta|ottieni assistenza|scansiona codice|condizioni economiche|pagina \d+ di \d+|se desideri sapere|le normative|i depositi|avviso|attenzione)/i.test(line)) continue;
+    // Salva saldo di chiusura prima di skippare la riga
+    if(/saldo\s+di\s+chiusura/i.test(line)) {
+      const sm = line.match(/([0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2})/);
+      if(sm && !window._revSaldoChiusura) window._revSaldoChiusura = parseFloat(sm[1].replace(/\./g,'').replace(',','.'));
+    }
     if(/^(riepilogo del saldo|in sospeso da|transazioni del conto|data d'inizio|prodotto|saldo iniziale|saldo di chiusura|denaro in uscita|denaro in entrata|data\s+descrizione|numero di conto|iban|bic|\d{12,})/i.test(line)) continue;
     if(/^(via |torino|san mauro|REVOITM|IT\d{2}[A-Z])/i.test(line)) continue;
     if(/piano standard|piano plus|piano premium|piano metal|piano ultra|https:\/\//i.test(line)) continue;
@@ -14065,6 +14166,7 @@ function parseRevolutText(text) {
       .replace(/\s{2,}/g,' ').trim();
     if(descClean.length < 2) descClean = desc.substring(0, 40).trim();
     if(descClean.length < 2) descClean = '—';
+    descClean = cleanRevolutDesc(descClean);
 
     const key = `${dateStr}_${amount.toFixed(2)}_${descClean.substring(0,12)}`;
     if(seen.has(key)) continue;
@@ -14076,7 +14178,15 @@ function parseRevolutText(text) {
   return results.sort((a,b) => a.date.localeCompare(b.date));
 }
 
-function confirmRevolutImport()  { genericConfirmImport(revolutParsed, 'revolutPreview', 'revolutStatus', '💜 Revolut'); }
+function confirmRevolutImport()  {
+  genericConfirmImport(revolutParsed, 'revolutPreview', 'revolutStatus', '💜 Revolut');
+  // Auto-aggiorna saldo CC da saldo di chiusura Revolut
+  if(window._revSaldoChiusura) {
+    // Data = ultima data dei movimenti
+    const lastDate = revolutParsed.length ? revolutParsed[revolutParsed.length-1].date : new Date().toISOString().split('T')[0];
+    autoAggiornaSaldoCC({ amount: window._revSaldoChiusura, date: lastDate }, 'revolut');
+  }
+}
 function cancelRevolutImport()   { revolutParsed = []; document.getElementById('revolutPreview').style.display='none'; document.getElementById('revolutStatus').textContent=''; }
 
 // ═══════════════════════════════════════════════════════════
@@ -14214,6 +14324,105 @@ async function importRevolutCSV(event) {
   }
 }
 
+// Pulisce la descrizione Revolut rimuovendo importi incorporati nel testo
+// es. "NOW TV 29,99€" → "NOW TV"
+// es. "Privalia 18,58€" → "Privalia"
+// Pulisce descrizioni Satispay
+// es. "Buonristoro vfcmqmvgia" → "Buonristoro"
+// es. "GTT AGTT123456" → "GTT"
+function cleanSatispayDesc(raw) {
+  if(!raw || raw === '—') return raw;
+  let d = raw.trim();
+  // Rimuovi codici GTT e simili
+  d = d.replace(/AGTT[a-zA-Z0-9]+/g, '');
+  // Rimuovi UUID parziali (8+ char alfanumerici minuscoli senza senso)
+  d = d.replace(/[a-z0-9]{7,}/g, m => {
+    // Mantieni parole con senso: almeno una vocale e non solo numeri
+    const vowels = (m.match(/[aeiou]/gi)||[]).length;
+    const consonants = m.length - vowels - (m.match(/\d/g)||[]).length;
+    // Se ha un pattern strano (troppo basso di vocali rispetto alla lunghezza) → rimuovi
+    if(vowels === 0 || (m.length > 6 && vowels < 2)) return '';
+    return m;
+  });
+  // Rimuovi importi residui
+  d = d.replace(/[-–]?\s*\d+[.,]\d{2}\s*€?/g, '');
+  d = d.replace(/\s{2,}/g, ' ').replace(/^[,\s\-–]+|[,\s\-–]+$/g, '').trim();
+  return d.length > 1 ? d : raw;
+}
+
+// Pulisce descrizioni Sella
+// es. "Pos 2503 glovo 25mar to9c514j6" → "Glovo"
+// es. "WIND TRE S.P.A. - 1302128139 - SDD - ADD.DIRETTO SEPA" → "Wind Tre"
+// es. "Condominio — RATA 6 12 PAGAMENTO RATA RISCALDAMENTO COND 202..." → "Condominio — Rata 6/12"
+function cleanSellaDesc(raw) {
+  if(!raw || raw === '—') return raw;
+  let d = raw.trim();
+
+  // Pattern POS: "Pos 2503 glovo 25mar to9c514j6" → estrai il nome del merchant
+  const posMatch = d.match(/^Pos\s+\d+\s+([A-Za-zÀ-ÿ\s\*\.]+?)(?:\s+\d{2}[a-z]{3}|\s+[a-z0-9]{6,}|$)/i);
+  if(posMatch) {
+    d = posMatch[1].trim();
+    d = d.replace(/\*+$/, '').trim();
+    return _titleCase(d);
+  }
+
+  // Rimuovi codici numerici lunghi (IBAN parziali, ID transazione)
+  d = d.replace(/\d{6,}/g, '');
+  // Rimuovi "SDD - ADD.DIRETTO SEPA", "ADD.DIRETTO", "SEPA"
+  d = d.replace(/[-–]\s*SDD\s*[-–]?\s*ADD\.?\s*DIRETTO\s*SEPA?/gi, '');
+  d = d.replace(/SDD|SEPA|ADD\.DIRETTO/gi, '');
+  // Rimuovi "S.P.A.", "S.R.L.", "S.N.C." ma tieni il nome
+  d = d.replace(/S\.P\.A\.?|S\.R\.L\.?|S\.N\.C\.?|S\.A\.S\.?/gi, '');
+  // Rimuovi "RATA X 12 PAGAMENTO RATA ... COND 202..." → "Rata X/12"
+  const rataMatch = d.match(/RATA\s+(\d+)\s+(\d+)\s+PAGAMENTO/i);
+  if(rataMatch) {
+    const prefix = d.split(/\s*—\s*/)[0].trim();
+    d = prefix + (rataMatch ? ` — Rata ${rataMatch[1]}/${rataMatch[2]}` : '');
+  }
+  // Rimuovi date nel formato "25MAR", "01APR" ecc
+  d = d.replace(/\d{2}(GEN|FEB|MAR|APR|MAG|GIU|LUG|AGO|SET|OTT|NOV|DIC)/gi, '');
+  // Rimuovi hash alfanumerici corti senza vocali (codici transazione)
+  d = d.replace(/[A-Z0-9]{6,}/g, m => {
+    const hasLower = /[a-z]/.test(m);
+    const vowels = (m.match(/[AEIOUaeiou]/g)||[]).length;
+    if(!hasLower && vowels === 0) return ''; // tutto maiuscolo senza vocali = codice
+    return m;
+  });
+  // Pulisci separatori rimasti
+  d = d.replace(/\s*[-–—]\s*[-–—]\s*/g, ' — ');
+  d = d.replace(/\s*[-–—]\s*$/g, '');
+  d = d.replace(/\s{2,}/g, ' ').trim();
+
+  return d.length > 2 ? d : raw;
+}
+
+function _titleCase(s) {
+  return s.toLowerCase().replace(/(?:^|[\s\-])(\w)/g, c => c.toUpperCase()).trim();
+}
+
+function cleanRevolutDesc(raw) {
+  let d = (raw || '—').trim();
+  // Rimuovi importi con simbolo valuta: "29,99€", "$18.58", "£9.99", "29.99 EUR"
+  d = d.replace(/\s*[\$£€]\s*\d+[.,]\d{2}/g, '');
+  d = d.replace(/\s*\d+[.,]\d{2}\s*€/g, '');
+  d = d.replace(/\s*\d+[.,]\d{2}\s*(EUR|USD|GBP|CHF)/gi, '');
+  // Rimuovi "Instant top-up - Payment fee" e simili fee
+  d = d.replace(/instant\s*top[\s-]*up\s*[-–]\s*payment\s*fee/gi, 'Commissione top-up');
+  d = d.replace(/payment\s*fee/gi, 'Commissione');
+  // Rimuovi codici hash tipo "vfcmqmvgia", "to9c514j6" — sequenze alfanumeriche brevi senza senso
+  d = d.replace(/[a-z0-9]{8,}/gi, (m) => {
+    // Mantieni se è una parola reale (ha almeno 2 vocali e 2 consonanti in modo sensato)
+    const hasSpace = false;
+    const upper = m[0] === m[0].toUpperCase();
+    return /[aeiou]/i.test(m) && !/^\d+$/.test(m) && m.length < 15 ? m : '';
+  });
+  // Pulisci spazi multipli
+  d = d.replace(/\s{2,}/g, ' ').trim();
+  // Se rimane troppo corto, usa l'originale senza importi
+  if(d.length < 2) d = raw.replace(/\s*[\$£€]\s*\d+[.,]\d{2}/g,'').replace(/\s*\d+[.,]\d{2}\s*€/g,'').trim();
+  return d || '—';
+}
+
 function parseRevolutCSV(text) {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
   const results = [];
@@ -14261,7 +14470,7 @@ function parseRevolutCSV(text) {
     // Salta top-up, exchange, reward
     if(/top.?up|exchange|reward|cashback|refund|reversal/i.test(type)) continue;
 
-    const desc   = (row[iDesc]||'—').substring(0,80);
+    const desc   = cleanRevolutDesc((row[iDesc]||'—').substring(0,80));
     const amtRaw = row[iAmt]||'0';
     const amount = parseFloat(amtRaw.replace(',','.'));
     if(isNaN(amount) || amount >= 0) continue;
@@ -14277,7 +14486,18 @@ function parseRevolutCSV(text) {
     const absAmount = Math.abs(amount);
 
     // Skip interni Revolut
-    if(/to eur personal|from eur personal|spiccioli|revpoints|savings vault/i.test(desc)) continue;
+    if(/to eur personal|from eur personal|spiccioli|revpoints|savings vault|accredita\s*eur|spare change|cashback revolut/i.test(desc)) continue;
+
+    // Salva il balance più recente (prima riga = più recente nel CSV Revolut)
+    if(!window._revolutCsvBalance) {
+      const balIdx2 = Object.keys(cols).findIndex ? null : null; // già gestito sopra
+      // Leggo il balance dalla riga corrente
+      const rowBal = row[cols['balance'] ?? -1];
+      if(rowBal !== undefined) {
+        const balVal = parseFloat(rowBal.replace(/[^0-9.\-]/g,''));
+        if(!isNaN(balVal)) window._revolutCsvBalance = { amount: balVal, date: dateStr };
+      }
+    }
 
     const key = `${dateStr}_${absAmount.toFixed(2)}_${desc.substring(0,10)}`;
     if(seen.has(key)) continue;
@@ -14297,6 +14517,8 @@ function parseRevolutCSV(text) {
 
 function confirmRevolutCSV() {
   genericConfirmImport(revolutCsvParsed, 'revolutCsvPreview', 'revolutCsvStatus', '💜 Revolut CSV');
+  // Auto-aggiorna saldo CC dalla colonna Balance del CSV
+  if(window._revolutCsvBalance) autoAggiornaSaldoCC(window._revolutCsvBalance, 'revolut_csv');
   revolutCsvParsed = [];
 }
 function cancelRevolutCSV() {
@@ -14528,6 +14750,11 @@ function bankImportMissingOnly(bank) {
   refreshAll();
   const icon = bank === 'revolut' ? '💜 Revolut' : '📱 Satispay';
   showToast(`✅ Importate ${count} spese mancanti da ${icon}!`);
+  // Auto-aggiorna saldo CC per Revolut
+  if(bank === 'revolut' && window._revSaldoChiusura) {
+    const lastDate = parsed.length ? parsed[parsed.length-1].date : new Date().toISOString().split('T')[0];
+    autoAggiornaSaldoCC({ amount: window._revSaldoChiusura, date: lastDate }, 'revolut');
+  }
   // Ricarica preview con dati aggiornati
   renderBankPreview(bank, parsed);
 }
@@ -14648,6 +14875,16 @@ const VS_BUILTIN_PATTERNS = [
   { re: /bollo\s*auto|tassa\s*circol/i,      reason: 'Bollo Auto' },
   { re: /imu\b|tari\b|tasi\b/i,              reason: 'Tasse Comunali' },
   { re: /agos\s*ducato|cofidis|findomestic/i,reason: 'Finanziamento' },
+
+  // ── REVOLUT SPICCIOLI / SALVADANAIO ──
+  { re: /accredita\s*eur\s*vacanze/i,         reason: 'Spiccioli Revolut (Vacanze)' },
+  { re: /accredita\s*eur\s*\w+\s*da\s*eur/i,  reason: 'Spiccioli Revolut (Vault)' },
+  { re: /savings?\s*vault|spare\s*change/i,    reason: 'Revolut Vault' },
+  { re: /round[\s-]?up/i,                      reason: 'Roundup Revolut' },
+
+  // ── PAGAMENTI MENSILI FISSI A PERSONE ──
+  { re: /piticariu/i,                          reason: 'Pagamento mensile (Piticariu)' },
+  { re: /pagamento\s+(?:da|a)\s+[A-Z]{3,}/i,  reason: 'Pagamento mensile a persona' },
 ];
 
 // Carica parole custom aggiunte dall'utente
@@ -14669,8 +14906,10 @@ function vsCheckExclusion(e) {
   // 2. Categoria spesa fissa
   if(VS_FIXED_CATS.has(cat)) return { excluded: true, reason: 'Categoria fissa: ' + cat };
 
-  // 3. Bonifico
+  // 3. Bonifico / Rate dilazionate
   if(e.pay === 'bonifico') return { excluded: true, reason: 'Bonifico' };
+  if(e.pay === 'klarna')   return { excluded: true, reason: 'Rata Klarna' };
+  if(e.pay === 'scalapay') return { excluded: true, reason: 'Rata Scalapay' };
 
   // 4. Auto-detect: trasferimento verso se stesso (nome utente in descrizione + parole chiave)
   const userName = (currentUser?.name || '').split(' ')[0].toLowerCase();
@@ -14736,17 +14975,9 @@ function vsFilter(e) {
   const desc = (e.description || e.causale || e.desc || e.name || '');
   if(VS_GENITORI_RE.test(desc)) return false;
 
-  // ── SATISPAY e REVOLUT: includi tutto ──
-  // Sono carte di consumo quotidiano — ogni uscita è reale
-  if(e.source === 'satispay' || e.source === 'revolut') return true;
-
-  // ── SELLA: escludi spese fisse, bonifici, giro conti, nominativi ──
-  if(e.source === 'sella') {
-    if(vsIsExcluded(e)) return false;
-    return true;
-  }
-
-  // Sorgente generica: applica esclusioni
+  // ── Applica esclusioni a TUTTE le fonti ──
+  // Satispay e Revolut possono contenere spese mensili fisse (es. Piticariu, riabilitazione)
+  // che devono essere escluse dalla vista settimanale
   if(vsIsExcluded(e)) return false;
   return true;
 }
@@ -15396,10 +15627,15 @@ function renderVSWeek() {
           const incLabel = x.causale && x.causale!=='—' ? x.causale : (x.type==='ferrino'?'🏢 Ferrino':'💰 '+x.type);
           return `<div class="day-item"><span style="color:#4ae87a;font-size:10px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${incLabel}</span><span style="color:#4ae87a;font-size:11px;font-weight:700;flex-shrink:0;">+€${x.amount.toFixed(2).replace('.',',')}</span></div>`;
         }).join('')}
-        ${dayExp.length ? dayExp.map(e=>`<div class="day-item">
-          <span>${srcBadge(e.source)}${CAT_ICONS[e.cat]||''} ${e.desc==='—'?e.cat:e.desc.substring(0,13)}</span>
-          <span class="negative" style="font-size:11px;color:${srcColor(e.source)};">€${e.amount.toFixed(2).replace('.',',')}</span>
-        </div>`).join('') : dayInc.length?'':'<div style="font-size:11px;color:var(--text-muted);padding:4px;">—</div>'}
+        ${(() => {
+          // Nascondi spiccioli Revolut dalla card — visibili solo aprendo il dettaglio
+          const _SPIC = /accredita\s*eur|savings?\s*vault|spare\s*change|round[\s-]?up/i;
+          const dayExpVisible = dayExp.filter(e => !_SPIC.test(e.desc || ''));
+          return dayExpVisible.length ? dayExpVisible.map(e=>`<div class="day-item">
+            <span>${srcBadge(e.source)}${CAT_ICONS[e.cat]||''} ${(e.source==='revolut'?cleanRevolutDesc(e.desc):e.source==='sella'?cleanSellaDesc(e.desc):e.source==='satispay'?cleanSatispayDesc(e.desc):e.desc).substring(0,13)}</span>
+            <span class="negative" style="font-size:11px;color:${srcColor(e.source)};">€${e.amount.toFixed(2).replace('.',',')}</span>
+          </div>`).join('') : dayInc.length?'':'<div style="font-size:11px;color:var(--text-muted);padding:4px;">—</div>';
+        })()}
         ${excludedTotal>0?`<div class="day-item" style="opacity:0.5;border-top:1px dashed var(--border);margin-top:3px;padding-top:3px;" title="Voci escluse dal totale">
           <span style="font-size:9px;color:var(--text-muted);">⛔ escluse</span>
           <span style="font-size:10px;color:var(--text-muted);">-€${excludedTotal.toFixed(2).replace('.',',')}</span>
@@ -17675,6 +17911,21 @@ function checkIOSInstallPrompt() {
 // SALDO REALE BANCA
 // ═══════════════════════════════════════
 // Popup rapido per aggiornare saldo banca direttamente dalla card dashboard
+// Input rapido saldo reale banca dalla Dashboard
+function dashQuickSaldo() {
+  const saved = load('saldo_banca_manuale', null);
+  const cur = saved ? saved.amount.toFixed(2).replace('.', ',') : '';
+  const val = prompt('Saldo reale da app Sella (es. 1272.96):', cur);
+  if(val === null) return;
+  const amount = parseFloat(val.replace(',', '.'));
+  if(isNaN(amount)) { showToast('⚠️ Importo non valido'); return; }
+  const today = new Date().toISOString().split('T')[0];
+  save('saldo_banca_manuale', { amount, date: today });
+  fbPushToCloud();
+  renderDashSaldoBanca();
+  showToast('✅ Saldo Sella aggiornato: €' + amount.toFixed(2).replace('.', ','));
+}
+
 function dashQuickEditSaldo() {
   const saved = getSaldoBanca();
   const val = prompt('Inserisci il saldo attuale del conto (€):', saved ? saved.amount : '');
@@ -17690,32 +17941,87 @@ function dashQuickEditSaldo() {
 }
 
 function renderDashSaldoBanca() {
-  const row  = document.getElementById('dash-saldo-banca-row');
   const val  = document.getElementById('dash-saldo-banca-val');
   const date = document.getElementById('dash-saldo-banca-date');
   const sub  = document.getElementById('dash-saldo-banca-sub');
-  if(!row) return;
+  const row  = document.getElementById('dash-saldo-banca-row');
+  if(!val) return;
 
-  const saved = getCCSaldoIniziale();
-  if(!saved) {
-    row.style.display = 'flex';
-    if(val)  { val.textContent = '—'; val.style.color = 'var(--text-muted)'; }
-    if(date) date.textContent = 'Non ancora impostato — vai a Conto Corrente';
-    if(sub)  sub.textContent = 'Clicca per impostare il saldo iniziale';
-    return;
+  const fmt = v => (v < 0 ? '-' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
+  const nowY = new Date().getFullYear();
+
+  // Formula corretta da analisi dati reali (09/04/2026):
+  // Sella ha 1627 spese includendo ricariche Revolut (~34k) e Satispay (~5k) → doppio conteggio
+  // Soluzione: da Sella escludiamo le righe che riguardano Revolut/Satispay/trasferimenti
+  // e contiamo separatamente Revolut e Satispay come fonti dirette
+  // Sella: escludi trasferimenti interni e auto-trasferimenti
+  // Analisi dati reali 09/04/2026: "RISPARMIO A SERGIO TRADORI" e simili
+  // sono trasferimenti a se stesso (risparmio affitto, PC, ecc.) = non spese reali
+  const SKIP_SELLA = [
+    /satispay/i,       // ricarica Satispay
+    /revolut/i,        // ricarica Revolut (es. "CROCIERA A SERGIO REVOLUT")
+    /giro\s*al/i,     // giro al conto
+    /giroconto/i,
+    /libretto/i,       // libretto risparmio
+    /accredita/i,      // accrediti vault
+    /risparmio/i,      // risparmio a se stesso (es. "RISPARMIO A SERGIO TRADORI")
+    /tradori/i,        // qualsiasi giro a Sergio Tradori stesso
+  ];
+
+  let E = 0, totSel = 0, totRev = 0, totSat = 0, totMan = 0, nMesi = 0;
+
+  for(let y = 2023; y <= nowY + 1; y++) {
+    for(let m = 1; m <= 12; m++) {
+      const exp = load('expenses_' + y + '_' + m, []) || [];
+      const inc = load('income_'   + y + '_' + m, []) || [];
+      if(!exp.length && !inc.length) continue;
+      nMesi++;
+      inc.forEach(i => { E += (i.amount || 0); });
+      exp.forEach(e => {
+        const s   = e.source || '';
+        const d   = (e.desc || '').toLowerCase();
+        const p   = e.pay || '';
+        const amt = e.amount || 0;
+        if(s === 'revolut')   { totRev += amt; return; }
+        if(s === 'satispay')  { totSat += amt; return; }
+        if(s === 'sella') {
+          // Escludi ricariche e trasferimenti interni
+          if(SKIP_SELLA.some(r => r.test(d))) return;
+          if(p === 'bonifico' && /revolut|satispay/i.test(d)) return;
+          totSel += amt; return;
+        }
+        totMan += amt;
+      });
+    }
   }
 
-  // Calcola saldo attuale da tutti i movimenti
-  const tutti = ccGetAllMovimenti();
-  let totE = 0, totU = 0;
-  tutti.forEach(m => { if(m.tipo==='entrata') totE+=m.amount; else totU+=m.amount; });
-  const saldoAtt = saved.amount + totE - totU;
-  const fmt = v => (v<0?'-':'') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
+  const saldoBase = getCCSaldoIniziale();
+  const base  = saldoBase ? saldoBase.amount : 0;
+  const saldo = base + E - totRev - totSat - totSel - totMan;
 
-  if(val)  { val.textContent = fmt(saldoAtt); val.style.color = saldoAtt>=0 ? '#4a90e8' : 'var(--red)'; }
-  if(date) date.textContent = 'Base: ' + fmt(saved.amount) + ' dal ' + new Date(saved.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
-  if(sub)  sub.textContent = 'Saldo calcolato · ' + tutti.length + ' movimenti';
-  if(row)  row.style.borderColor = saldoAtt>=0 ? 'rgba(74,144,232,0.3)' : 'rgba(224,92,92,0.4)';
+  // Verifica se esiste una correzione manuale recente
+  const manuale = load('saldo_banca_manuale', null);
+  const manLabel = document.getElementById('dash-saldo-banca-manual-label');
+
+  if(manuale) {
+    // Mostra il saldo manuale come valore principale
+    val.textContent = fmt(manuale.amount);
+    val.style.color = manuale.amount >= 0 ? '#4a90e8' : 'var(--red)';
+    if(sub)  sub.textContent = 'Confermato da Sella il ' + new Date(manuale.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+    if(date) date.textContent = 'Stima automatica: ' + fmt(saldo) + ' · clicca ✏️ Correggi per aggiornare';
+    if(manLabel) manLabel.textContent = '';
+  } else {
+    // Mostra il calcolato
+    val.textContent = fmt(saldo);
+    val.style.color = saldo >= 0 ? '#4a90e8' : 'var(--red)';
+    if(sub)  sub.textContent = '+' + fmt(E) + ' entrate − ' + fmt(totRev+totSat+totSel+totMan) + ' uscite';
+    const dataLabel = saldoBase
+      ? 'Stima su ' + nMesi + ' mesi · clicca ✏️ Correggi con il saldo reale'
+      : 'Imposta saldo iniziale in Conto Corrente';
+    if(date) date.textContent = dataLabel;
+    if(manLabel) manLabel.textContent = '';
+  }
+  if(row)  row.style.borderColor = (manuale || saldo >= 0) ? 'rgba(74,144,232,0.35)' : 'rgba(224,92,92,0.4)';
 }
 
 function getSaldoBanca() {
@@ -17851,12 +18157,10 @@ function ccUsaRimanenzaTradoCroods() {
   if(isNaN(num)) { showToast('⚠️ Impossibile leggere la rimanenza — apri la Dashboard'); return; }
   const amount = negative ? -num : num;
 
-  // Data di oggi
+  // Usa oggi come data — il registro risale automaticamente al 2023
   const today = new Date().toISOString().split('T')[0];
-
-  // Chiedi conferma con il valore trovato
   const fmt = v => (v<0?'-':'') + '€' + Math.abs(v).toFixed(2).replace('.',',');
-  const msg = 'Impostare come saldo iniziale: ' + fmt(amount) + ' al ' + new Date().toLocaleDateString('it-IT') + '?';
+  const msg = 'Impostare saldo attuale ' + fmt(amount) + ' a oggi?\nIl Conto Corrente mostrerà tutto lo storico dal 2023.';
   if(!confirm(msg)) return;
 
   saveCCSaldoIniziale({ amount, date: today });
@@ -17866,12 +18170,91 @@ function ccUsaRimanenzaTradoCroods() {
   showToast('✅ Saldo iniziale impostato: ' + fmt(amount));
 }
 
+// ═══════════════════════════════════════════════════════════════
+// AUTO-AGGIORNAMENTO SALDO CC DA PDF/CSV
+// ═══════════════════════════════════════════════════════════════
+
+// Estrae il saldo di chiusura da un testo PDF (Revolut o Sella)
+function extractSaldoFromText(text, bank) {
+  let saldo = null;
+  let dataStr = null;
+
+  if(bank === 'revolut') {
+    // Revolut PDF: "Saldo di chiusura EUR 1.272,96" o "Saldo di chiusura 1272.96"
+    const m = text.match(/saldo\s+di\s+chiusura\s+(?:EUR\s+)?([0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2})/i);
+    if(m) saldo = parseFloat(m[1].replace(/\./g,'').replace(',','.'));
+    // Data fine periodo: "01/01/2025 – 31/03/2025" → prendi la seconda
+    const dm = text.match(/(\d{2})\/(\d{2})\/(\d{4})\s*[–\-]\s*(\d{2})\/(\d{2})\/(\d{4})/);
+    if(dm) dataStr = `${dm[6]}-${dm[5]}-${dm[4]}`;
+  }
+
+  if(bank === 'sella') {
+    // Sella PDF: "Saldo al DD/MM/YYYY EUR XX.XXX,XX" o "Saldo finale"
+    const m1 = text.match(/saldo\s+(?:finale|al\s+\d{2}\/\d{2}\/\d{4}|disponibile|contabile)[^\d]*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i);
+    if(m1) saldo = parseFloat(m1[1].replace(/\./g,'').replace(',','.'));
+    // Data: ultima data trovata nel documento
+    const dates = [...text.matchAll(/(\d{2})\/(\d{2})\/(\d{4})/g)];
+    if(dates.length) {
+      const last = dates[dates.length - 1];
+      dataStr = `${last[3]}-${last[2]}-${last[1]}`;
+    }
+  }
+
+  if(bank === 'revolut_csv') {
+    // CSV Revolut: colonna Balance, prende l'ultima riga
+    const lines = text.split('\n');
+    const header = lines.findIndex(l => /balance/i.test(l));
+    if(header >= 0) {
+      const cols = lines[header].split(',');
+      const balIdx = cols.findIndex(c => /balance/i.test(c));
+      const dateIdx = cols.findIndex(c => /completed_date|started_date/i.test(c));
+      // Prendi la prima riga valida (più recente)
+      for(let i = header + 1; i < lines.length; i++) {
+        const row = lines[i].split(',');
+        if(row[balIdx]) {
+          const v = parseFloat(row[balIdx].replace(/[^0-9.\-]/g,''));
+          if(!isNaN(v)) { saldo = v; break; }
+        }
+      }
+    }
+  }
+
+  return (saldo !== null && !isNaN(saldo)) ? { amount: saldo, date: dataStr || new Date().toISOString().split('T')[0] } : null;
+}
+
+// Aggiorna automaticamente il saldo CC dopo un import PDF
+// Mostra un toast con la possibilità di confermare
+function autoAggiornaSaldoCC(saldoInfo, bank) {
+  if(!saldoInfo) return;
+  const attuale = getCCSaldoIniziale();
+  // Non sovrascrivere un saldo storico (2023) con uno recente da PDF
+  // Aggiorna solo se non c'è ancora un saldo O se quello nuovo è più recente
+  if(attuale) {
+    // Se l'utente ha già un saldo storico dal 2023, non aggiornarlo con saldo da PDF
+    if(attuale.date <= '2024-01-01' && saldoInfo.date > attuale.date) {
+      // Mostra solo info senza sovrascrivere
+      const fmt = v => '€' + v.toFixed(2).replace('.', ',');
+      const bankName = bank === 'revolut' || bank === 'revolut_csv' ? '💜 Revolut' : bank === 'sella' ? '🏦 Sella' : '📱 Satispay';
+      showToast(`🏦 ${bankName} chiusura: ${fmt(saldoInfo.amount)} al ${new Date(saldoInfo.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short'})}`);
+      return;
+    }
+    if(attuale.date > saldoInfo.date) return; // saldo attuale più recente, non aggiornare
+  }
+  const fmt = v => '€' + v.toFixed(2).replace('.', ',');
+  const bankName = bank === 'revolut' || bank === 'revolut_csv' ? '💜 Revolut' : bank === 'sella' ? '🏦 Sella' : '📱 Satispay';
+  saveCCSaldoIniziale(saldoInfo);
+  fbPushToCloud();
+  renderDashSaldoBanca();
+  if(document.getElementById('sec-contocorrente')?.classList.contains('active')) renderCC();
+  showToast(`💳 Saldo CC aggiornato da ${bankName}: ${fmt(saldoInfo.amount)} al ${new Date(saldoInfo.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'})}`);
+}
+
 function ccOpenSetSaldo() {
   const saved = getCCSaldoIniziale();
   const inp = document.getElementById('cc-input-saldo');
   const dat = document.getElementById('cc-input-data');
   if(inp) inp.value = saved ? saved.amount : '';
-  if(dat) dat.value = saved ? saved.date : new Date().toISOString().split('T')[0];
+  if(dat) dat.value = saved ? saved.date : '2023-01-01'; // default: inizio 2023 per storico completo
   const m = document.getElementById('cc-modal-saldo');
   if(m) m.style.display = 'flex';
 }
@@ -17903,14 +18286,10 @@ function ccSetFilter(f, btn) {
 
 // Raccoglie TUTTI i movimenti da tutti gli anni/mesi in localStorage
 function ccGetAllMovimenti() {
-  const saldoIniz = getCCSaldoIniziale();
-  if(!saldoIniz) return [];
-
-  const startDate = new Date(saldoIniz.date + 'T00:00:00');
   const movimenti = [];
-
-  // Scansiona tutti gli anni dal 2023 ad oggi + 1
   const nowY = new Date().getFullYear();
+
+  // Scansiona TUTTI gli anni dal 2023 — nessun filtro per data
   for(let y = 2023; y <= nowY + 1; y++) {
     for(let m = 1; m <= 12; m++) {
       const key = y + '_' + m;
@@ -17918,17 +18297,18 @@ function ccGetAllMovimenti() {
       // Entrate
       const inc = load('income_' + key, []) || [];
       inc.forEach(i => {
-        const d = new Date((i.date && i.date.includes('/') ? i.date.split('/').reverse().join('-') : i.date) + 'T12:00:00');
-        if(isNaN(d) || d < startDate) return;
+        const rawDate = (i.date && i.date.includes('/')) ? i.date.split('/').reverse().join('-') : i.date;
+        const d = new Date(rawDate + 'T12:00:00');
+        if(isNaN(d) || !rawDate) return;
         movimenti.push({
-          id:     i.id || (y+'_'+m+'_inc_'+i.amount),
-          date:   i.date && i.date.includes('/') ? i.date.split('/').reverse().join('-') : i.date,
+          id:      i.id || (y+'_'+m+'_inc_'+i.amount+'_'+rawDate),
+          date:    rawDate,
           dateObj: d,
-          tipo:   'entrata',
-          desc:   i.causale || (INCOME_LABELS[i.type] || i.type) || 'Entrata',
-          amount: i.amount,
-          cat:    i.type || 'entrata',
-          source: 'income'
+          tipo:    'entrata',
+          desc:    i.causale || (INCOME_LABELS[i.type] || i.type) || 'Entrata',
+          amount:  i.amount,
+          cat:     i.type || 'entrata',
+          source:  'income'
         });
       });
 
@@ -17937,25 +18317,25 @@ function ccGetAllMovimenti() {
       exp.forEach(e => {
         const rawDate = (e.date && e.date.includes('/')) ? e.date.split('/').reverse().join('-') : e.date;
         const d = new Date(rawDate + 'T12:00:00');
-        if(isNaN(d) || d < startDate) return;
+        if(isNaN(d) || !rawDate) return;
         const isBonifico = e.pay === 'bonifico' || e.cat === 'rata';
         movimenti.push({
-          id:     e.id || (y+'_'+m+'_exp_'+e.amount),
-          date:   rawDate,
+          id:      e.id || (y+'_'+m+'_exp_'+e.amount+'_'+rawDate),
+          date:    rawDate,
           dateObj: d,
-          tipo:   isBonifico ? 'bonifico' : 'uscita',
-          desc:   e.desc && e.desc !== '—' ? e.desc : (e.cat || 'Spesa'),
-          amount: e.amount,
-          cat:    e.cat || '',
-          pay:    e.pay || '',
-          source: e.source || 'manual'
+          tipo:    isBonifico ? 'bonifico' : 'uscita',
+          desc:    e.desc && e.desc !== '—' ? e.desc : (e.cat || 'Spesa'),
+          amount:  e.amount,
+          cat:     e.cat || '',
+          pay:     e.pay || '',
+          source:  e.source || 'manual'
         });
       });
     }
   }
 
-  // Ordina per data crescente
-  movimenti.sort((a, b) => a.dateObj - b.dateObj || a.id - b.id);
+  // Ordina per data crescente (dal più vecchio al più recente)
+  movimenti.sort((a, b) => a.dateObj - b.dateObj || String(a.id).localeCompare(String(b.id)));
   return movimenti;
 }
 
@@ -17974,14 +18354,22 @@ function renderDashCCBanner() {
     banner.style.borderColor = 'rgba(74,144,232,0.2)';
     return;
   }
-  // Calcola saldo attuale = iniziale + entrate - uscite
+  // Calcola saldo attuale = iniziale + entrate/uscite POST data riferimento
   const movimenti = ccGetAllMovimenti();
-  let totE = 0, totU = 0;
-  movimenti.forEach(m => { if(m.tipo==='entrata') totE+=m.amount; else totU+=m.amount; });
+  const _sd = new Date(saldoIniz.date + 'T00:00:00');
+  const _TRASF2 = [/satispay\s*europe/i,/revolut\*+\d+\*/i,/revolut.*dublin/i,/giro\s*al[l]?\s/i,/giroconto/i,/libretto\s*di\s*risparmio/i,/accredita\s*eur/i,/savings?\s*vault/i,/spare\s*change/i,/to\s*eur\s*personal/i,/top[\s-]*up/i,/instant\s*top/i,/ricarica.*revolut/i,/ricarica.*satispay/i];
+  const _isT2 = m => _TRASF2.some(r=>r.test(m.desc||'')) || (m.tipo!=='entrata'&&m.pay==='bonifico'&&/revolut|satispay/i.test(m.desc||''));
+  let totE = 0, totU = 0, nPost = 0;
+  movimenti.forEach(m => {
+    if(m.dateObj < _sd) return;
+    nPost++;
+    if(m.tipo === 'entrata') totE += m.amount;
+    else if(!_isT2(m)) totU += m.amount;
+  });
   const saldoAtt = saldoIniz.amount + totE - totU;
   const fmt = v => (v<0?'-':'')+'€'+Math.abs(v).toFixed(2).replace('.', ',');
   if(saldoEl) { saldoEl.textContent = fmt(saldoAtt); saldoEl.style.color = saldoAtt>=0?'#4a90e8':'var(--red)'; }
-  if(dataEl)  dataEl.textContent = 'Aggiornato · ' + movimenti.length + ' movimenti · clicca per dettaglio';
+  if(dataEl)  dataEl.textContent = 'Aggiornato · ' + nPost + ' movimenti · clicca per dettaglio';
   if(subEl)   subEl.textContent  = 'Dal ' + new Date(saldoIniz.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
   banner.style.borderColor = saldoAtt>=0?'rgba(74,144,232,0.4)':'rgba(224,92,92,0.4)';
 }
@@ -18013,40 +18401,100 @@ function renderCC() {
   }
 
   const tutti = ccGetAllMovimenti();
-  let totEntrate = 0, totUscite = 0;
+  const startDate = new Date(saldoIniz.date + 'T00:00:00');
+
+  // Pattern trasferimenti interni da escludere dal saldo (doppio conteggio)
+  const _TRASF_RE = [
+    /satispay\s*europe/i,
+    /revolut\*+\d+\*/i,
+    /revolut.*dublin/i,
+    /giro\s*al[l]?\s/i,
+    /giroconto/i,
+    /libretto\s*di\s*risparmio/i,
+    /accredita\s*eur/i,
+    /savings?\s*vault/i,
+    /spare\s*change/i,
+    /to\s*eur\s*personal/i,
+    /from\s*eur\s*personal/i,
+    /top[\s-]*up/i,
+    /instant\s*top/i,
+    /ricarica.*revolut/i,
+    /ricarica.*satispay/i,
+    /risparmio/i,    // autoversamenti risparmio
+    /tradori/i,      // giri a se stesso (Sergio Tradori)
+  ];
+  // È un trasferimento interno se: desc corrisponde OR (è bonifico verso Revolut/Satispay)
+  const _isTrasf = m => {
+    if(_TRASF_RE.some(r => r.test(m.desc || ''))) return true;
+    if(m.tipo !== 'entrata' && m.pay === 'bonifico' && /revolut|satispay/i.test(m.desc || '')) return true;
+    return false;
+  };
+
+  let totEntrate = 0, totUscite = 0, totTrasf = 0;
   tutti.forEach(m => {
-    if(m.tipo === 'entrata') totEntrate += m.amount;
-    else totUscite += m.amount;
+    if(m.dateObj < startDate) return;
+    if(m.tipo === 'entrata') { totEntrate += m.amount; return; }
+    if(_isTrasf(m)) { totTrasf += m.amount; return; }
+    totUscite += m.amount;
   });
 
-  // Saldo attuale = iniziale + entrate - uscite
+  // saldo iniziale + entrate - uscite reali (esclusi trasferimenti interni)
   const saldoAttuale = saldoIniz.amount + totEntrate - totUscite;
   const fmt = v => (v < 0 ? '-' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
 
   // Aggiorna KPI
+  // Card saldo reale confermato
+  const realeCard = document.getElementById('cc-saldo-reale-banca-card');
+  const realeVal  = document.getElementById('cc-saldo-reale-val');
+  const realeDate = document.getElementById('cc-saldo-reale-date');
+  const realeSub  = document.getElementById('cc-saldo-reale-sub');
+  const manuale   = load('saldo_banca_manuale', null);
+  if(manuale && realeCard) {
+    realeCard.style.display = 'block';
+    if(realeVal)  { realeVal.textContent = fmt(manuale.amount); }
+    if(realeDate) {
+      const d = new Date(manuale.date + 'T12:00:00');
+      realeDate.textContent = 'Confermato il ' + d.toLocaleDateString('it-IT', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+    }
+    if(realeSub)  realeSub.textContent = 'Da app Sella · stima automatica: ' + fmt(saldoAttuale);
+  } else if(realeCard) {
+    realeCard.style.display = 'none';
+  }
+
   const saEl = document.getElementById('cc-saldo-attuale');
   if(saEl) { saEl.textContent = fmt(saldoAttuale); saEl.style.color = saldoAttuale >= 0 ? '#4a90e8' : 'var(--red)'; }
+  const saCc = document.getElementById('cc-saldo-data');
+  if(saCc) {
+    const oggi = new Date().toLocaleDateString('it-IT', {day:'2-digit', month:'long', year:'numeric'});
+    saCc.textContent = 'Calcolato al ' + oggi;
+  }
   const siEl = document.getElementById('cc-saldo-iniziale');
   if(siEl) { siEl.textContent = fmt(saldoIniz.amount); }
   const sidEl = document.getElementById('cc-saldo-iniziale-data');
   if(sidEl) sidEl.textContent = 'Dal ' + new Date(saldoIniz.date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'});
+  const movPost = tutti.filter(m => m.dateObj >= startDate);
   const nmEl = document.getElementById('cc-n-movimenti');
-  if(nmEl) nmEl.textContent = tutti.length;
+  if(nmEl) nmEl.textContent = movPost.length;
   const pmEl = document.getElementById('cc-periodo-movimenti');
-  if(pmEl && tutti.length) {
-    const first = new Date(tutti[0].date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'});
-    const last  = new Date(tutti[tutti.length-1].date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'});
+  if(pmEl && movPost.length) {
+    const first = new Date(movPost[0].date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'});
+    const last  = new Date(movPost[movPost.length-1].date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'short',year:'numeric'});
     pmEl.textContent = first + ' → ' + last;
   }
   const teEl = document.getElementById('cc-tot-entrate');
   if(teEl) teEl.textContent = '+' + fmt(totEntrate);
+  // Aggiorna label saldo attuale con info trasferimenti esclusi
+  if(saCc) saCc.textContent = 'Calcolato al ' + new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'}) + ' · ' + fmt(totTrasf) + ' trasf. interni esclusi';
   const tuEl = document.getElementById('cc-tot-uscite');
   if(tuEl) tuEl.textContent = '-' + fmt(totUscite);
   const deEl = document.getElementById('cc-delta');
   if(deEl) { const d = totEntrate - totUscite; deEl.textContent = fmt(d); deEl.style.color = d >= 0 ? '#4ae87a' : 'var(--red)'; }
 
-  // Costruisci lista con saldo progressivo — dal più recente
-  const tuttiInv = [...tutti].reverse();
+  // Costruisci lista con saldo progressivo — dal più recente al più vecchio
+  // Partiamo dal saldo attuale e risaliamo nel tempo
+  const tuttiInv = [...tutti].reverse(); // newest first
+  // Il saldo progressivo parte dal saldo attuale (calcolato dai movimenti post-data-iniziale)
+  // I movimenti precedenti alla data iniziale non influenzano il saldo ma sono mostrati come storico
   let saldoProgressivo = saldoAttuale;
 
   // Applica filtri
@@ -18056,41 +18504,91 @@ function renderCC() {
     return true;
   });
 
+
+
   if(!filtrati.length) {
     if(listEl) listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Nessun movimento per i filtri selezionati</div>';
     return;
   }
 
-  // Header tabella
+  // Intestazione colonne
   let html = `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:8px 16px;background:rgba(255,255,255,0.04);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);border-bottom:1px solid var(--border);">
     <span>Data</span><span>Descrizione</span><span style="text-align:right;">Importo</span><span style="text-align:right;padding-left:12px;">Saldo</span>
   </div>`;
 
-  // Raggruppa per mese
+  const MESI_IT = ['','Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  const fmtV = v => (v<0?'-':'') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
+
+  let currentYear  = '';
   let currentMonth = '';
-  let saldoFineGruppo = saldoProgressivo;
+  // Totali per mese e anno correnti
+  let mEntrate = 0, mUscite = 0;
+  let aEntrate = 0, aUscite = 0;
+  // Saldo a fine mese/anno (per la riga di chiusura)
+  let saldoChiusuraMese = saldoProgressivo;
+  let saldoChiusuraAnno = saldoProgressivo;
+
+  const chiudiMese = () => {
+    if(!currentMonth) return;
+    html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:6px 16px 6px 26px;background:rgba(255,255,255,0.025);border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted);">
+      <span></span>
+      <span>Totale ${MESI_IT[parseInt(currentMonth.split('-')[1])]}</span>
+      <span style="text-align:right;">${mEntrate>0?'<span style=color:#4ae87a>+'+fmtV(mEntrate)+'</span> ':''}<span style="color:#e05c5c;">-${fmtV(mUscite)}</span></span>
+      <span style="color:${saldoChiusuraMese>=0?'#4a90e8':'var(--red)'};font-weight:700;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">${fmtV(saldoChiusuraMese)}</span>
+    </div>`;
+    mEntrate = 0; mUscite = 0;
+  };
+
+  const chiudiAnno = () => {
+    if(!currentYear) return;
+    html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:8px 16px;background:rgba(201,168,76,0.12);border-top:2px solid rgba(201,168,76,0.3);border-bottom:2px solid rgba(201,168,76,0.3);font-size:12px;font-weight:700;color:var(--gold);">
+      <span></span>
+      <span>📊 Totale ${currentYear}</span>
+      <span style="text-align:right;font-size:11px;">${aEntrate>0?'+'+fmtV(aEntrate)+' ':''}-${fmtV(aUscite)}</span>
+      <span style="color:${saldoChiusuraAnno>=0?'#4a90e8':'var(--red)'};font-weight:900;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">${fmtV(saldoChiusuraAnno)}</span>
+    </div>`;
+    aEntrate = 0; aUscite = 0;
+  };
 
   filtrati.forEach((m, idx) => {
+    const year  = m.date.substring(0, 4);
     const month = m.date.substring(0, 7);
     const d = new Date(m.date + 'T12:00:00');
     const dateStr = d.toLocaleDateString('it-IT', {day:'2-digit', month:'short'});
 
-    // Header mese
-    if(month !== currentMonth) {
-      if(currentMonth !== '') {
-        // Totale mese precedente
-      }
-      currentMonth = month;
-      const mName = d.toLocaleDateString('it-IT', {month:'long', year:'numeric'});
-      html += `<div style="padding:8px 16px;background:rgba(201,168,76,0.08);border-bottom:1px solid var(--border);border-top:1px solid var(--border);font-size:12px;font-weight:700;color:var(--gold);">
-        📅 ${mName.charAt(0).toUpperCase() + mName.slice(1)}
+    // ── Header ANNO ──
+    if(year !== currentYear) {
+      chiudiMese();
+      chiudiAnno();
+      currentYear  = year;
+      currentMonth = '';
+      html += `<div style="padding:10px 16px;background:rgba(74,144,232,0.12);border-top:3px solid rgba(74,144,232,0.5);border-bottom:1px solid rgba(74,144,232,0.3);font-size:14px;font-weight:900;color:#4a90e8;letter-spacing:1px;">
+        ═══ ${year} ═══
       </div>`;
     }
 
-    // Calcola saldo dopo questo movimento (lista invertita, quindi sottraggo/aggiungo al contrario)
-    const saldoDopo = saldoProgressivo;
-    if(m.tipo === 'entrata') saldoProgressivo -= m.amount;
-    else saldoProgressivo += m.amount;
+    // ── Header MESE ──
+    if(month !== currentMonth) {
+      if(currentMonth) chiudiMese();
+      currentMonth = month;
+      const mo = parseInt(month.split('-')[1]);
+      const movMese = filtrati.filter(x => x.date.startsWith(month));
+      const nMov = movMese.length;
+      html += `<div style="display:grid;grid-template-columns:1fr auto;padding:7px 16px 7px 20px;background:rgba(201,168,76,0.07);border-bottom:1px solid var(--border);font-size:12px;font-weight:700;color:var(--gold);">
+        <span>📅 ${MESI_IT[mo]} ${year}</span>
+        <span style="font-size:10px;color:var(--text-muted);font-weight:400;">${nMov} moviment${nMov===1?'o':'i'}</span>
+      </div>`;
+    }
+
+    // ── Calcola saldo (lista newest-first, risaliamo) ──
+    const isStorico = m.dateObj < startDate; // prima del saldo iniziale → non influenza
+    const saldoDopo = isStorico ? null : saldoProgressivo;
+    if(!isStorico) {
+      if(m.tipo === 'entrata') { saldoProgressivo -= m.amount; mEntrate += m.amount; aEntrate += m.amount; }
+      else                     { saldoProgressivo += m.amount; mUscite  += m.amount; aUscite  += m.amount; }
+      saldoChiusuraMese = saldoDopo;
+      saldoChiusuraAnno = saldoDopo;
+    }
 
     const tipoColor = m.tipo === 'entrata' ? '#4ae87a' : (m.tipo === 'bonifico' ? '#ffb400' : '#e05c5c');
     const tipoIcon  = m.tipo === 'entrata' ? '💵' : (m.tipo === 'bonifico' ? '🏦' : '💸');
@@ -18100,26 +18598,634 @@ function renderCC() {
                     : m.source === 'revolut'  ? '<span style="background:rgba(138,92,246,0.2);color:#a78bfa;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;">💜</span>'
                     : '';
 
-    html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:9px 16px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;align-items:center;${idx % 2 === 0 ? '' : 'background:rgba(255,255,255,0.015);'}">
+    const saldoCell = saldoDopo === null
+      ? `<span style="color:var(--text-muted);font-size:10px;text-align:right;padding-left:12px;font-style:italic;">storico</span>`
+      : `<span style="color:${saldoDopo>=0?'#4a90e8':'var(--red)'};font-weight:700;white-space:nowrap;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">${fmtV(saldoDopo)}</span>`;
+    html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:9px 16px 9px 20px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;align-items:center;${isStorico?'opacity:0.4;':''}${idx%2===0?'':'background:rgba(255,255,255,0.012);'}">
       <span style="color:var(--text-muted);font-size:11px;">${dateStr}</span>
       <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:8px;">
-        ${tipoIcon} ${m.desc}${srcBadge}
-        ${m.cat ? `<span style="font-size:9px;color:var(--text-muted);margin-left:4px;">${m.cat}</span>` : ''}
+        ${tipoIcon} ${m.source==='revolut'?cleanRevolutDesc(m.desc):m.source==='sella'?cleanSellaDesc(m.desc):m.source==='satispay'?cleanSatispayDesc(m.desc):m.desc}${srcBadge}
+        ${m.cat&&m.cat!==m.tipo?`<span style="font-size:9px;color:var(--text-muted);margin-left:4px;opacity:0.7;">${m.cat}</span>`:''}
       </span>
       <span style="color:${tipoColor};font-weight:700;white-space:nowrap;text-align:right;">${segno}€${m.amount.toFixed(2).replace('.', ',')}</span>
-      <span style="color:${saldoDopo >= 0 ? '#4a90e8' : 'var(--red)'};font-weight:700;white-space:nowrap;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">€${Math.abs(saldoDopo).toFixed(2).replace('.', ',')}</span>
+      ${saldoCell}
     </div>`;
   });
 
-  // Riga saldo iniziale in fondo
-  html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:10px 16px;background:rgba(74,144,232,0.08);border-top:2px solid rgba(74,144,232,0.3);font-size:12px;align-items:center;">
-    <span style="color:var(--text-muted);font-size:11px;">${new Date(saldoIniz.date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit', month:'short'})}</span>
-    <span style="font-weight:700;color:#4a90e8;">⚙️ Saldo iniziale impostato</span>
-    <span></span>
-    <span style="color:#4a90e8;font-weight:700;white-space:nowrap;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">€${saldoIniz.amount.toFixed(2).replace('.', ',')}</span>
+  // Chiudi ultimo mese e anno
+  chiudiMese();
+  chiudiAnno();
+
+  // Riga saldo attuale (punto di riferimento)
+  const fmtSI = v => (v<0?'-':'') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
+  html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:12px 16px;background:rgba(74,144,232,0.1);border-top:2px solid rgba(74,144,232,0.4);font-size:12px;align-items:center;">
+    <span style="color:var(--text-muted);font-size:11px;">${new Date(saldoIniz.date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit', month:'short', year:'numeric'})}</span>
+    <span style="font-weight:700;color:#4a90e8;">📌 Saldo di riferimento impostato</span>
+    <span style="color:var(--text-muted);font-size:10px;text-align:right;">rimanenza TradoCroods</span>
+    <span style="color:#4a90e8;font-weight:900;white-space:nowrap;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;font-size:16px;">${fmtSI(saldoIniz.amount)}</span>
   </div>`;
 
   if(listEl) listEl.innerHTML = html;
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPORT RICEVUTE SINGOLE SATISPAY
+// Formato: "Deliveroo", "25,82 €", "04/04/2026, 19:00"
+// ═══════════════════════════════════════════════════════
+
+let _ricevuteParsed = []; // array ricevute pronte per l'import
+
+async function importSatispayRicevuta(event) {
+  const files = Array.from(event.target.files);
+  event.target.value = '';
+  if(!files.length) return;
+
+  const statusEl = document.getElementById('satispayRicevutaStatus');
+  const preview  = document.getElementById('satispayRicevutaPreview');
+  statusEl.textContent = '⏳ Lettura in corso...';
+  preview.style.display = 'none';
+  _ricevuteParsed = [];
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+  for(const file of files) {
+    try {
+      const pdf = await pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+      let text = '';
+      for(let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map(x => x.str).join(' ') + '\n';
+      }
+      const parsed = parseSatispayRicevuta(text, file.name);
+      if(parsed) _ricevuteParsed.push(parsed);
+    } catch(e) {
+      console.error('Errore ricevuta', file.name, e);
+    }
+  }
+
+  if(!_ricevuteParsed.length) {
+    statusEl.textContent = '⚠️ Nessuna ricevuta Satispay riconosciuta';
+    return;
+  }
+
+  statusEl.textContent = '✅ ' + _ricevuteParsed.length + ' ricevut' + (_ricevuteParsed.length===1?'a':'e') + ' trovata/e';
+  renderSatispayRicevutePreview();
+}
+
+function parseSatispayRicevuta(text, fileName) {
+  // Estrai beneficiario — nome dopo "Beneficiario" o prima del CF/PI
+  let beneficiario = '';
+  const benMatch = text.match(/Beneficiario\s+([A-Za-zÀ-ÿ0-9\s\.\-&']+?)(?:\s+PI|\s+CF|\s+Importo|\s+Dati|\n)/i);
+  if(benMatch) beneficiario = benMatch[1].trim();
+  // Fallback: usa il nome del file
+  if(!beneficiario && fileName) {
+    const fn = fileName.replace(/Ricevuta-Satispay-/i,'').replace(/[-_]/g,' ').replace(/\.pdf$/i,'');
+    const parts = fn.split(' ').filter(p => p && !p.match(/^\d+/));
+    if(parts.length) beneficiario = parts[0];
+  }
+
+  // Estrai importo — cerca pattern "25,82 €" o "25.82 €" o "€ 25,82"
+  let amount = 0;
+  const amtMatch = text.match(/(\d{1,4}[.,]\d{2})\s*€/);
+  if(amtMatch) amount = parseFloat(amtMatch[1].replace(',','.'));
+  if(!amount) {
+    const amtMatch2 = text.match(/Importo totale\s+(\d{1,4}[.,]\d{2})/i);
+    if(amtMatch2) amount = parseFloat(amtMatch2[1].replace(',','.'));
+  }
+
+  // Estrai data — cerca "04/04/2026" o "4 aprile 2026"
+  let date = '';
+  const dateMatch = text.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if(dateMatch) {
+    date = `${dateMatch[3]}-${dateMatch[2]}-${dateMatch[1]}`;
+  } else {
+    const mesiIT = ['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+    const dateMatch2 = text.match(/(\d{1,2})\s+(gennaio|febbraio|marzo|aprile|maggio|giugno|luglio|agosto|settembre|ottobre|novembre|dicembre)\s+(\d{4})/i);
+    if(dateMatch2) {
+      const m = mesiIT.indexOf(dateMatch2[2].toLowerCase()) + 1;
+      date = `${dateMatch2[3]}-${String(m).padStart(2,'0')}-${String(dateMatch2[1]).padStart(2,'0')}`;
+    }
+  }
+
+  if(!amount || !date) return null;
+
+  // Categoria automatica dal beneficiario
+  const cat = _guessCatFromDesc(beneficiario);
+
+  return { beneficiario, amount, date, cat, fileName };
+}
+
+function _guessCatFromDesc(desc) {
+  const d = (desc||'').toLowerCase();
+  if(/deliveroo|justeat|just eat|ubereats|glovo|foodora/i.test(d))  return 'cibo';
+  if(/amazon|zalando|shein|ebay|aliexpress/i.test(d))               return 'shopping';
+  if(/spotify|netflix|disney|prime|dazn|apple/i.test(d))           return 'abbonamenti';
+  if(/bar|caffe|caffè|ristorante|pizza|sushi|trattoria/i.test(d))   return 'cibo';
+  if(/farmacia|medico|dottore/i.test(d))                            return 'salute';
+  if(/supermercato|esselunga|conad|coop|lidl|aldi|carrefour/i.test(d)) return 'spesa';
+  if(/benzina|carburante|eni|q8|ip\b|agip/i.test(d))               return 'auto';
+  if(/tabacchi|tabaccheria/i.test(d))                               return 'altro';
+  return 'altro';
+}
+
+function renderSatispayRicevutePreview() {
+  const listEl  = document.getElementById('satispayRicevutaList');
+  const preview = document.getElementById('satispayRicevutaPreview');
+  if(!listEl) return;
+
+  // Controlla quali sono già registrate
+  const tagged = _ricevuteParsed.map(r => {
+    const d = new Date(r.date + 'T12:00:00');
+    const key = `tc_${currentUser?.email}_expenses_${d.getFullYear()}_${d.getMonth()+1}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+    const match = existing.find(e => e.date === r.date && Math.abs(e.amount - r.amount) < 0.03);
+    return { ...r, _registered: !!match };
+  });
+  _ricevuteParsed = tagged;
+
+  let html = '';
+  tagged.forEach((r, i) => {
+    const fmtD = new Date(r.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+    const badge = r._registered
+      ? '<span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">✅ Già registrata</span>'
+      : '<span style="background:rgba(255,140,0,0.15);color:#ff8c00;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">🆕 Nuova</span>';
+    const catLabel = CAT_LABELS[r.cat] || r.cat;
+    html += `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;${r._registered?'opacity:0.5;':''}">
+      <span style="font-size:22px;">📱</span>
+      <div style="flex:1;">
+        <div style="font-weight:700;">${r.beneficiario}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${fmtD} · ${catLabel}</div>
+      </div>
+      ${badge}
+      <span style="font-size:18px;font-weight:900;font-family:'Playfair Display',serif;color:#e05c5c;">-€${r.amount.toFixed(2).replace('.',',')}</span>
+    </div>`;
+  });
+
+  listEl.innerHTML = html;
+  preview.style.display = 'block';
+}
+
+function confirmSatispayRicevute() {
+  const nuove = _ricevuteParsed.filter(r => !r._registered);
+  if(!nuove.length) { showToast('✅ Tutte le ricevute sono già registrate!'); return; }
+
+  const byMonth = {};
+  for(const r of nuove) {
+    const mk = r.date.substring(0,7);
+    if(!byMonth[mk]) byMonth[mk] = [];
+    byMonth[mk].push(r);
+  }
+  let count = 0;
+  for(const [mk, items] of Object.entries(byMonth)) {
+    const [y,m] = mk.split('-').map(Number);
+    const key = `tc_${currentUser?.email}_expenses_${y}_${m}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+    for(const r of items) {
+      existing.push({
+        id: Date.now()+Math.random(),
+        cat: r.cat,
+        amount: r.amount,
+        desc: r.beneficiario,
+        pay: 'satispay',
+        date: r.date,
+        source: 'satispay'
+      });
+      count++;
+    }
+    localStorage.setItem(key, JSON.stringify(existing));
+  }
+  bumpVersion();
+  fbPushToCloud();
+  refreshAll();
+  showToast('✅ ' + count + ' ricevut' + (count===1?'a':'e') + ' importata/e!');
+  cancelSatispayRicevute();
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPORT SCREENSHOT REVOLUT — usa Claude AI per leggere l'immagine
+// ═══════════════════════════════════════════════════════
+
+let _revolutScreenshots = []; // {file, base64, parsed}
+
+async function importRevolutScreenshot(event) {
+  const files = Array.from(event.target.files);
+  event.target.value = '';
+  if(!files.length) return;
+
+  const statusEl = document.getElementById('revolutScreenshotStatus');
+  const preview  = document.getElementById('revolutScreenshotPreview');
+  statusEl.textContent = '⏳ Analisi AI in corso...';
+  preview.style.display = 'none';
+  _revolutScreenshots = [];
+
+  // Verifica API key prima di iniziare
+  if(!_getAiApiKey()) {
+    statusEl.textContent = '⚠️ API key mancante — vai su AI Assistente → ⚙️ Configura API Key';
+    statusEl.style.color = 'var(--red)';
+    return;
+  }
+  statusEl.style.color = 'var(--text-muted)';
+
+  for(let i = 0; i < files.length; i++) {
+    const file = files[i];
+    statusEl.textContent = `⏳ Analisi ${i+1}/${files.length}: ${file.name}...`;
+    try {
+      const base64 = await _fileToBase64(file);
+      const mediaType = file.type || 'image/jpeg';
+      const parsed = await _aiParseRevolutScreenshot(base64, mediaType);
+      if(parsed) _revolutScreenshots.push({ file, base64, mediaType, parsed });
+      else _revolutScreenshots.push({ file, base64, mediaType, parsed: null, error: 'Non riconosciuta come transazione Revolut' });
+    } catch(e) {
+      _revolutScreenshots.push({ file, parsed: null, error: e.message });
+    }
+  }
+
+  const ok = _revolutScreenshots.filter(x => x.parsed).length;
+  statusEl.textContent = ok > 0
+    ? `✅ ${ok} transazion${ok===1?'e':'i'} trovata/e`
+    : '⚠️ Nessuna transazione riconosciuta';
+
+  renderRevolutScreenshotsPreview();
+}
+
+function _fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = () => rej(new Error('Lettura file fallita'));
+    r.readAsDataURL(file);
+  });
+}
+
+// Recupera la API key salvata nell'app
+function _getAiApiKey() {
+  return localStorage.getItem('tc_ai_api_key') ||
+         localStorage.getItem('tc_ai_api_key_global') ||
+         sessionStorage.getItem('tc_ai_api_key') || '';
+}
+
+async function _aiParseRevolutScreenshot(base64, mediaType) {
+  const systemPrompt = `Sei un parser di screenshot di transazioni Revolut. Estrai SOLO i dati della transazione in JSON.
+Rispondi SOLO con JSON puro, nessun testo, nessun markdown.
+Formato: {"merchant":"nome commerciante","amount":18.58,"date":"2026-03-31","currency":"EUR","category":"categoria revolut"}
+- amount: numero positivo (es. 18.58, non -18.58)
+- date: formato YYYY-MM-DD
+- Se non riesci a identificare una transazione Revolut, rispondi con: {"error":"non riconosciuta"}`;
+
+  const _apiKey1 = _getAiApiKey();
+  if(!_apiKey1) throw new Error('API key non configurata — vai su AI Assistente → Configura API Key');
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': _apiKey1,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 300,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: [{
+          type: 'image',
+          source: { type: 'base64', media_type: mediaType, data: base64 }
+        }, {
+          type: 'text',
+          text: 'Estrai i dati di questa transazione Revolut in JSON.'
+        }]
+      }]
+    })
+  });
+
+  if(!response.ok) throw new Error('API error: ' + response.status);
+  const data = await response.json();
+  const txt = (data.content?.[0]?.text || '').trim().replace(/```json|```/g,'').trim();
+
+  let parsed;
+  try { parsed = JSON.parse(txt); } catch(e) { return null; }
+  if(parsed.error || !parsed.amount || !parsed.date) return null;
+
+  // Mappa categoria Revolut → categoria TradoCroods
+  const catMap = {
+    'servizi': 'altro', 'shopping': 'shopping', 'cibo': 'cibo', 'ristorante': 'cibo',
+    'viaggi': 'viaggio', 'trasporti': 'trasporti', 'salute': 'salute',
+    'intrattenimento': 'svago', 'abbonamenti': 'abbonamenti', 'vacanze': 'viaggio'
+  };
+  // Privalia e simili → Klarna come metodo
+  const KLARNA_MERCHANTS = /privalia|klarna/i;
+  const SCALAPAY_MERCHANTS = /scalapay/i;
+  const catKey = Object.keys(catMap).find(k => (parsed.category||'').toLowerCase().includes(k));
+  parsed.cat = catKey ? catMap[catKey] : _guessCatFromDesc(parsed.merchant || '');
+
+  return parsed;
+}
+
+function renderRevolutScreenshotsPreview() {
+  const listEl  = document.getElementById('revolutScreenshotList');
+  const preview = document.getElementById('revolutScreenshotPreview');
+  if(!listEl) return;
+  if(!_revolutScreenshots.length) return;
+
+  // Controlla duplicati
+  _revolutScreenshots.forEach(item => {
+    if(!item.parsed) return;
+    const d = new Date(item.parsed.date + 'T12:00:00');
+    const key = `tc_${currentUser?.email}_expenses_${d.getFullYear()}_${d.getMonth()+1}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+    const match = existing.find(e => e.date === item.parsed.date && Math.abs(e.amount - item.parsed.amount) < 0.03);
+    item.parsed._registered = !!match;
+  });
+
+  let html = '';
+  _revolutScreenshots.forEach((item, i) => {
+    if(!item.parsed) {
+      html += `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;opacity:0.5;">
+        <span style="font-size:22px;">⚠️</span>
+        <div style="flex:1;"><div style="font-weight:700;">${item.file.name}</div><div style="font-size:11px;color:var(--red);">${item.error||'Non riconosciuta'}</div></div>
+      </div>`;
+      return;
+    }
+    const p = item.parsed;
+    const fmtD = new Date(p.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+    const badge = p._registered
+      ? '<span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">✅ Già registrata</span>'
+      : '<span style="background:rgba(130,100,220,0.2);color:#a78bfa;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700;">🆕 Nuova</span>';
+    html += `<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;${p._registered?'opacity:0.5;':''}">
+      <span style="font-size:22px;">💜</span>
+      <div style="flex:1;">
+        <div style="font-weight:700;">${p.merchant}</div>
+        <div style="font-size:11px;color:var(--text-muted);">${fmtD} · ${CAT_LABELS[p.cat]||p.cat}</div>
+      </div>
+      ${badge}
+      <span style="font-size:18px;font-weight:900;font-family:'Playfair Display',serif;color:#e05c5c;">-€${p.amount.toFixed(2).replace('.',',')}</span>
+    </div>`;
+  });
+
+  listEl.innerHTML = html;
+  preview.style.display = 'block';
+}
+
+function confirmRevolutScreenshots() {
+  const nuove = _revolutScreenshots.filter(x => x.parsed && !x.parsed._registered);
+  if(!nuove.length) { showToast('✅ Tutte già registrate!'); return; }
+
+  const byMonth = {};
+  for(const item of nuove) {
+    const mk = item.parsed.date.substring(0,7);
+    if(!byMonth[mk]) byMonth[mk] = [];
+    byMonth[mk].push(item.parsed);
+  }
+  let count = 0;
+  for(const [mk, items] of Object.entries(byMonth)) {
+    const [y,m] = mk.split('-').map(Number);
+    const key = `tc_${currentUser?.email}_expenses_${y}_${m}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+    for(const p of items) {
+      const payMeth = /privalia|klarna/i.test(p.merchant||'') ? 'klarna' : /scalapay/i.test(p.merchant||'') ? 'scalapay' : 'revolut';
+      existing.push({ id: Date.now()+Math.random(), cat: p.cat, amount: p.amount, desc: p.merchant, pay: payMeth, date: p.date, source: 'revolut' });
+      count++;
+    }
+    localStorage.setItem(key, JSON.stringify(existing));
+  }
+  bumpVersion();
+  fbPushToCloud();
+  refreshAll();
+  showToast('✅ ' + count + ' transazion' + (count===1?'e':'i') + ' Revolut importata/e!');
+  cancelRevolutScreenshots();
+}
+
+// ═══════════════════════════════════════════════════════
+// IMPORT SCREENSHOT BANCA SELLA — AI legge movimenti + saldo
+// ═══════════════════════════════════════════════════════
+
+let _sellaScreenshots = []; // {parsed: {saldo, movimenti:[]}}
+
+async function importSellaScreenshot(event) {
+  const files = Array.from(event.target.files);
+  event.target.value = '';
+  if(!files.length) return;
+
+  const statusEl = document.getElementById('sellaScreenshotStatus');
+  const preview  = document.getElementById('sellaScreenshotPreview');
+  preview.style.display = 'none';
+  _sellaScreenshots = [];
+
+  if(!_getAiApiKey()) {
+    statusEl.textContent = '⚠️ API key mancante — vai su AI Assistente → ⚙️ Configura API Key';
+    statusEl.style.color = 'var(--red)';
+    return;
+  }
+  statusEl.style.color = 'var(--text-muted)';
+  statusEl.textContent = '⏳ Analisi AI in corso...';
+
+  for(let i = 0; i < files.length; i++) {
+    const file = files[i];
+    statusEl.textContent = `⏳ Lettura ${i+1}/${files.length}...`;
+    try {
+      const base64 = await _fileToBase64(file);
+      const mediaType = file.type || 'image/jpeg';
+      const parsed = await _aiParseSellaScreenshot(base64, mediaType);
+      _sellaScreenshots.push({ file, parsed });
+    } catch(e) {
+      _sellaScreenshots.push({ file, parsed: null, error: e.message });
+    }
+  }
+
+  const ok = _sellaScreenshots.filter(x => x.parsed).length;
+  statusEl.textContent = ok > 0 ? `✅ ${ok} screenshot analizzat${ok===1?'o':'i'}` : '⚠️ Nessun dato riconosciuto';
+  renderSellaScreenshotsPreview();
+}
+
+async function _aiParseSellaScreenshot(base64, mediaType) {
+  const oggi = new Date().getFullYear();
+  const systemPrompt = `Sei un parser di screenshot dell'app Banca Sella. Estrai i dati in JSON puro senza markdown.
+Formato:
+{
+  "saldo": 1438.18,
+  "saldo_contabile": 1454.18,
+  "movimenti": [
+    {"desc":"descrizione","amount":16.00,"date":"2026-04-03","cat":"trasferimenti","skip":false},
+    {"desc":"Canone del conto","amount":4.50,"date":"2026-04-03","cat":"commissioni","skip":true}
+  ]
+}
+REGOLE:
+- amount: sempre positivo
+- date: YYYY-MM-DD, anno corrente ${oggi} se non specificato
+- skip:true per: canone conto, commissioni banca, bollo, tasse bancarie, trasferimenti Revolut, ricariche Satispay, giroconto libretto
+- skip:false per tutte le spese reali (shopping, ristoranti, servizi, ecc.)
+- Se non è uno screenshot Sella, rispondi: {"error":"non riconosciuto"}`;
+
+  const _apiKey2 = _getAiApiKey();
+  if(!_apiKey2) throw new Error('API key non configurata — vai su AI Assistente → Configura API Key');
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': _apiKey2,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: base64 } },
+          { type: 'text', text: 'Estrai i dati da questo screenshot Banca Sella.' }
+        ]
+      }]
+    })
+  });
+
+  if(!response.ok) throw new Error('API error ' + response.status);
+  const data = await response.json();
+  const txt = (data.content?.[0]?.text || '').trim().replace(/```json|```/g,'').trim();
+  let parsed;
+  try { parsed = JSON.parse(txt); } catch(e) { return null; }
+  if(parsed.error || !parsed.movimenti) return null;
+  return parsed;
+}
+
+function renderSellaScreenshotsPreview() {
+  const listEl   = document.getElementById('sellaScreenshotList');
+  const infoEl   = document.getElementById('sellaScreenshotInfo');
+  const preview  = document.getElementById('sellaScreenshotPreview');
+  if(!listEl) return;
+
+  let html = '';
+  let totalSaldo = null;
+  let totNuove = 0, totSkip = 0;
+
+  _sellaScreenshots.forEach(item => {
+    if(!item.parsed) {
+      html += `<div style="padding:12px 16px;font-size:13px;color:var(--red);">⚠️ ${item.file.name}: ${item.error||'Non riconosciuto'}</div>`;
+      return;
+    }
+    const p = item.parsed;
+    if(p.saldo !== undefined) totalSaldo = p.saldo;
+
+    // Controlla duplicati per ogni movimento
+    p.movimenti.forEach(m => {
+      if(!m.date) return;
+      const d = new Date(m.date+'T12:00:00');
+      const key = `tc_${currentUser?.email}_expenses_${d.getFullYear()}_${d.getMonth()+1}`;
+      let existing = [];
+      try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+      m._registered = !!existing.find(e => e.date === m.date && Math.abs(e.amount - m.amount) < 0.03);
+      m.cat = m.cat || _guessCatFromDesc(m.desc);
+
+      if(m.skip) { totSkip++; return; }
+
+      const fmtD = d.toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
+      const badge = m._registered
+        ? '<span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;">✅ OK</span>'
+        : '<span style="background:rgba(74,184,232,0.2);color:#4ab8e8;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;">🆕 Nuova</span>';
+      if(!m._registered) totNuove++;
+      const catLabel = CAT_LABELS[m.cat] || m.cat || '';
+      html += `<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid rgba(255,255,255,0.05);font-size:12px;${m._registered?'opacity:0.5;':''}">
+        <span style="font-size:18px;">🏦</span>
+        <div style="flex:1;">
+          <div style="font-weight:600;">${m.desc}</div>
+          <div style="font-size:10px;color:var(--text-muted);">${fmtD}${catLabel?' · '+catLabel:''}</div>
+        </div>
+        ${badge}
+        <span style="font-weight:700;color:#e05c5c;white-space:nowrap;">-€${m.amount.toFixed(2).replace('.',',')}</span>
+      </div>`;
+    });
+
+    // Mostra anche voci saltate in grigio collassate
+    const skipItems = p.movimenti.filter(m => m.skip);
+    if(skipItems.length) {
+      html += `<div style="padding:8px 16px;background:rgba(255,255,255,0.02);border-bottom:1px solid rgba(255,255,255,0.04);font-size:11px;color:var(--text-muted);cursor:pointer;" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'">
+        🚫 ${skipItems.length} voce/i escluse (tasse/commissioni/bonifici) ▼
+      </div><div style="display:none;">`;
+      skipItems.forEach(m => {
+        html += `<div style="display:flex;gap:10px;padding:7px 16px 7px 28px;border-bottom:1px solid rgba(255,255,255,0.03);font-size:11px;opacity:0.4;">
+          <span style="flex:1;">${m.desc}</span>
+          <span>-€${m.amount.toFixed(2).replace('.',',')}</span>
+        </div>`;
+      });
+      html += '</div>';
+    }
+  });
+
+  // Info saldo in cima
+  if(totalSaldo !== null) {
+    const fmtS = v => '€' + v.toFixed(2).replace('.',',');
+    if(infoEl) infoEl.innerHTML = `🏦 Saldo rilevato: <strong>${fmtS(totalSaldo)}</strong> · ${totNuove} spese nuove da importare`;
+  }
+
+  listEl.innerHTML = html || '<div style="padding:20px;text-align:center;color:var(--text-muted);">Nessun movimento trovato</div>';
+  preview.style.display = 'block';
+}
+
+function confirmSellaScreenshots() {
+  let count = 0;
+  const byMonth = {};
+
+  _sellaScreenshots.forEach(item => {
+    if(!item.parsed) return;
+    item.parsed.movimenti.forEach(m => {
+      if(m.skip || m._registered || !m.date) return;
+      const mk = m.date.substring(0,7);
+      if(!byMonth[mk]) byMonth[mk] = [];
+      byMonth[mk].push(m);
+    });
+  });
+
+  for(const [mk, items] of Object.entries(byMonth)) {
+    const [y,mo] = mk.split('-').map(Number);
+    const key = `tc_${currentUser?.email}_expenses_${y}_${mo}`;
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem(key)||'[]'); } catch(e) {}
+    for(const m of items) {
+      existing.push({ id: Date.now()+Math.random(), cat: m.cat||'altro', amount: m.amount, desc: m.desc, pay: 'sella', date: m.date, source: 'sella' });
+      count++;
+    }
+    localStorage.setItem(key, JSON.stringify(existing));
+  }
+
+  // Aggiorna anche saldo Conto Corrente se rilevato
+  const latestSaldo = _sellaScreenshots.map(x => x.parsed?.saldo).filter(Boolean).pop();
+  if(latestSaldo) {
+    saveCCSaldoIniziale({ amount: latestSaldo, date: new Date().toISOString().split('T')[0] });
+    renderDashSaldoBanca();
+  }
+
+  bumpVersion();
+  fbPushToCloud();
+  refreshAll();
+  showToast('✅ ' + count + ' spese importate' + (latestSaldo ? ' · Saldo CC aggiornato a €' + latestSaldo.toFixed(2).replace('.',',') : ''));
+  cancelSellaScreenshots();
+}
+
+function cancelSellaScreenshots() {
+  _sellaScreenshots = [];
+  document.getElementById('sellaScreenshotPreview').style.display = 'none';
+  document.getElementById('sellaScreenshotStatus').textContent = '';
+}
+
+function cancelRevolutScreenshots() {
+  _revolutScreenshots = [];
+  document.getElementById('revolutScreenshotPreview').style.display = 'none';
+  document.getElementById('revolutScreenshotStatus').textContent = '';
+}
+
+function cancelSatispayRicevute() {
+  _ricevuteParsed = [];
+  document.getElementById('satispayRicevutaPreview').style.display = 'none';
+  document.getElementById('satispayRicevutaStatus').textContent = '';
 }
 
 function toggleTopbarMenu() {
@@ -18264,26 +19370,46 @@ function openWeekDayModal(ds, label) {
     const allExp = (load('expenses_'+key, [])||[]).filter(e => e.date===ds || e.date===ds2);
     const allInc = (load('income_'+key, [])||[]).filter(x => (x.date===ds||x.date===ds2) && x.type!=='ferrino');
 
-    const libere    = allExp.filter(e => e.pay!=='bonifico' && e.cat!=='rata');
-    const bonifici  = allExp.filter(e => e.pay==='bonifico' || e.cat==='rata');
-    const totAll    = allExp.reduce((s,e)=>s+e.amount,0);
+    // Filtra spiccioli Revolut (nascosti completamente)
+    const SPICCIOLI_RE = /accredita\s*eur\s*vacanze|accredita\s*eur\s*\w+\s*da\s*eur|savings?\s*vault|spare\s*change|round[\s-]?up/i;
+    const visibili = allExp.filter(e => !SPICCIOLI_RE.test(e.desc || ''));
+    const spiccioli = allExp.filter(e => SPICCIOLI_RE.test(e.desc || ''));
+
+    // Usa vsCheckExclusion per classificare correttamente
+    const libere    = visibili.filter(e => {
+      if(e.pay === 'bonifico' || e.cat === 'rata') return false;
+      return !vsIsExcluded(e);
+    });
+    const fisse     = visibili.filter(e => {
+      if(e.pay === 'bonifico' || e.cat === 'rata') return false;
+      return vsIsExcluded(e);
+    });
+    const bonifici  = visibili.filter(e => e.pay==='bonifico' || e.cat==='rata');
+    // Le spese fisse/mensili sono escluse dal totale settimanale — mostrate solo come info
+    const totAll    = libere.reduce((s,e)=>s+e.amount,0) + bonifici.reduce((s,e)=>s+e.amount,0);
     const totLib    = libere.reduce((s,e)=>s+e.amount,0);
     const totBon    = bonifici.reduce((s,e)=>s+e.amount,0);
+    const totFisse  = fisse.reduce((s,e)=>s+e.amount,0);
     const totInc    = allInc.reduce((s,e)=>s+e.amount,0);
     const fmt = v => '€'+v.toFixed(2).replace('.',',');
 
     document.getElementById('weekDetailTitle').textContent = label;
-    document.getElementById('weekDetailSubtitle').textContent = ds + ' · ' + allExp.length + ' spese';
+    const nLibere = libere.length + bonifici.length;
+    document.getElementById('weekDetailSubtitle').textContent = ds + ' · ' + nLibere + ' spese' + (fisse.length ? ' · ' + fisse.length + ' fisse/escluse' : '');
 
     document.getElementById('weekDetailStats').innerHTML = [
       { label:'Totale', value: fmt(totAll), c:'var(--red)' },
-      { label:'Libere', value: fmt(totLib), c:'#4ae87a' },
+      { label:'Libere', value: fmt(totLib), c:'var(--text)' },
       { label:'Bonifici/Rate', value: fmt(totBon), c:'#ffb400' },
       { label:'Entrate', value: '+'+fmt(totInc), c:'#4ae87a' },
     ].map(s => `<div style="padding:12px 16px;border-right:1px solid var(--border);text-align:center;">
       <div style="font-size:18px;font-weight:700;color:${s.c};">${s.value}</div>
       <div style="font-size:10px;color:var(--text-muted);margin-top:2px;text-transform:uppercase;letter-spacing:0.8px;">${s.label}</div>
-    </div>`).join('');
+    </div>`).join('') +
+    (totFisse > 0 ? `<div style="padding:8px 16px;background:rgba(255,180,0,0.06);border-top:1px dashed rgba(255,180,0,0.3);display:flex;justify-content:space-between;align-items:center;font-size:11px;">
+      <span style="color:var(--text-muted);">🏠 Spese fisse/mensili (escluse dal totale settimanale)</span>
+      <span style="color:#ffb400;font-weight:700;">€${totFisse.toFixed(2).replace('.',',')}</span>
+    </div>` : '');
 
     // Entrate
     let html = '';
@@ -18303,11 +19429,17 @@ function openWeekDayModal(ds, label) {
       html += '<div style="font-size:11px;color:var(--text-muted);font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">🛒 SPESE LIBERE</div>';
       html += _weekExpRows(libere, fmt);
     }
-    // Bonifici
+    // Spese fisse/escluse (affitto, condominio, piticariu, ecc.) — non conteggiate nel totale
+    if(fisse.length) {
+      html += '<div style="font-size:11px;color:#ffb400;font-weight:700;margin:12px 0 6px;letter-spacing:0.5px;display:flex;justify-content:space-between;align-items:center;">🏠 SPESE FISSE / MENSILI <span style=\'font-size:9px;color:var(--text-muted);font-weight:400;\'>escluse dal totale settimanale</span></div>';
+      html += _weekExpRowsWithRata(fisse, fmt);
+    }
+    // Bonifici e rate
     if(bonifici.length) {
       html += '<div style="font-size:11px;color:#ffb400;font-weight:700;margin:12px 0 8px;letter-spacing:0.5px;">🏦 BONIFICI & RATE</div>';
-      html += _weekExpRows(bonifici, fmt);
+      html += _weekExpRowsWithRata(bonifici, fmt);
     }
+    // Spiccioli: completamente nascosti (movimenti interni vault Revolut, non sono spese reali)
     if(!allExp.length && !allInc.length) {
       html = '<div style="text-align:center;padding:40px;color:var(--text-muted);">Nessuna spesa in questo giorno.</div>';
     }
@@ -18328,32 +19460,122 @@ function openWeekDayModal(ds, label) {
   }
 }
 
+// Conta quante volte un merchant/desc simile appare nella storia
+function _contaRatePagate(e) {
+  const merchant = (e.desc || '').split(/[—\-–]/)[0].trim().toLowerCase().substring(0, 20);
+  if(!merchant || merchant.length < 3) return null;
+  const nowY = new Date().getFullYear();
+  let count = 0;
+  for(let y = 2023; y <= nowY + 1; y++) {
+    for(let m = 1; m <= 12; m++) {
+      const exps = load('expenses_' + y + '_' + m, []) || [];
+      count += exps.filter(x => (x.desc||'').toLowerCase().includes(merchant)).length;
+    }
+  }
+  return count > 1 ? count : null;
+}
+
+// Come _weekExpRows ma con badge rata N/tot
+function _weekExpRowsWithRata(exps, fmt) {
+  const SRC_LABEL = {
+    satispay: { label:'Satispay', bg:'rgba(255,92,92,0.2)',  color:'#ff6b6b' },
+    sella:    { label:'Sella',    bg:'rgba(74,144,232,0.2)', color:'#4a90e8' },
+    revolut:  { label:'Revolut',  bg:'rgba(138,92,246,0.2)', color:'#a78bfa' },
+    vs_manual:{ label:'Manuale',  bg:'rgba(201,168,76,0.2)', color:'#d4a843' },
+    klarna:   { label:'Klarna',   bg:'rgba(255,105,180,0.2)',color:'#ff69b4' },
+    scalapay: { label:'Scalapay', bg:'rgba(111,212,183,0.2)',color:'#6fd4b7' }
+  };
+  return exps.map(e => {
+    const src = e.source || '';
+    const srcInfo = SRC_LABEL[src] || SRC_LABEL[e.pay];
+    const payName = srcInfo ? srcInfo.label : (e.pay || '—');
+    const badge = srcInfo
+      ? `<span style="background:${srcInfo.bg};color:${srcInfo.color};border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${payName}</span>`
+      : (payName !== '—' ? `<span style="background:rgba(255,255,255,0.08);color:var(--text-muted);border-radius:5px;padding:2px 7px;font-size:10px;font-weight:600;white-space:nowrap;">${payName}</span>` : '');
+    // Contatore rate pagate
+    const nRate = _contaRatePagate(e);
+    const rataBadge = nRate ? `<span style="background:rgba(255,180,0,0.15);color:#ffb400;border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">📦 Rata ${nRate}</span>` : '';
+    const excl = vsCheckExclusion(e);
+    const exclBadge = excl.excluded ? `<span style="background:rgba(255,255,255,0.06);color:var(--text-muted);border-radius:5px;padding:2px 6px;font-size:9px;white-space:nowrap;">${excl.reason}</span>` : '';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:rgba(255,180,0,0.04);border:1px solid rgba(255,180,0,0.2);border-radius:10px;margin-bottom:5px;">
+      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap;">
+        ${badge}${rataBadge}${exclBadge}
+        <span style="font-size:13px;">${catIconHtml(e.cat)}</span>
+        <span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc==='—'?e.cat:_cleanDescBySource(e)}</span>
+      </div>
+      <span style="font-size:14px;font-weight:700;color:#ffb400;margin-left:10px;white-space:nowrap;">${fmt(e.amount)}</span>
+    </div>`;
+  }).join('');
+}
+
+// Pulisce la descrizione in base alla fonte
+function _cleanDescBySource(e) {
+  const d = e.desc || e.cat || '—';
+  if(d === '—') return e.cat || '—';
+  if(e.source === 'revolut') return cleanRevolutDesc(d);
+  if(e.source === 'sella')   return cleanSellaDesc(d);
+  if(e.source === 'satispay') return cleanSatispayDesc(d);
+  return d;
+}
+
+// Aggiunge/modifica nota a una spesa
+function weekExpAddNota(expId, expDate, btn) {
+  const d = new Date(expDate + 'T12:00:00');
+  const key = `tc_${currentUser?.email}_expenses_${d.getFullYear()}_${d.getMonth()+1}`;
+  let exps = [];
+  try { exps = JSON.parse(localStorage.getItem(key) || '[]'); } catch(e) {}
+  const idx = exps.findIndex(e => String(e.id) === String(expId));
+  if(idx === -1) { showToast('⚠️ Spesa non trovata'); return; }
+
+  const cur = exps[idx].nota || '';
+  const label = (exps[idx].desc || '') + ' €' + (exps[idx].amount||0).toFixed(2);
+  const nota = prompt('📝 Nota per: ' + label, cur);
+  if(nota === null) return; // annullato
+
+  exps[idx].nota = nota.trim();
+  localStorage.setItem(key, JSON.stringify(exps));
+  bumpVersion();
+  fbPushToCloud();
+  // Riapri il modal per aggiornare la lista
+  openWeekDayModal(_weekDetailCurrentDs, document.getElementById('weekDetailTitle')?.textContent || '');
+}
+
 function _weekExpRows(exps, fmt) {
   const SRC_LABEL = {
     satispay: { label:'Satispay', bg:'rgba(255,92,92,0.2)',  color:'#ff6b6b' },
     sella:    { label:'Sella',    bg:'rgba(74,144,232,0.2)', color:'#4a90e8' },
     revolut:  { label:'Revolut',  bg:'rgba(138,92,246,0.2)', color:'#a78bfa' },
-    vs_manual:{ label:'Manuale',  bg:'rgba(201,168,76,0.2)', color:'#d4a843' }
+    vs_manual:{ label:'Manuale',  bg:'rgba(201,168,76,0.2)', color:'#d4a843' },
+    klarna:   { label:'Klarna',   bg:'rgba(255,105,180,0.2)',color:'#ff69b4' },
+    scalapay: { label:'Scalapay', bg:'rgba(111,212,183,0.2)',color:'#6fd4b7' }
   };
   const PAY_LABEL = {
     satispay:'Satispay', revolut:'Revolut', bancomat:'Bancomat Sella',
-    bonifico:'Bonifico', contanti:'Contanti', tickets:'Tickets'
+    bonifico:'Bonifico', contanti:'Contanti', tickets:'Tickets',
+    klarna:'Klarna', scalapay:'Scalapay'
   };
   return exps.map(e => {
     const src = e.source || '';
     const pay = e.pay || '';
     // Determina label metodo: prima da source, poi da pay
-    const srcInfo = SRC_LABEL[src];
+    const srcInfo = SRC_LABEL[src] || SRC_LABEL[pay];
     const payName = srcInfo ? srcInfo.label : (PAY_LABEL[pay] || pay || '—');
     const badge = srcInfo
       ? `<span style="background:${srcInfo.bg};color:${srcInfo.color};border-radius:5px;padding:2px 7px;font-size:10px;font-weight:700;white-space:nowrap;">${payName}</span>`
       : (payName !== '—' ? `<span style="background:rgba(255,255,255,0.08);color:var(--text-muted);border-radius:5px;padding:2px 7px;font-size:10px;font-weight:600;white-space:nowrap;">${payName}</span>` : '');
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:5px;">
-      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
-        ${badge}<span style="font-size:13px;">${catIconHtml(e.cat)}</span>
-        <span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc==='—'?e.cat:e.desc}</span>
+    const notaHtml = e.nota ? `<div style="font-size:11px;color:var(--text-muted);padding:2px 6px 4px 6px;font-style:italic;">📝 ${e.nota}</div>` : '';
+    return `<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:5px;overflow:hidden;">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;">
+        <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+          ${badge}<span style="font-size:13px;">${catIconHtml(e.cat)}</span>
+          <span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc==='—'?e.cat:_cleanDescBySource(e)}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+          <button onclick="weekExpAddNota('${e.id}','${e.date}',this)" style="background:none;border:none;cursor:pointer;font-size:14px;opacity:0.5;padding:2px 4px;" title="Aggiungi nota">${e.nota?'📝':'📄'}</button>
+          <span style="font-size:14px;font-weight:700;color:var(--red);white-space:nowrap;">${fmt(e.amount)}</span>
+        </div>
       </div>
-      <span style="font-size:14px;font-weight:700;color:var(--red);margin-left:10px;white-space:nowrap;">${fmt(e.amount)}</span>
+      ${notaHtml}
     </div>`;
   }).join('');
 }
@@ -18703,6 +19925,8 @@ document.addEventListener('click', function(e) {
                   <option value="contanti">💵 Contanti</option>
                   <option value="satispay">📱 Satispay</option>
                   <option value="tickets">🎫 Tickets</option>
+                  <option value="klarna">🅺 Klarna</option>
+                  <option value="scalapay">🔷 Scalapay</option>
                   <option value="bonifico">🏦 Bonifico</option>
                 </select>
               </div>
