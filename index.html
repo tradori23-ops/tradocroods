@@ -3476,45 +3476,49 @@ body.ios-device .btn-gold:hover {
       </button>
     </div>
     <div class="nav-section">
-      <div class="nav-item active" onclick="showSection('dashboard', this); closeSidebar()">
+
+      <!-- ── VISTA PRINCIPALE ── -->
+      <div class="nav-item active" onclick="showSection('settimanale', this); closeSidebar()">
+        <span class="icon">📅</span> <strong>Questa Settimana</strong>
+      </div>
+      <div class="nav-item" onclick="showSection('dashboard', this); closeSidebar()">
         <span class="icon">📊</span> Dashboard
       </div>
-      <div class="nav-item" onclick="showSection('speseFisse', this); closeSidebar()">
-        <span class="icon">🏠</span> Spese Fisse
+      <div class="nav-item" onclick="showSection('grafici', this); closeSidebar()">
+        <span class="icon">📈</span> Grafici &amp; Budget
+      </div>
+
+      <!-- ── GESTIONE ── -->
+      <div style="padding:10px 16px 4px;font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;opacity:0.6;">Gestione</div>
+      <div class="nav-item" onclick="showSection('aggiungiSpesa', this); closeSidebar()">
+        <span class="icon">➕</span> Aggiungi Spesa
       </div>
       <div class="nav-item" onclick="showSection('entrate', this); closeSidebar()">
         <span class="icon">💰</span> Entrate
       </div>
-      <div class="nav-item" onclick="showSection('aggiungiSpesa', this); closeSidebar()">
-        <span class="icon">➕</span> Aggiungi Spesa
+      <div class="nav-item" onclick="showSection('speseFisse', this); closeSidebar()">
+        <span class="icon">🏠</span> Spese Fisse
       </div>
-      <div class="nav-item" onclick="showSection('settimanale', this); closeSidebar()">
-        <span class="icon">📅</span> Spese Settimanali
-      </div>
-      <div class="nav-item" onclick="showSection('grafici', this); closeSidebar()">
-        <span class="icon">📈</span> Grafici Categorie
-      </div>
-      <div class="nav-item" onclick="showSection('calendario', this); closeSidebar()">
-        <span class="icon">🗓️</span> Calendario & Note
-      </div>
-      <div class="nav-item" onclick="showSection('documenti', this); closeSidebar()">
-        <span class="icon">📁</span> Documenti & Fatture
-      </div>
+
+      <!-- ── BANCA ── -->
+      <div style="padding:10px 16px 4px;font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;opacity:0.6;">Banca</div>
       <div class="nav-item" onclick="showSection('contocorrente', this); closeSidebar()">
         <span class="icon">💳</span> Conto Corrente
       </div>
-      <div style="height:1px;background:var(--border);margin:8px 0;"></div>
-      <!-- SPESE SETTIMANALI NAV -->
-      <div style="padding:6px 16px 4px;font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;opacity:0.7;">Spese Settimanali</div>
-      <div class="nav-item" onclick="showSection('vistaSpese', this); closeSidebar()" style="border-left:3px solid rgba(74,184,232,0.5);">
-        <span class="icon">🗓️</span> Spese Settimanali
+      <div class="nav-item" onclick="showSection('documenti', this); closeSidebar()">
+        <span class="icon">📁</span> Importa PDF
       </div>
-      <div style="height:1px;background:var(--border);margin:8px 0;"></div>
+
+      <!-- ── ALTRO ── -->
+      <div style="padding:10px 16px 4px;font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;opacity:0.6;">Altro</div>
+      <div class="nav-item" onclick="showSection('calendario', this); closeSidebar()">
+        <span class="icon">🗓️</span> Calendario &amp; Note
+      </div>
       <div class="nav-item" onclick="showSection('promemoria', this); closeSidebar()" style="position:relative;">
         <span class="icon">🔔</span> Promemoria
         <span id="reminderNavBadge" style="display:none;position:absolute;top:8px;right:12px;background:var(--red);color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;min-width:14px;text-align:center;"></span>
       </div>
-            <div class="nav-item" onclick="showSection('emergenza', this); closeSidebar()" style="color:var(--red) !important;">
+      <div class="nav-item" onclick="showSection('emergenza', this); closeSidebar()" style="color:var(--red) !important;">
         <span class="icon">🚨</span> Emergenza
       </div>
       <div class="nav-item" onclick="showSection('ai', this); closeSidebar()" style="background:linear-gradient(90deg,rgba(99,50,200,0.18),transparent);border-left:3px solid rgba(160,100,255,0.7);">
@@ -4642,6 +4646,14 @@ body.ios-device .btn-gold:hover {
 
     <!-- ===== GRAFICI ===== -->
     <div id="sec-grafici" class="section">
+      <!-- Link rapido al budget -->
+      <div style="background:rgba(201,168,76,0.08);border:1.5px solid rgba(201,168,76,0.25);border-radius:14px;padding:12px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;" onclick="showSection('aggiungiSpesa',document.querySelector('.nav-item[onclick*=aggiungiSpesa]'))">
+        <div>
+          <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:2px;">🎯 Budget Settimanale</div>
+          <div style="font-size:12px;color:var(--text-muted);" id="grafici-budget-preview">Clicca per vedere l'andamento del budget</div>
+        </div>
+        <div style="font-size:11px;color:var(--gold);">→</div>
+      </div>
 
       <!-- TAB SWITCHER -->
       <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;">
@@ -7946,17 +7958,34 @@ function showSection(id, el) {
     speseFisse:'🏠 Spese Fisse',
     entrate:'💰 Entrate',
     aggiungiSpesa:'➕ Aggiungi Spesa',
-    settimanale:'📅 Spese Settimanali',
-    grafici:'📈 Grafici per Categoria',
+    settimanale:'📅 Questa Settimana',
+    grafici:'📈 Grafici & Budget',
     calendario:'🗓️ Calendario & Note',
     emergenza:'🚨 Emergenza',
-    documenti:'📁 Documenti & Fatture',
+    documenti:'📁 Importa PDF & Documenti',
     librietto:'🏦 Libretto di Risparmio',
-    vistaSpese:'🗓️ Spese Settimanali — Sella/Satispay/Revolut',
+    vistaSpese:'🗓️ Spese Settimanali — Sella/Satispay/Revolut', /* legacy */
     ai:'✨ AI Assistente'
   };
   document.getElementById('pageTitle').textContent = titles[id]||id;
-  if(id==='grafici') { requestAnimationFrame(() => { renderGraphButtons(); if(currentGraphTab==='week') renderWeekChart(); else if(currentGraphTab==='year'){ initYearSelect(); renderYearChart(); } else if(currentGraphTab==='budget') renderBudgetChart(); else if(currentGraphTab==='trend') renderTrendChart(); else if(currentGraphTab==='giri') renderGiriChart(); else if(currentGraphTab==='pdf') renderPdfChart(); else if(currentGraphTab==='librietto') renderLib2Chart(); else if(currentGraphTab==='salute') renderSaluteChart(); else if(currentGraphTab==='cat' && selectedCat) { renderCatChart(selectedCat); renderCatFreqChart(selectedCat); } }); }
+  if(id==='grafici') {
+    // Aggiorna preview budget
+    const bprev = document.getElementById('grafici-budget-preview');
+    if(bprev) {
+      const bgt = loadBudgetWeekly ? loadBudgetWeekly() : null;
+      if(bgt) {
+        const byCat = getWeekSpendingByCat ? getWeekSpendingByCat() : {};
+        const tot = Object.values(byCat).reduce((s,v)=>s+v,0);
+        const pct = Math.min(100,Math.round(tot/bgt*100));
+        const rem = bgt - tot;
+        const fmtB = v => '€'+Math.abs(v).toFixed(2).replace('.',',');
+        bprev.textContent = fmtB(tot) + ' usati su ' + fmtB(bgt) + ' (' + pct + '%) · ' + (rem>=0?'Rimangono '+fmtB(rem):'Sforato di '+fmtB(Math.abs(rem)));
+        bprev.style.color = rem < 0 ? 'var(--red)' : rem < bgt*0.2 ? '#ffb400' : 'var(--text-muted)';
+      } else {
+        bprev.textContent = 'Imposta il budget in Aggiungi Spesa →';
+      }
+    }
+    requestAnimationFrame(() => { renderGraphButtons(); if(currentGraphTab==='week') renderWeekChart(); else if(currentGraphTab==='year'){ initYearSelect(); renderYearChart(); } else if(currentGraphTab==='budget') renderBudgetChart(); else if(currentGraphTab==='trend') renderTrendChart(); else if(currentGraphTab==='giri') renderGiriChart(); else if(currentGraphTab==='pdf') renderPdfChart(); else if(currentGraphTab==='librietto') renderLib2Chart(); else if(currentGraphTab==='salute') renderSaluteChart(); else if(currentGraphTab==='cat' && selectedCat) { renderCatChart(selectedCat); renderCatFreqChart(selectedCat); } }); }
   if(id==='settimanale') renderWeek();
   if(id==='vistaSpese') { initVSYearSelects(); renderVSAll(); }
   if(id==='promemoria') { renderReminderList(); checkNotifPermission(); updateReminderBadge(); }
@@ -8861,7 +8890,7 @@ function addExpense() {
   weekOffset = calcWeekOffsetForDate(targetDate);
   fbPushToCloud();
   renderExpenses(); renderDashboard(); renderWeek(); renderCalendar(); vsRefreshIfActive();
-  showSection('settimanale', document.querySelector('.nav-item[onclick*=settimanale]'));
+  showSection('settimanale', document.querySelector('.nav-item[onclick*="settimanale"]'));
   showConfirmAnim('expense', amount);
   showToast('✅ Spesa aggiunta! Settimana del ' + targetDate.toLocaleDateString('it-IT'));
 }
