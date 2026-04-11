@@ -6527,8 +6527,12 @@ async function gistSyncFromCloud(email, onDone) {
   if(!gistReady || !_gistToken || !_gistId) { if(onDone) onDone(); return; }
   updateCloudBadge('syncing');
 
-  // Salva un backup locale PRIMA di sovrascrivere con il cloud
-  if(typeof backupNow === 'function') backupNow('Prima di sync dal cloud');
+  // Salva backup solo se l'ultimo è più vecchio di 2 ore
+  if(typeof backupNow === 'function') {
+    const bks = _backupGetAll();
+    const lastTs = bks.length ? bks[0].ts : 0;
+    if(Date.now() - lastTs > 2 * 60 * 60 * 1000) backupNow('Prima di sync dal cloud');
+  }
 
   const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
                  (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
@@ -6579,8 +6583,8 @@ function fbSyncFromCloud(email, onDone) { gistSyncFromCloud(email, onDone); }
 // ═══════════════════════════════════════════════════════
 
 const BACKUP_KEY     = 'tc_auto_backup';
-const BACKUP_MAX     = 24;   // massimo backup conservati
-const BACKUP_INTV_MS = 60 * 60 * 1000; // ogni ora
+const BACKUP_MAX     = 3;    // solo 3 backup (meno spazio)
+const BACKUP_INTV_MS = 4 * 60 * 60 * 1000; // ogni 4 ore (non ogni ora)
 
 function _backupGetAll() {
   try { return JSON.parse(localStorage.getItem(BACKUP_KEY) || '[]'); } catch(e) { return []; }
@@ -6588,14 +6592,18 @@ function _backupGetAll() {
 
 function backupNow(label) {
   try {
-    // Raccogli tutte le chiavi dell'utente corrente
     const email = currentUser?.email || '';
     if(!email) return;
     const prefix = 'tc_' + email + '_';
+    // Salva SOLO spese e entrate (non foto, token, config)
     const snap = {};
     for(let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
-      if(k && k.startsWith(prefix)) snap[k] = localStorage.getItem(k);
+      if(!k || !k.startsWith(prefix)) continue;
+      const kk = k.replace(prefix, '');
+      if(/^(expenses_|income_|fixedItems|version)/.test(kk)) {
+        snap[k] = localStorage.getItem(k);
+      }
     }
     const backups = _backupGetAll();
     backups.unshift({
@@ -6604,11 +6612,10 @@ function backupNow(label) {
       data:  snap,
       keys:  Object.keys(snap).length
     });
-    // Tieni solo gli ultimi BACKUP_MAX
     if(backups.length > BACKUP_MAX) backups.splice(BACKUP_MAX);
     localStorage.setItem(BACKUP_KEY, JSON.stringify(backups));
     console.log('[Backup] Salvato:', backups[0].label, '(' + backups[0].keys + ' chiavi)');
-  } catch(e) { console.warn('[Backup] Errore:', e); }
+  } catch(e) { console.warn('[Backup] Errore:', e.message); }
 }
 
 function backupRestore(idx) {
@@ -6662,18 +6669,24 @@ function backupShowPanel() {
   panel.style.display = 'flex';
 }
 
-// Avvia backup automatico ogni ora
+// Avvia backup automatico
 function startAutoBackup() {
-  // Primo backup subito all'avvio (dopo 30s per dare tempo all'app di caricare)
-  setTimeout(() => backupNow('Avvio app'), 30000);
-  // Poi ogni ora
+  // Pulisci backup vecchi/enormi all'avvio
+  try {
+    const bks = _backupGetAll();
+    if(bks.length > BACKUP_MAX) {
+      localStorage.setItem(BACKUP_KEY, JSON.stringify(bks.slice(0, BACKUP_MAX)));
+    }
+  } catch(e) {
+    // Se localStorage è pieno, cancella tutti i backup
+    try { localStorage.removeItem(BACKUP_KEY); } catch(e2) {}
+  }
+  // Backup ogni 4 ore
   setInterval(() => backupNow(), BACKUP_INTV_MS);
 }
 
 function fbPushToCloud() {
   if(_fbImporting) return;
-  // Backup locale prima di ogni sync con il cloud
-  if(typeof backupNow === 'function') setTimeout(() => backupNow('Prima di sync cloud'), 0);
   clearTimeout(window._gistPushTimer);
   window._gistPushTimer = setTimeout(() => gistPushToCloud(), 1500);
 }
