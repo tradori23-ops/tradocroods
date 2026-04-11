@@ -4563,10 +4563,18 @@ body.ios-device .btn-gold:hover {
           <div style="color:var(--text-muted);font-size:13px;padding:8px 0;">Nessuna spesa registrata oggi</div>
         </div>
 
-        <!-- Totale oggi + budget rimasto -->
-        <div id="oggi-footer" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-          <div style="font-size:13px;color:var(--text-muted);" id="oggi-budget-label"></div>
-          <div style="font-size:22px;font-weight:900;font-family:'Playfair Display',serif;" id="oggi-tot-val">€0,00</div>
+        <!-- Totale oggi + fonti + budget rimasto -->
+        <div id="oggi-footer" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+          <!-- Badge fonti -->
+          <div id="oggi-fonti" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;"></div>
+          <!-- Totale + budget -->
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:12px;color:var(--text-muted);" id="oggi-budget-label"></div>
+            <div style="display:flex;align-items:baseline;gap:6px;">
+              <span style="font-size:12px;color:var(--text-muted);">Totale oggi</span>
+              <span style="font-size:24px;font-weight:900;font-family:'Playfair Display',serif;color:var(--red);" id="oggi-tot-val">€0,00</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -18676,8 +18684,34 @@ function renderOggiBanner() {
   }
 
   // Footer totale + budget
-  if(footerEl) footerEl.style.display = visibili.length ? 'flex' : 'none';
+  if(footerEl) footerEl.style.display = visibili.length ? 'block' : 'none';
   if(totEl)    { totEl.textContent = fmt(totLibere); totEl.style.color = totLibere > 0 ? 'var(--red)' : 'var(--text-muted)'; }
+
+  // Badge fonti
+  const fontiEl = document.getElementById('oggi-fonti');
+  if(fontiEl && visibili.length) {
+    const bySrc = {};
+    visibili.forEach(e => {
+      const s = e.source || 'manuale';
+      bySrc[s] = (bySrc[s] || 0) + (e.amount || 0);
+    });
+    const SRCS = [
+      { key:'sella',    icon:'🏦', label:'Sella',    color:'rgba(74,144,232,0.2)',  tc:'#4a90e8' },
+      { key:'satispay', icon:'📱', label:'Satispay', color:'rgba(255,92,92,0.2)',   tc:'#ff6b6b' },
+      { key:'revolut',  icon:'💜', label:'Revolut',  color:'rgba(138,92,246,0.2)',  tc:'#a78bfa' },
+      { key:'manuale',  icon:'💵', label:'Contanti', color:'rgba(74,232,122,0.15)', tc:'#4ae87a' },
+    ];
+    fontiEl.innerHTML = SRCS.filter(s => bySrc[s.key] > 0).map(s =>
+      `<div style="background:${s.color};border-radius:10px;padding:6px 12px;display:flex;align-items:center;gap:6px;">
+        <span style="font-size:13px;">${s.icon}</span>
+        <div>
+          <div style="font-size:9px;color:${s.tc};font-weight:700;text-transform:uppercase;letter-spacing:0.5px;">${s.label}</div>
+          <div style="font-size:14px;font-weight:700;color:${s.tc};">${fmt(bySrc[s.key])}</div>
+        </div>
+      </div>`
+    ).join('');
+  }
+
   if(budgLbl) {
     const bgt = loadBudgetWeekly ? loadBudgetWeekly() : null;
     if(bgt) {
