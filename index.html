@@ -4544,6 +4544,32 @@ body.ios-device .btn-gold:hover {
 
     <!-- ===== SPESE SETTIMANALI ===== -->
     <div id="sec-settimanale" class="section">
+
+      <!-- ══ BANNER OGGI ══ -->
+      <div id="oggi-banner" style="background:var(--card);border-radius:20px;padding:20px 24px;margin-bottom:16px;border:2px solid rgba(201,168,76,0.4);">
+        <!-- Header: data + pulsante aggiungi -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+          <div>
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);margin-bottom:3px;font-weight:700;">📆 Oggi</div>
+            <div style="font-size:22px;font-weight:700;" id="oggi-data-label">—</div>
+          </div>
+          <button onclick="oggiAddSpesa()" style="background:var(--gold);color:#1a1a2e;border:none;border-radius:14px;padding:12px 22px;font-size:14px;font-weight:800;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:8px;white-space:nowrap;">
+            ➕ Aggiungi spesa
+          </button>
+        </div>
+
+        <!-- Spese di oggi -->
+        <div id="oggi-spese-list">
+          <div style="color:var(--text-muted);font-size:13px;padding:8px 0;">Nessuna spesa registrata oggi</div>
+        </div>
+
+        <!-- Totale oggi + budget rimasto -->
+        <div id="oggi-footer" style="display:none;margin-top:12px;padding-top:12px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+          <div style="font-size:13px;color:var(--text-muted);" id="oggi-budget-label"></div>
+          <div style="font-size:22px;font-weight:900;font-family:'Playfair Display',serif;" id="oggi-tot-val">€0,00</div>
+        </div>
+      </div>
+
       <div class="card mb-20">
         <div class="card-title">📅 Spese Settimanali</div>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
@@ -7986,7 +8012,7 @@ function showSection(id, el) {
       }
     }
     requestAnimationFrame(() => { renderGraphButtons(); if(currentGraphTab==='week') renderWeekChart(); else if(currentGraphTab==='year'){ initYearSelect(); renderYearChart(); } else if(currentGraphTab==='budget') renderBudgetChart(); else if(currentGraphTab==='trend') renderTrendChart(); else if(currentGraphTab==='giri') renderGiriChart(); else if(currentGraphTab==='pdf') renderPdfChart(); else if(currentGraphTab==='librietto') renderLib2Chart(); else if(currentGraphTab==='salute') renderSaluteChart(); else if(currentGraphTab==='cat' && selectedCat) { renderCatChart(selectedCat); renderCatFreqChart(selectedCat); } }); }
-  if(id==='settimanale') renderWeek();
+  if(id==='settimanale') { renderWeek(); renderOggiBanner(); }
   if(id==='vistaSpese') { initVSYearSelects(); renderVSAll(); }
   if(id==='promemoria') { renderReminderList(); checkNotifPermission(); updateReminderBadge(); }
   if(id==='aggiungiSpesa') { setTimeout(renderBudgetCard, 50); }
@@ -16955,6 +16981,9 @@ function renderDashCatChart(yr, mo) {
 // ===== MODAL =====
 function closeDayModal() {
   document.getElementById('dayModal').style.display = 'none';
+  if(typeof renderOggiBanner === 'function' && currentSection === 'settimanale') {
+    setTimeout(renderOggiBanner, 150);
+  }
 }
 
 // ===== EMERGENZA =====
@@ -18570,6 +18599,110 @@ function renderBudgetTrendChart() {
       : ['<span style="font-size:11px;color:#4a90e8;">━ Speso</span>','<span style="font-size:11px;color:#ff8c5a;">╌ Proiezione</span>','<span style="font-size:11px;color:var(--gold);">╌ Budget €'+budget+'</span>'];
     legEl.innerHTML = items.join('');
   }
+}
+
+// ══════════════════════════════════════════════
+// BANNER OGGI
+// ══════════════════════════════════════════════
+
+function renderOggiBanner() {
+  const oggi = new Date();
+  const ds   = localDateStr(oggi); // YYYY-MM-DD
+  const ds2  = String(oggi.getDate()).padStart(2,'0') + '/' + String(oggi.getMonth()+1).padStart(2,'0') + '/' + oggi.getFullYear();
+
+  // Label data
+  const GIORNI = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const MESII  = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  const lbl = document.getElementById('oggi-data-label');
+  if(lbl) lbl.textContent = GIORNI[oggi.getDay()] + ' ' + oggi.getDate() + ' ' + MESII[oggi.getMonth()] + ' ' + oggi.getFullYear();
+
+  // Carica spese di oggi
+  const key  = 'expenses_' + oggi.getFullYear() + '_' + (oggi.getMonth()+1);
+  const exps = (load(key, []) || []).filter(e => e.date === ds || e.date === ds2);
+
+  const listEl   = document.getElementById('oggi-spese-list');
+  const footerEl = document.getElementById('oggi-footer');
+  const totEl    = document.getElementById('oggi-tot-val');
+  const budgLbl  = document.getElementById('oggi-budget-label');
+
+  const fmt = v => '€' + v.toFixed(2).replace('.', ',');
+  const CAT_COLORS = { bar:'#d4a853', supermercato:'#4ae87a', ristorante:'#ff8c5a', trasporti:'#4a90e8', viaggi:'#a78bfa' };
+
+  // Filtra spiccioli e mostra solo spese reali
+  const SPIC = /accredita\s*eur|savings\s*vault/i;
+  const visibili = exps.filter(e => !SPIC.test(e.desc || ''));
+  const fisse    = visibili.filter(e => e.pay === 'bonifico' || e.cat === 'rata');
+  const libere   = visibili.filter(e => e.pay !== 'bonifico' && e.cat !== 'rata');
+
+  const totLibere = libere.reduce((s,e)=>s+e.amount,0);
+  const totFisse  = fisse.reduce((s,e)=>s+e.amount,0);
+  const totTot    = totLibere + totFisse;
+
+  if(listEl) {
+    if(!visibili.length) {
+      listEl.innerHTML = '<div style="color:var(--text-muted);font-size:13px;padding:6px 0;">Nessuna spesa registrata oggi</div>';
+    } else {
+      const srcBadge = s => s==='satispay'
+        ? '<span style="background:rgba(255,92,92,0.2);color:#ff6b6b;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">📱</span>'
+        : s==='revolut'
+        ? '<span style="background:rgba(138,92,246,0.2);color:#a78bfa;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">💜</span>'
+        : s==='sella'
+        ? '<span style="background:rgba(74,144,232,0.2);color:#4a90e8;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">🏦</span>'
+        : '';
+
+      // Raggruppa: prima le libere poi le fisse
+      let html = '';
+      if(libere.length) {
+        html += libere.map(e => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface);border-radius:12px;margin-bottom:6px;cursor:pointer;" onclick="openDayModal('${ds}','${GIORNI[oggi.getDay()]} ${oggi.getDate()} ${MESII[oggi.getMonth()]}')">
+            <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">
+              ${srcBadge(e.source)}
+              <span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${CAT_ICONS[e.cat]||''} ${_cleanDescBySource ? _cleanDescBySource(e) : (e.desc||e.cat)}</span>
+              ${e.nota ? '<span style="font-size:10px;color:var(--text-muted);font-style:italic;margin-left:4px;">📝</span>' : ''}
+            </div>
+            <span style="font-weight:700;color:var(--red);white-space:nowrap;margin-left:10px;">${fmt(e.amount)}</span>
+          </div>`).join('');
+      }
+      if(fisse.length) {
+        html += `<div style="font-size:10px;color:var(--text-muted);margin:8px 0 4px;text-transform:uppercase;letter-spacing:0.8px;">🏠 Spese fisse</div>`;
+        html += fisse.map(e => `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:rgba(255,180,0,0.06);border-radius:10px;margin-bottom:5px;opacity:0.8;">
+            <span style="font-size:12px;color:var(--text-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc||e.cat}</span>
+            <span style="font-size:12px;color:#ffb400;white-space:nowrap;margin-left:10px;">${fmt(e.amount)}</span>
+          </div>`).join('');
+      }
+      listEl.innerHTML = html;
+    }
+  }
+
+  // Footer totale + budget
+  if(footerEl) footerEl.style.display = visibili.length ? 'flex' : 'none';
+  if(totEl)    { totEl.textContent = fmt(totLibere); totEl.style.color = totLibere > 0 ? 'var(--red)' : 'var(--text-muted)'; }
+  if(budgLbl) {
+    const bgt = loadBudgetWeekly ? loadBudgetWeekly() : null;
+    if(bgt) {
+      // Spese settimanali totali fino ad oggi
+      const weekExps = getWeekDailySpending ? getWeekDailySpending() : null;
+      if(weekExps) {
+        const totSett = weekExps.dailyTot.reduce((s,v)=>s+v,0);
+        const rem = bgt - totSett;
+        budgLbl.textContent = 'Budget sett.: ' + fmt(bgt) + ' · ' + (rem>=0 ? '✅ Rimangono ' + fmt(rem) : '⚠️ Sforato di ' + fmt(Math.abs(rem)));
+        budgLbl.style.color = rem < 0 ? 'var(--red)' : rem < bgt*0.2 ? '#ffb400' : 'var(--text-muted)';
+      }
+    } else {
+      budgLbl.textContent = 'Spese di oggi';
+      budgLbl.style.color = 'var(--text-muted)';
+    }
+  }
+}
+
+// Apre il modal del giorno corrente per aggiungere una spesa
+function oggiAddSpesa() {
+  const oggi = new Date();
+  const ds   = localDateStr(oggi);
+  const GIORNI = ['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  const MESII  = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  openWeekDayModal(ds, GIORNI[oggi.getDay()] + ' ' + oggi.getDate() + ' ' + MESII[oggi.getMonth()] + ' ' + oggi.getFullYear());
 }
 
 function renderBudgetCard() {
@@ -20256,7 +20389,7 @@ document.addEventListener('click', function(e) {
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;" id="weekDetailSubtitle"></div>
           </div>
           <button onclick="printDetailModal('weekDetailModal')" title="Stampa" style="background:rgba(201,168,67,0.12);border:1px solid rgba(201,168,67,0.3);color:var(--gold);font-size:14px;cursor:pointer;border-radius:8px;padding:6px 12px;display:flex;align-items:center;gap:5px;white-space:nowrap;font-family:var(--font);font-size:12px;font-weight:600;">🖨️ Stampa</button>
-          <button onclick="document.getElementById('weekDetailModal').style.display='none'" style="background:var(--dark3);border:1px solid var(--border);color:var(--text-muted);font-size:20px;cursor:pointer;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">✕</button>
+          <button onclick="document.getElementById('weekDetailModal').style.display='none';if(typeof renderOggiBanner==='function'&&currentSection==='settimanale')setTimeout(renderOggiBanner,150);" style="background:var(--dark3);border:1px solid var(--border);color:var(--text-muted);font-size:20px;cursor:pointer;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;">✕</button>
         </div>
         <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid var(--border);" id="weekDetailStats"></div>
         <div style="flex:1;overflow-y:auto;padding:16px 22px;" id="weekDetailList"></div>
