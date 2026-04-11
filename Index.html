@@ -4621,6 +4621,10 @@ body.ios-device .btn-gold:hover {
               <div style="font-size:10px;color:#4ae87a;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">💵 Contanti</div>
               <div style="font-size:18px;font-weight:700;color:#4ae87a;" id="weekTotalManuale">€0,00</div>
             </div>
+            <div style="background:rgba(255,165,0,0.08);border:1.5px solid rgba(255,165,0,0.3);border-radius:12px;padding:8px 16px;text-align:center;" title="Buoni pasto questa settimana" id="weekTotalTicketsBadge">
+              <div style="font-size:10px;color:#ffa500;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">🎫 Ticket</div>
+              <div style="font-size:18px;font-weight:700;color:#ffa500;" id="weekTotalTickets">€0,00</div>
+            </div>
           </div>
         </div>
         <!-- BUDGET BAR -->
@@ -9244,7 +9248,7 @@ function renderWeek() {
   });
   // Calcola totali settimana: totale, libere, bonifici+rate, per fonte
   let weekTotal = 0, weekLibere = 0, weekBonifico = 0;
-  let weekSella = 0, weekSatispay = 0, weekRevolut = 0, weekManuale = 0;
+  let weekSella = 0, weekSatispay = 0, weekRevolut = 0, weekManuale = 0, weekTickets = 0;
   dates.forEach(d => {
     const ds = localDateStr(d);
     const ds2 = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
@@ -9253,12 +9257,13 @@ function renderWeek() {
       weekTotal += e.amount;
       if(e.pay === 'bonifico' || e.cat === 'rata') weekBonifico += e.amount;
       else weekLibere += e.amount;
-      // Per fonte
-      const src = e.source || (e.pay === 'tickets' ? 'tickets' : 'manuale');
-      if(src === 'sella' || e.pay === 'bancomat' && !e.source)    weekSella    += e.amount;
+      // Per fonte — tickets = buoni pasto, contati separatamente
+      const isTicket = e.pay === 'tickets' || e.source === 'tickets';
+      const src = e.source || 'manuale';
+      if(isTicket)                weekTickets  += e.amount;
+      else if(src === 'sella')    weekSella    += e.amount;
       else if(src === 'satispay') weekSatispay += e.amount;
       else if(src === 'revolut')  weekRevolut  += e.amount;
-      else if(src === 'tickets' || e.pay === 'tickets') {} // tickets: non contanti, ignora
       else                        weekManuale  += e.amount;
     });
   });
@@ -9270,6 +9275,7 @@ function renderWeek() {
   const revEl   = document.getElementById('weekTotalRevolut');
   const manEl   = document.getElementById('weekTotalManuale');
   const manBadge= document.getElementById('weekTotalManualeBadge');
+  const tickEl  = document.getElementById('weekTotalTickets');
   const fmtW = v => '€' + v.toFixed(2).replace('.',',');
   if(totalEl) totalEl.textContent = fmtW(weekTotal);
   if(libEl)   libEl.textContent   = fmtW(weekLibere);
@@ -9278,6 +9284,7 @@ function renderWeek() {
   if(satEl)   satEl.textContent   = fmtW(weekSatispay);
   if(revEl)   revEl.textContent   = fmtW(weekRevolut);
   if(manEl)   manEl.textContent   = fmtW(weekManuale);
+  if(tickEl)  tickEl.textContent  = fmtW(weekTickets);
   renderWeekBudgetBar(weekLibere); // budget bar basata su spese libere
   dates.forEach((d, i) => {
     const ds = localDateStr(d);
@@ -18782,13 +18789,14 @@ function renderOggiBanner() {
   if(fontiEl && visibili.length) {
     const bySrc = {};
     visibili.forEach(e => {
-      const s = e.source || 'manuale';
+      const s = (e.pay === 'tickets' || e.source === 'tickets') ? 'tickets' : (e.source || 'manuale');
       bySrc[s] = (bySrc[s] || 0) + (e.amount || 0);
     });
     const SRCS = [
       { key:'sella',    icon:'🏦', label:'Sella',    color:'rgba(74,144,232,0.2)',  tc:'#4a90e8' },
       { key:'satispay', icon:'📱', label:'Satispay', color:'rgba(255,92,92,0.2)',   tc:'#ff6b6b' },
       { key:'revolut',  icon:'💜', label:'Revolut',  color:'rgba(138,92,246,0.2)',  tc:'#a78bfa' },
+      { key:'tickets',  icon:'🎫', label:'Ticket',   color:'rgba(255,165,0,0.15)',  tc:'#ffa500' },
       { key:'manuale',  icon:'💵', label:'Contanti', color:'rgba(74,232,122,0.15)', tc:'#4ae87a' },
     ];
     fontiEl.innerHTML = SRCS.filter(s => bySrc[s.key] > 0).map(s =>
@@ -20265,7 +20273,9 @@ function weekDetailSaveExpense() {
   const d = new Date(ds + 'T12:00:00');
   const key = 'expenses_' + d.getFullYear() + '_' + (d.getMonth()+1);
   const exp = load(key, []);
-  const src = document.getElementById('wdSource') ? document.getElementById('wdSource').value : 'manuale';
+  const src = e.pay === 'tickets' ? 'tickets'
+    : document.getElementById('wdSource') ? document.getElementById('wdSource').value
+    : 'manuale';
   const newEntry = { id: Date.now(), cat, amount, desc, pay, date: ds, source: src };
   exp.push(newEntry);
   save(key, exp);
