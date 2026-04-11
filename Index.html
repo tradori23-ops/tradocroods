@@ -3577,7 +3577,7 @@ body.ios-device .btn-gold:hover {
         <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"><span class="btn-emoji">🌙</span><span class="btn-txt"> Notte</span></button>
         <button class="btn btn-green" onclick="lockScreen()"><span class="btn-emoji">🔒</span><span class="btn-txt"> Blocca</span></button>
         <button class="btn btn-outline" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sincronizza</span></button>
-        <button class="btn btn-outline" onclick="backupShowPanel()" title="Backup automatici" style="border-color:rgba(74,232,122,0.4);color:#4ae87a;"><span class="btn-emoji">💾</span><span class="btn-txt"> Backup</span></button>
+
         <button class="btn btn-danger" onclick="esci()"><span class="btn-emoji">🚪</span><span class="btn-txt"> Esci</span></button>
         <!-- Bottone ⋯ menu per le azioni extra (visibile solo su mobile) -->
         <button class="btn btn-outline topbar-more-btn" onclick="toggleTopbarMenu()" style="border-color:rgba(201,168,76,0.4);color:var(--gold);font-size:18px;padding:6px 12px;" title="Altre azioni">⋯</button>
@@ -3597,6 +3597,7 @@ body.ios-device .btn-gold:hover {
         <button onclick="handleInstallClick();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--gold);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">📲 Installa App</button>
         <button onclick="printPage();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">🖨️ Stampa</button>
         <button onclick="cambiaUtente();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">👤 Cambia Utente</button>
+
         <div style="height:1px;background:var(--border);margin:4px 0;"></div>
         <div style="font-size:10px;color:var(--text-muted);padding:4px 12px;letter-spacing:1px;font-weight:700;">RESET</div>
         <button onclick="resetMonth();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">♻️ Reset Mese</button>
@@ -6357,17 +6358,34 @@ function save(k, v) {
     localStorage.setItem(getKey(k), JSON.stringify(v));
   } catch(e) {
     if(e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-      console.warn('⚠️ localStorage pieno — pulizia dati vecchi...');
-      // Tenta di liberare spazio rimuovendo versioni vecchie
+      console.warn('⚠️ localStorage pieno — pulizia aggressiva...');
+      // 1. Rimuovi backup automatici (la causa principale)
+      localStorage.removeItem('tc_auto_backup');
+      // 2. Rimuovi dati anni vecchi
       const pfx = getKey('');
       for(let i = localStorage.length - 1; i >= 0; i--) {
         const key = localStorage.key(i);
-        if(key && key.startsWith(pfx) && key.includes('_2022_')) {
+        if(key && key.startsWith(pfx) && (key.includes('_2022_') || key.includes('_2021_'))) {
           localStorage.removeItem(key);
         }
       }
-      try { localStorage.setItem(getKey(k), JSON.stringify(v)); } catch(e2) {
-        showToast('⚠️ Spazio esaurito: impossibile salvare i dati. Libera spazio nel browser.');
+      // 3. Riprova a salvare
+      try {
+        localStorage.setItem(getKey(k), JSON.stringify(v));
+        console.log('✅ Salvato dopo pulizia');
+      } catch(e2) {
+        // 4. Pulizia estrema: rimuovi cache e dati non essenziali
+        for(let i = localStorage.length - 1; i >= 0; i--) {
+          const key = localStorage.key(i);
+          if(key && (key.includes('_cache') || key.includes('_photo_') || key.includes('_notes'))) {
+            localStorage.removeItem(key);
+          }
+        }
+        try {
+          localStorage.setItem(getKey(k), JSON.stringify(v));
+        } catch(e3) {
+          showToast('⚠️ Memoria piena! Apri Console e digita: localStorage.removeItem("tc_auto_backup")');
+        }
       }
     }
   }
@@ -6525,6 +6543,9 @@ async function gistPushToCloud() {
 async function gistSyncFromCloud(email, onDone) {
   if(!gistReady || !_gistToken || !_gistId) { if(onDone) onDone(); return; }
   updateCloudBadge('syncing');
+
+
+
   const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
                  (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
   const r = await gistApiFetch('GET', '/gists/' + _gistId, undefined, _isIOS ? 6000 : 12000);
@@ -6533,6 +6554,20 @@ async function gistSyncFromCloud(email, onDone) {
     if(df && df.content) {
       try {
         const b = JSON.parse(df.content);
+
+        // Confronta versioni: non sovrascrivere se i dati locali sono più recenti
+        const localVersion  = parseInt(localStorage.getItem('tc_' + email + '_version') || '0');
+        const cloudVersion  = parseInt(b['version'] || '0');
+
+        if(cloudVersion > 0 && localVersion > cloudVersion) {
+          // Dati locali più recenti — non sovrascrivere, fai un push invece
+          console.log('[Sync] Dati locali più recenti (local v' + localVersion + ' > cloud v' + cloudVersion + ') — skip pull, faccio push');
+          updateCloudBadge(true);
+          if(onDone) onDone();
+          setTimeout(() => gistPushToCloud(), 2000);
+          return;
+        }
+
         Object.entries(b).forEach(([k,v]) => {
           if(k==='__photo__') { try{localStorage.setItem('tc_photo_'+email,v);}catch(e){} return; }
           if(k==='gdriveToken'||k==='gdriveTokenExp') return;
@@ -6554,107 +6589,17 @@ async function gistSyncFromCloud(email, onDone) {
 
 // Compatibilità con codice esistente
 function fbSyncFromCloud(email, onDone) { gistSyncFromCloud(email, onDone); }
-// ═══════════════════════════════════════════════════════
-// BACKUP AUTOMATICO LOCALE — salva snapshot ogni ora
-// Mantiene gli ultimi 24 backup (24 ore)
-// ═══════════════════════════════════════════════════════
-
-const BACKUP_KEY     = 'tc_auto_backup';
-const BACKUP_MAX     = 24;   // massimo backup conservati
-const BACKUP_INTV_MS = 60 * 60 * 1000; // ogni ora
-
-function _backupGetAll() {
-  try { return JSON.parse(localStorage.getItem(BACKUP_KEY) || '[]'); } catch(e) { return []; }
-}
-
-function backupNow(label) {
-  try {
-    // Raccogli tutte le chiavi dell'utente corrente
-    const email = currentUser?.email || '';
-    if(!email) return;
-    const prefix = 'tc_' + email + '_';
-    const snap = {};
-    for(let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if(k && k.startsWith(prefix)) snap[k] = localStorage.getItem(k);
-    }
-    const backups = _backupGetAll();
-    backups.unshift({
-      ts:    Date.now(),
-      label: label || new Date().toLocaleString('it-IT'),
-      data:  snap,
-      keys:  Object.keys(snap).length
-    });
-    // Tieni solo gli ultimi BACKUP_MAX
-    if(backups.length > BACKUP_MAX) backups.splice(BACKUP_MAX);
-    localStorage.setItem(BACKUP_KEY, JSON.stringify(backups));
-    console.log('[Backup] Salvato:', backups[0].label, '(' + backups[0].keys + ' chiavi)');
-  } catch(e) { console.warn('[Backup] Errore:', e); }
-}
-
-function backupRestore(idx) {
-  const backups = _backupGetAll();
-  if(!backups[idx]) return false;
-  const snap = backups[idx].data;
-  try {
-    Object.keys(snap).forEach(k => localStorage.setItem(k, snap[k]));
-    refreshAll();
-    showToast('✅ Ripristinato backup del ' + backups[idx].label);
-    return true;
-  } catch(e) { showToast('❌ Errore ripristino: ' + e.message); return false; }
-}
-
-function backupShowPanel() {
-  const backups = _backupGetAll();
-  if(!backups.length) { showToast('Nessun backup disponibile'); return; }
-  const fmt = ts => new Date(ts).toLocaleString('it-IT', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-  const html = backups.map((b, i) =>
-    `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-radius:10px;margin-bottom:6px;">
-      <div>
-        <div style="font-size:13px;font-weight:600;">${fmt(b.ts)}</div>
-        <div style="font-size:11px;color:var(--text-muted);">${b.keys} chiavi salvate${b.label !== fmt(b.ts) ? ' · ' + b.label : ''}</div>
-      </div>
-      <button onclick="if(confirm('Ripristinare il backup del ${fmt(b.ts)}? I dati attuali verranno sovrascritti.')){backupRestore(${i});document.getElementById('backupPanel').style.display='none';}" 
-        style="background:rgba(74,144,232,0.15);border:1px solid rgba(74,144,232,0.4);color:#4a90e8;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">
-        ↩️ Ripristina
-      </button>
-    </div>`
-  ).join('');
-
-  // Modal pannello backup
-  let panel = document.getElementById('backupPanel');
-  if(!panel) {
-    panel = document.createElement('div');
-    panel.id = 'backupPanel';
-    panel.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
-    document.body.appendChild(panel);
-  }
-  panel.innerHTML = `<div style="background:var(--card);border-radius:20px;padding:24px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div style="font-size:16px;font-weight:700;">💾 Backup Automatici</div>
-      <button onclick="document.getElementById('backupPanel').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);">✕</button>
-    </div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Backup salvati ogni ora automaticamente. Clicca ↩️ Ripristina per tornare a una versione precedente.</div>
-    <button onclick="backupNow('Backup manuale');backupShowPanel();" style="width:100%;padding:10px;margin-bottom:12px;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">
-      💾 Salva backup adesso
-    </button>
-    ${html}
-  </div>`;
-  panel.style.display = 'flex';
-}
-
-// Avvia backup automatico ogni ora
+// Backup rimosso — causava QuotaExceededError riempiendo il localStorage
+function backupNow(label) {}
+function backupShowPanel() { showToast('💾 Backup: usa il Gist (☁️ Sincronizza) per la sincronizzazione cloud'); }
 function startAutoBackup() {
-  // Primo backup subito all'avvio (dopo 30s per dare tempo all'app di caricare)
-  setTimeout(() => backupNow('Avvio app'), 30000);
-  // Poi ogni ora
-  setInterval(() => backupNow(), BACKUP_INTV_MS);
+  // Pulizia vecchi backup che potrebbero aver riempito il localStorage
+  try { localStorage.removeItem('tc_auto_backup'); } catch(e) {}
 }
+function _backupGetAll() { return []; }
 
 function fbPushToCloud() {
   if(_fbImporting) return;
-  // Backup locale prima di ogni sync con il cloud
-  if(typeof backupNow === 'function') setTimeout(() => backupNow('Prima di sync cloud'), 0);
   clearTimeout(window._gistPushTimer);
   window._gistPushTimer = setTimeout(() => gistPushToCloud(), 1500);
 }
@@ -20319,7 +20264,8 @@ function weekDetailSaveExpense() {
   const d = new Date(ds + 'T12:00:00');
   const key = 'expenses_' + d.getFullYear() + '_' + (d.getMonth()+1);
   const exp = load(key, []);
-  const newEntry = { id: Date.now(), cat, amount, desc, pay, date: ds };
+  const src = document.getElementById('wdSource') ? document.getElementById('wdSource').value : 'manuale';
+  const newEntry = { id: Date.now(), cat, amount, desc, pay, date: ds, source: src };
   exp.push(newEntry);
   save(key, exp);
 
@@ -20345,6 +20291,7 @@ function weekDetailSaveExpense() {
     renderWeek();
     renderDashboard();
     vsRefreshIfActive();
+    if(typeof renderOggiBanner === 'function') renderOggiBanner();
   }, 700);
 }
 
