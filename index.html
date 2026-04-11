@@ -4602,6 +4602,23 @@ body.ios-device .btn-gold:hover {
               <div style="font-size:18px;font-weight:700;color:#ffb400;" id="weekTotalBonifico">€0,00</div>
               <div style="font-size:8px;color:rgba(255,180,0,0.4);margin-top:1px;">🔍 dettaglio</div>
             </div>
+            <!-- Badge fonti -->
+            <div style="background:rgba(74,144,232,0.08);border:1.5px solid rgba(74,144,232,0.25);border-radius:12px;padding:8px 16px;text-align:center;" title="Spese da Sella questa settimana">
+              <div style="font-size:10px;color:#4a90e8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">🏦 Sella</div>
+              <div style="font-size:18px;font-weight:700;color:#4a90e8;" id="weekTotalSella">€0,00</div>
+            </div>
+            <div style="background:rgba(255,107,107,0.08);border:1.5px solid rgba(255,107,107,0.25);border-radius:12px;padding:8px 16px;text-align:center;" title="Spese da Satispay questa settimana">
+              <div style="font-size:10px;color:#ff6b6b;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">📱 Satispay</div>
+              <div style="font-size:18px;font-weight:700;color:#ff6b6b;" id="weekTotalSatispay">€0,00</div>
+            </div>
+            <div style="background:rgba(167,139,250,0.08);border:1.5px solid rgba(167,139,250,0.25);border-radius:12px;padding:8px 16px;text-align:center;" title="Spese da Revolut questa settimana">
+              <div style="font-size:10px;color:#a78bfa;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">💜 Revolut</div>
+              <div style="font-size:18px;font-weight:700;color:#a78bfa;" id="weekTotalRevolut">€0,00</div>
+            </div>
+            <div style="background:rgba(74,232,122,0.06);border:1.5px solid rgba(74,232,122,0.2);border-radius:12px;padding:8px 16px;text-align:center;" title="Spese in contanti questa settimana" id="weekTotalManualeBadge">
+              <div style="font-size:10px;color:#4ae87a;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">💵 Contanti</div>
+              <div style="font-size:18px;font-weight:700;color:#4ae87a;" id="weekTotalManuale">€0,00</div>
+            </div>
           </div>
         </div>
         <!-- BUDGET BAR -->
@@ -9179,8 +9196,9 @@ function renderWeek() {
     exp = exp.concat(load('expenses_'+key, []));
     incW = incW.concat(load('income_'+key, []));
   });
-  // Calcola totali settimana: totale, libere, bonifici+rate
+  // Calcola totali settimana: totale, libere, bonifici+rate, per fonte
   let weekTotal = 0, weekLibere = 0, weekBonifico = 0;
+  let weekSella = 0, weekSatispay = 0, weekRevolut = 0, weekManuale = 0;
   dates.forEach(d => {
     const ds = localDateStr(d);
     const ds2 = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
@@ -9189,14 +9207,30 @@ function renderWeek() {
       weekTotal += e.amount;
       if(e.pay === 'bonifico' || e.cat === 'rata') weekBonifico += e.amount;
       else weekLibere += e.amount;
+      // Per fonte
+      const src = e.source || 'manuale';
+      if(src === 'sella')    weekSella    += e.amount;
+      else if(src === 'satispay') weekSatispay += e.amount;
+      else if(src === 'revolut')  weekRevolut  += e.amount;
+      else                        weekManuale  += e.amount;
     });
   });
   const totalEl = document.getElementById('weekTotalAmount');
   const libEl   = document.getElementById('weekTotalLibere');
   const bonEl   = document.getElementById('weekTotalBonifico');
-  if(totalEl) totalEl.textContent = '€' + weekTotal.toFixed(2).replace('.',',');
-  if(libEl)   libEl.textContent   = '€' + weekLibere.toFixed(2).replace('.',',');
-  if(bonEl)   bonEl.textContent   = '€' + weekBonifico.toFixed(2).replace('.',',');
+  const selEl   = document.getElementById('weekTotalSella');
+  const satEl   = document.getElementById('weekTotalSatispay');
+  const revEl   = document.getElementById('weekTotalRevolut');
+  const manEl   = document.getElementById('weekTotalManuale');
+  const manBadge= document.getElementById('weekTotalManualeBadge');
+  const fmtW = v => '€' + v.toFixed(2).replace('.',',');
+  if(totalEl) totalEl.textContent = fmtW(weekTotal);
+  if(libEl)   libEl.textContent   = fmtW(weekLibere);
+  if(bonEl)   bonEl.textContent   = fmtW(weekBonifico);
+  if(selEl)   selEl.textContent   = fmtW(weekSella);
+  if(satEl)   satEl.textContent   = fmtW(weekSatispay);
+  if(revEl)   revEl.textContent   = fmtW(weekRevolut);
+  if(manEl)   manEl.textContent   = fmtW(weekManuale);
   renderWeekBudgetBar(weekLibere); // budget bar basata su spese libere
   dates.forEach((d, i) => {
     const ds = localDateStr(d);
@@ -18624,9 +18658,18 @@ function renderOggiBanner() {
   const lbl = document.getElementById('oggi-data-label');
   if(lbl) lbl.textContent = GIORNI[oggi.getDay()] + ' ' + oggi.getDate() + ' ' + MESII[oggi.getMonth()] + ' ' + oggi.getFullYear();
 
-  // Carica spese di oggi
+  // Carica spese di oggi — confronto robusto su più formati data
   const key  = 'expenses_' + oggi.getFullYear() + '_' + (oggi.getMonth()+1);
-  const exps = (load(key, []) || []).filter(e => e.date === ds || e.date === ds2);
+  const oggiStr = oggi.toDateString(); // es. "Sat Apr 11 2026"
+  const exps = (load(key, []) || []).filter(e => {
+    const d = e.date || '';
+    if(d === ds || d === ds2) return true;
+    // Confronto tramite oggetto Date come fallback
+    try {
+      const norm = d.includes('/') ? d.split('/').reverse().join('-') : d;
+      return new Date(norm + 'T12:00:00').toDateString() === oggiStr;
+    } catch(err) { return false; }
+  });
 
   const listEl   = document.getElementById('oggi-spese-list');
   const footerEl = document.getElementById('oggi-footer');
