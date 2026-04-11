@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260409-v119';
+  var BUILD = '20260411-v120';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -9261,8 +9261,11 @@ function renderWeek() {
     const ds2 = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
     const dayExp = exp.filter(e => e.date===ds || e.date===ds2);
     dayExp.forEach(e => {
+      const isBonRate = e.pay === 'bonifico' || e.cat === 'rata';
+      const isFissa   = !isBonRate && vsIsExcluded(e); // affitto, pagamenti a persona, medici, utenze…
+      if(isFissa) return; // escludi dal totale settimanale (appaiono solo nel modal del giorno)
       weekTotal += e.amount;
-      if(e.pay === 'bonifico' || e.cat === 'rata') weekBonifico += e.amount;
+      if(isBonRate) weekBonifico += e.amount;
       else weekLibere += e.amount;
       // Per fonte — tickets = buoni pasto, contati separatamente
       const isTicket = e.pay === 'tickets' || e.source === 'tickets';
@@ -9298,7 +9301,10 @@ function renderWeek() {
     const ds2 = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
     const dayExp = exp.filter(e => e.date===ds || e.date===ds2);
     const dayInc = incW.filter(i => i.date===ds || i.date===ds2);
-    const dayTotal = dayExp.reduce((s,e)=>s+e.amount,0);
+    const dayTotal = dayExp.filter(e => {
+      const isBonRate = e.pay === 'bonifico' || e.cat === 'rata';
+      return isBonRate || !vsIsExcluded(e); // fisse/giroconti escluse dal totale card
+    }).reduce((s,e)=>s+e.amount,0);
     const isToday = d.toDateString()===new Date().toDateString();
     const isSelected = selectedWeekDay === ds;
     const weekNotes = load('weekNotes',{});
@@ -9311,8 +9317,9 @@ function renderWeek() {
           <span style="color:var(--green);font-size:11px;font-weight:700;">+€${i.amount.toFixed(2).replace('.',',')}</span>
         </div>`).join('')}
         ${dayExp.length?(() => {
-          const libere   = dayExp.filter(e => e.pay !== 'bonifico' && e.cat !== 'rata');
           const bonifici = dayExp.filter(e => e.pay === 'bonifico' || e.cat === 'rata');
+          const fisse    = dayExp.filter(e => { const b = e.pay==='bonifico'||e.cat==='rata'; return !b && vsIsExcluded(e); });
+          const libere   = dayExp.filter(e => { const b = e.pay==='bonifico'||e.cat==='rata'; return !b && !vsIsExcluded(e); });
           const mkRow = e => {
             const srcBadge = e.source==='satispay' ? '<span style="background:rgba(255,92,92,0.2);color:#ff6b6b;border-radius:4px;padding:1px 4px;font-size:8px;font-weight:700;margin-right:2px;">📱</span>'
               : e.source==='sella' ? '<span style="background:rgba(74,144,232,0.2);color:#4a90e8;border-radius:4px;padding:1px 4px;font-size:8px;font-weight:700;margin-right:2px;">🏦</span>'
@@ -9329,11 +9336,17 @@ function renderWeek() {
             </div>`;
           };
           let html = libere.map(mkRow).join('');
+          if(fisse.length) {
+            html += `<div style="border-top:1px dashed rgba(150,150,150,0.2);margin:3px 0 2px;padding-top:2px;">`;
+            html += `<div style="font-size:8px;color:var(--text-muted);font-weight:700;letter-spacing:0.5px;margin-bottom:2px;">🏠 FISSE/ESCLUSE</div>`;
+            html += fisse.map(e => { const sb = e.source==='sella'?'<span style="background:rgba(74,144,232,0.2);color:#4a90e8;border-radius:4px;padding:1px 4px;font-size:8px;font-weight:700;margin-right:2px;">🏦</span>':e.source==='revolut'?'<span style="background:rgba(138,92,246,0.2);color:#a78bfa;border-radius:4px;padding:1px 4px;font-size:8px;font-weight:700;margin-right:2px;">💜</span>':e.source==='satispay'?'<span style="background:rgba(255,92,92,0.2);color:#ff6b6b;border-radius:4px;padding:1px 4px;font-size:8px;font-weight:700;margin-right:2px;">📱</span>':''; return `<div class="day-item" style="opacity:0.4;"><span>${sb}${catIconHtml(e.cat)} ${(e.desc==='—'?e.cat:e.desc).substring(0,13)}</span><span style="font-size:11px;color:var(--text-muted);">€${e.amount.toFixed(2).replace('.',',')}</span></div>`; }).join('');
+            html += `</div>`;
+          }
           if(bonifici.length) {
-            html += `<div style="border-top:1px dashed rgba(255,180,0,0.3);margin:3px 0 2px;padding-top:2px;">
-              <div style="font-size:8px;color:#ffb400;font-weight:700;letter-spacing:0.5px;margin-bottom:2px;">🏦 BONIFICI/RATE</div>
-              ${bonifici.map(mkRow).join('')}
-            </div>`;
+            html += `<div style="border-top:1px dashed rgba(255,180,0,0.3);margin:3px 0 2px;padding-top:2px;">`;
+            html += `<div style="font-size:8px;color:#ffb400;font-weight:700;letter-spacing:0.5px;margin-bottom:2px;">🏦 BONIFICI/RATE</div>`;
+            html += `${bonifici.map(mkRow).join('')}`;
+            html += `</div>`;
           }
           return html;
         })(): dayInc.length?'':'<div style="font-size:11px;color:var(--text-muted);padding:4px;">—</div>'}
