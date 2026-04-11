@@ -4605,25 +4605,30 @@ body.ios-device .btn-gold:hover {
               <div style="font-size:8px;color:rgba(255,180,0,0.4);margin-top:1px;">🔍 dettaglio</div>
             </div>
             <!-- Badge fonti -->
-            <div style="background:rgba(74,144,232,0.08);border:1.5px solid rgba(74,144,232,0.25);border-radius:12px;padding:8px 16px;text-align:center;" title="Spese da Sella questa settimana">
+            <div onclick="openWeekSummaryModal('sella')" style="background:rgba(74,144,232,0.08);border:1.5px solid rgba(74,144,232,0.25);border-radius:12px;padding:8px 16px;text-align:center;cursor:pointer;" title="Clicca per dettaglio Sella">
               <div style="font-size:10px;color:#4a90e8;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">🏦 Sella</div>
               <div style="font-size:18px;font-weight:700;color:#4a90e8;" id="weekTotalSella">€0,00</div>
+              <div style="font-size:8px;color:rgba(74,144,232,0.5);margin-top:1px;">🔍 dettaglio</div>
             </div>
-            <div style="background:rgba(255,107,107,0.08);border:1.5px solid rgba(255,107,107,0.25);border-radius:12px;padding:8px 16px;text-align:center;" title="Spese da Satispay questa settimana">
+            <div onclick="openWeekSummaryModal('satispay')" style="background:rgba(255,107,107,0.08);border:1.5px solid rgba(255,107,107,0.25);border-radius:12px;padding:8px 16px;text-align:center;cursor:pointer;" title="Clicca per dettaglio Satispay">
               <div style="font-size:10px;color:#ff6b6b;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">📱 Satispay</div>
               <div style="font-size:18px;font-weight:700;color:#ff6b6b;" id="weekTotalSatispay">€0,00</div>
+              <div style="font-size:8px;color:rgba(255,107,107,0.5);margin-top:1px;">🔍 dettaglio</div>
             </div>
-            <div style="background:rgba(167,139,250,0.08);border:1.5px solid rgba(167,139,250,0.25);border-radius:12px;padding:8px 16px;text-align:center;" title="Spese da Revolut questa settimana">
+            <div onclick="openWeekSummaryModal('revolut')" style="background:rgba(167,139,250,0.08);border:1.5px solid rgba(167,139,250,0.25);border-radius:12px;padding:8px 16px;text-align:center;cursor:pointer;" title="Clicca per dettaglio Revolut">
               <div style="font-size:10px;color:#a78bfa;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">💜 Revolut</div>
               <div style="font-size:18px;font-weight:700;color:#a78bfa;" id="weekTotalRevolut">€0,00</div>
+              <div style="font-size:8px;color:rgba(167,139,250,0.5);margin-top:1px;">🔍 dettaglio</div>
             </div>
-            <div style="background:rgba(74,232,122,0.06);border:1.5px solid rgba(74,232,122,0.2);border-radius:12px;padding:8px 16px;text-align:center;" title="Spese in contanti questa settimana" id="weekTotalManualeBadge">
+            <div onclick="openWeekSummaryModal('contanti')" style="background:rgba(74,232,122,0.06);border:1.5px solid rgba(74,232,122,0.2);border-radius:12px;padding:8px 16px;text-align:center;cursor:pointer;" title="Clicca per dettaglio Contanti" id="weekTotalManualeBadge">
               <div style="font-size:10px;color:#4ae87a;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">💵 Contanti</div>
               <div style="font-size:18px;font-weight:700;color:#4ae87a;" id="weekTotalManuale">€0,00</div>
+              <div style="font-size:8px;color:rgba(74,232,122,0.4);margin-top:1px;">🔍 dettaglio</div>
             </div>
-            <div style="background:rgba(255,165,0,0.08);border:1.5px solid rgba(255,165,0,0.3);border-radius:12px;padding:8px 16px;text-align:center;" title="Buoni pasto questa settimana" id="weekTotalTicketsBadge">
+            <div onclick="openWeekSummaryModal('tickets')" style="background:rgba(255,165,0,0.08);border:1.5px solid rgba(255,165,0,0.3);border-radius:12px;padding:8px 16px;text-align:center;cursor:pointer;" title="Clicca per dettaglio Ticket" id="weekTotalTicketsBadge">
               <div style="font-size:10px;color:#ffa500;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;">🎫 Ticket</div>
               <div style="font-size:18px;font-weight:700;color:#ffa500;" id="weekTotalTickets">€0,00</div>
+              <div style="font-size:8px;color:rgba(255,165,0,0.4);margin-top:1px;">🔍 dettaglio</div>
             </div>
           </div>
         </div>
@@ -20273,7 +20278,9 @@ function weekDetailSaveExpense() {
   const d = new Date(ds + 'T12:00:00');
   const key = 'expenses_' + d.getFullYear() + '_' + (d.getMonth()+1);
   const exp = load(key, []);
-  const src = document.getElementById('wdSource') ? document.getElementById('wdSource').value : 'manuale';
+  const src = e.pay === 'tickets' ? 'tickets'
+    : document.getElementById('wdSource') ? document.getElementById('wdSource').value
+    : 'manuale';
   const newEntry = { id: Date.now(), cat, amount, desc, pay, date: ds, source: src };
   exp.push(newEntry);
   save(key, exp);
@@ -20329,12 +20336,29 @@ function openWeekSummaryModal(filter) {
     let color = 'var(--gold)';
     if(filter === 'libere') {
       filtered = allExp.filter(e => e.pay!=='bonifico' && e.cat!=='rata');
-      titleStr = '🟢 Spese Libere';
-      color = '#4ae87a';
+      titleStr = '🟢 Spese Libere'; color = '#4ae87a';
     } else if(filter === 'bonifici') {
       filtered = allExp.filter(e => e.pay==='bonifico' || e.cat==='rata');
-      titleStr = '🏦 Bonifici & Rate';
-      color = '#ffb400';
+      titleStr = '🏦 Bonifici & Rate'; color = '#ffb400';
+    } else if(filter === 'sella') {
+      filtered = allExp.filter(e => e.source==='sella');
+      titleStr = '🏦 Sella'; color = '#4a90e8';
+    } else if(filter === 'satispay') {
+      filtered = allExp.filter(e => e.source==='satispay' || e.pay==='satispay');
+      titleStr = '📱 Satispay'; color = '#ff6b6b';
+    } else if(filter === 'revolut') {
+      filtered = allExp.filter(e => e.source==='revolut');
+      titleStr = '💜 Revolut'; color = '#a78bfa';
+    } else if(filter === 'tickets') {
+      filtered = allExp.filter(e => e.pay==='tickets' || e.source==='tickets');
+      titleStr = '🎫 Ticket (Buoni Pasto)'; color = '#ffa500';
+    } else if(filter === 'contanti') {
+      filtered = allExp.filter(e => {
+        const isTicket = e.pay==='tickets' || e.source==='tickets';
+        const src = e.source || 'manuale';
+        return !isTicket && src!=='sella' && src!=='satispay' && src!=='revolut' && e.pay!=='bonifico' && e.cat!=='rata';
+      });
+      titleStr = '💵 Contanti'; color = '#4ae87a';
     }
 
     document.getElementById('weekDetailTitle').textContent = titleStr;
@@ -20373,7 +20397,23 @@ function openWeekSummaryModal(filter) {
           <span style="font-size:12px;font-weight:700;color:var(--gold);">${DAYS_IT[d.getDay()===0?6:d.getDay()-1]} ${d.getDate()} ${MESI[d.getMonth()]}</span>
           <span style="font-size:13px;font-weight:700;color:${color};">${fmt(dayTot)}</span>
         </div>
-        ${_weekExpRows(dayExp, fmt)}
+        ${dayExp.map(e => {
+        const badge = e.source==='satispay'?'<span style="background:rgba(255,92,92,0.2);color:#ff6b6b;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">📱</span>'
+          :e.source==='sella'?'<span style="background:rgba(74,144,232,0.2);color:#4a90e8;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">🏦</span>'
+          :e.source==='revolut'?'<span style="background:rgba(138,92,246,0.2);color:#a78bfa;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">💜</span>'
+          :e.pay==='tickets'||e.source==='tickets'?'<span style="background:rgba(255,165,0,0.2);color:#ffa500;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">🎫</span>'
+          :'<span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;">💵</span>';
+        return `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface);border-radius:10px;margin-bottom:5px;">
+          <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+            ${badge}
+            <span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${CAT_ICONS[e.cat]||''} ${e.desc==='—'?e.cat:e.desc}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+            <span style="font-weight:700;color:var(--red);">${fmt(e.amount)}</span>
+            <button onclick="weekSummaryDeleteExp('${e.id}','${e.date}','${filter}')" style="background:none;border:none;cursor:pointer;font-size:16px;opacity:0.5;padding:2px 6px;" title="Elimina">🗑️</button>
+          </div>
+        </div>`;
+      }).join('')}
       </div>`;
     });
 
@@ -20383,6 +20423,22 @@ function openWeekSummaryModal(filter) {
   }
 }
 
+
+// Elimina spesa dal modal riepilogo e ricarica
+function weekSummaryDeleteExp(expId, expDate, currentFilter) {
+  if(!confirm('Eliminare questa spesa?')) return;
+  const d = new Date(expDate + 'T12:00:00');
+  const key = 'expenses_' + d.getFullYear() + '_' + (d.getMonth()+1);
+  let exps = load(key, []) || [];
+  exps = exps.filter(e => String(e.id) !== String(expId));
+  save(key, exps);
+  bumpVersion();
+  fbPushToCloud();
+  renderWeek();
+  renderDashboard();
+  // Riapri il modal con lo stesso filtro
+  openWeekSummaryModal(currentFilter);
+}
 
 // ── STAMPA DETTAGLIO MODALE ──
 function printDetailModal(modalId) {
