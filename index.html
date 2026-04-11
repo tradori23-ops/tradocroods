@@ -3577,7 +3577,7 @@ body.ios-device .btn-gold:hover {
         <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"><span class="btn-emoji">🌙</span><span class="btn-txt"> Notte</span></button>
         <button class="btn btn-green" onclick="lockScreen()"><span class="btn-emoji">🔒</span><span class="btn-txt"> Blocca</span></button>
         <button class="btn btn-outline" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sincronizza</span></button>
-        <button class="btn btn-outline" onclick="backupShowPanel()" title="Backup automatici" style="border-color:rgba(74,232,122,0.4);color:#4ae87a;"><span class="btn-emoji">💾</span><span class="btn-txt"> Backup</span></button>
+
         <button class="btn btn-danger" onclick="esci()"><span class="btn-emoji">🚪</span><span class="btn-txt"> Esci</span></button>
         <!-- Bottone ⋯ menu per le azioni extra (visibile solo su mobile) -->
         <button class="btn btn-outline topbar-more-btn" onclick="toggleTopbarMenu()" style="border-color:rgba(201,168,76,0.4);color:var(--gold);font-size:18px;padding:6px 12px;" title="Altre azioni">⋯</button>
@@ -3597,7 +3597,7 @@ body.ios-device .btn-gold:hover {
         <button onclick="handleInstallClick();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--gold);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">📲 Installa App</button>
         <button onclick="printPage();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">🖨️ Stampa</button>
         <button onclick="cambiaUtente();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">👤 Cambia Utente</button>
-        <button onclick="backupShowPanel();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:#4ae87a;font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">💾 Backup & Ripristino</button>
+
         <div style="height:1px;background:var(--border);margin:4px 0;"></div>
         <div style="font-size:10px;color:var(--text-muted);padding:4px 12px;letter-spacing:1px;font-weight:700;">RESET</div>
         <button onclick="resetMonth();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">♻️ Reset Mese</button>
@@ -6527,12 +6527,7 @@ async function gistSyncFromCloud(email, onDone) {
   if(!gistReady || !_gistToken || !_gistId) { if(onDone) onDone(); return; }
   updateCloudBadge('syncing');
 
-  // Salva backup solo se l'ultimo è più vecchio di 2 ore
-  if(typeof backupNow === 'function') {
-    const bks = _backupGetAll();
-    const lastTs = bks.length ? bks[0].ts : 0;
-    if(Date.now() - lastTs > 2 * 60 * 60 * 1000) backupNow('Prima di sync dal cloud');
-  }
+
 
   const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
                  (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
@@ -6577,113 +6572,14 @@ async function gistSyncFromCloud(email, onDone) {
 
 // Compatibilità con codice esistente
 function fbSyncFromCloud(email, onDone) { gistSyncFromCloud(email, onDone); }
-// ═══════════════════════════════════════════════════════
-// BACKUP AUTOMATICO LOCALE — salva snapshot ogni ora
-// Mantiene gli ultimi 24 backup (24 ore)
-// ═══════════════════════════════════════════════════════
-
-const BACKUP_KEY     = 'tc_auto_backup';
-const BACKUP_MAX     = 3;    // solo 3 backup (meno spazio)
-const BACKUP_INTV_MS = 4 * 60 * 60 * 1000; // ogni 4 ore (non ogni ora)
-
-function _backupGetAll() {
-  try { return JSON.parse(localStorage.getItem(BACKUP_KEY) || '[]'); } catch(e) { return []; }
-}
-
-function backupNow(label) {
-  try {
-    const email = currentUser?.email || '';
-    if(!email) return;
-    const prefix = 'tc_' + email + '_';
-    // Salva SOLO spese e entrate (non foto, token, config)
-    const snap = {};
-    for(let i = 0; i < localStorage.length; i++) {
-      const k = localStorage.key(i);
-      if(!k || !k.startsWith(prefix)) continue;
-      const kk = k.replace(prefix, '');
-      if(/^(expenses_|income_|fixedItems|version)/.test(kk)) {
-        snap[k] = localStorage.getItem(k);
-      }
-    }
-    const backups = _backupGetAll();
-    backups.unshift({
-      ts:    Date.now(),
-      label: label || new Date().toLocaleString('it-IT'),
-      data:  snap,
-      keys:  Object.keys(snap).length
-    });
-    if(backups.length > BACKUP_MAX) backups.splice(BACKUP_MAX);
-    localStorage.setItem(BACKUP_KEY, JSON.stringify(backups));
-    console.log('[Backup] Salvato:', backups[0].label, '(' + backups[0].keys + ' chiavi)');
-  } catch(e) { console.warn('[Backup] Errore:', e.message); }
-}
-
-function backupRestore(idx) {
-  const backups = _backupGetAll();
-  if(!backups[idx]) return false;
-  const snap = backups[idx].data;
-  try {
-    Object.keys(snap).forEach(k => localStorage.setItem(k, snap[k]));
-    refreshAll();
-    showToast('✅ Ripristinato backup del ' + backups[idx].label);
-    return true;
-  } catch(e) { showToast('❌ Errore ripristino: ' + e.message); return false; }
-}
-
-function backupShowPanel() {
-  const backups = _backupGetAll();
-  if(!backups.length) { showToast('Nessun backup disponibile'); return; }
-  const fmt = ts => new Date(ts).toLocaleString('it-IT', {day:'2-digit',month:'2-digit',year:'2-digit',hour:'2-digit',minute:'2-digit'});
-  const html = backups.map((b, i) =>
-    `<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--surface);border-radius:10px;margin-bottom:6px;">
-      <div>
-        <div style="font-size:13px;font-weight:600;">${fmt(b.ts)}</div>
-        <div style="font-size:11px;color:var(--text-muted);">${b.keys} chiavi salvate${b.label !== fmt(b.ts) ? ' · ' + b.label : ''}</div>
-      </div>
-      <button onclick="if(confirm('Ripristinare il backup del ${fmt(b.ts)}? I dati attuali verranno sovrascritti.')){backupRestore(${i});document.getElementById('backupPanel').style.display='none';}" 
-        style="background:rgba(74,144,232,0.15);border:1px solid rgba(74,144,232,0.4);color:#4a90e8;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">
-        ↩️ Ripristina
-      </button>
-    </div>`
-  ).join('');
-
-  // Modal pannello backup
-  let panel = document.getElementById('backupPanel');
-  if(!panel) {
-    panel = document.createElement('div');
-    panel.id = 'backupPanel';
-    panel.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.8);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;';
-    document.body.appendChild(panel);
-  }
-  panel.innerHTML = `<div style="background:var(--card);border-radius:20px;padding:24px;max-width:500px;width:100%;max-height:80vh;overflow-y:auto;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-      <div style="font-size:16px;font-weight:700;">💾 Backup Automatici</div>
-      <button onclick="document.getElementById('backupPanel').style.display='none'" style="background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);">✕</button>
-    </div>
-    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Backup salvati ogni ora automaticamente. Clicca ↩️ Ripristina per tornare a una versione precedente.</div>
-    <button onclick="backupNow('Backup manuale');backupShowPanel();" style="width:100%;padding:10px;margin-bottom:12px;background:var(--gold-dim);border:1px solid var(--gold);color:var(--gold);border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font);">
-      💾 Salva backup adesso
-    </button>
-    ${html}
-  </div>`;
-  panel.style.display = 'flex';
-}
-
-// Avvia backup automatico
+// Backup rimosso — causava QuotaExceededError riempiendo il localStorage
+function backupNow(label) {}
+function backupShowPanel() { showToast('💾 Backup: usa il Gist (☁️ Sincronizza) per la sincronizzazione cloud'); }
 function startAutoBackup() {
-  // Pulisci backup vecchi/enormi all'avvio
-  try {
-    const bks = _backupGetAll();
-    if(bks.length > BACKUP_MAX) {
-      localStorage.setItem(BACKUP_KEY, JSON.stringify(bks.slice(0, BACKUP_MAX)));
-    }
-  } catch(e) {
-    // Se localStorage è pieno, cancella tutti i backup
-    try { localStorage.removeItem(BACKUP_KEY); } catch(e2) {}
-  }
-  // Backup ogni 4 ore
-  setInterval(() => backupNow(), BACKUP_INTV_MS);
+  // Pulizia vecchi backup che potrebbero aver riempito il localStorage
+  try { localStorage.removeItem('tc_auto_backup'); } catch(e) {}
 }
+function _backupGetAll() { return []; }
 
 function fbPushToCloud() {
   if(_fbImporting) return;
