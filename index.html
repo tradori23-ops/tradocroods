@@ -4166,6 +4166,64 @@ body.ios-device .btn-gold:hover {
 
     <!-- ===== AGGIUNGI SPESA ===== -->
     <div id="sec-aggiungiSpesa" class="section">
+
+      <!-- ══════════════════════════════════════════════
+           BUDGET SETTIMANALE INTELLIGENTE
+      ══════════════════════════════════════════════ -->
+      <div class="card mb-20" style="border:2px solid rgba(201,168,76,0.4);background:rgba(201,168,76,0.04);">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div>
+            <div class="card-title" style="margin-bottom:2px;">🎯 Budget Settimanale</div>
+            <div style="font-size:12px;color:var(--text-muted);">Imposta un limite e controlla dove vai</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="font-size:12px;color:var(--text-muted);">Budget €</div>
+            <input type="number" id="budgetWeeklyInput" min="0" step="10" placeholder="130"
+              style="width:90px;padding:8px 10px;border-radius:10px;border:1.5px solid var(--gold);background:var(--surface);color:var(--text);font-size:15px;font-weight:700;font-family:var(--font);text-align:center;"
+              oninput="saveBudgetWeekly(this.value);renderBudgetCard();">
+            <span style="font-size:12px;color:var(--text-muted);">/sett.</span>
+          </div>
+        </div>
+
+        <!-- Totale usato questa settimana -->
+        <div id="budget-progress-header" style="display:none;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;">
+            <span style="font-size:13px;font-weight:600;" id="budget-used-label">Usato questa settimana</span>
+            <span style="font-size:20px;font-weight:900;font-family:'Playfair Display',serif;" id="budget-used-val">€0,00</span>
+          </div>
+          <div style="background:rgba(255,255,255,0.08);border-radius:20px;height:10px;overflow:hidden;">
+            <div id="budget-main-bar" style="height:100%;border-radius:20px;transition:width 0.4s;background:var(--gold);width:0%;"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;margin-top:4px;font-size:11px;color:var(--text-muted);">
+            <span id="budget-remaining-label">—</span>
+            <span id="budget-total-label">—</span>
+          </div>
+        </div>
+
+        <!-- Categorie -->
+        <div id="budget-cats-grid" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;"></div>
+
+        <!-- Grafico andamento budget settimana corrente -->
+        <div id="budget-chart-wrap" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:12px;font-weight:700;color:var(--gold);">📈 Andamento questa settimana</div>
+            <div style="display:flex;gap:6px;">
+              <button id="budget-chart-btn-bar" onclick="setBudgetChartType('bar')" style="font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--gold);background:var(--gold-dim);color:var(--gold);cursor:pointer;font-family:var(--font);font-weight:600;">Per giorno</button>
+              <button id="budget-chart-btn-line" onclick="setBudgetChartType('line')" style="font-size:11px;padding:4px 10px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">Cumulativo</button>
+            </div>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-bottom:10px;" id="budget-chart-subtitle"></div>
+          <div style="position:relative;height:200px;">
+            <canvas id="budgetTrendChart"></canvas>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:10px;" id="budget-chart-legend"></div>
+        </div>
+
+        <div id="budget-empty-msg" style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">
+          Imposta il tuo budget settimanale qui sopra per iniziare 👆
+        </div>
+      </div>
+
       <!-- EXCEL IMPORT CARD -->
       <div class="card mb-20" style="border:2px dashed var(--gold);background:rgba(201,168,76,0.05);">
         <div class="card-title">📊 Importa da Excel</div>
@@ -7902,7 +7960,7 @@ function showSection(id, el) {
   if(id==='settimanale') renderWeek();
   if(id==='vistaSpese') { initVSYearSelects(); renderVSAll(); }
   if(id==='promemoria') { renderReminderList(); checkNotifPermission(); updateReminderBadge(); }
-  if(id==='aggiungiSpesa') initBudgetUI();
+  if(id==='aggiungiSpesa') { setTimeout(renderBudgetCard, 50); }
   if(id==='documenti') { renderAllDocLists(); initDocDragDrop(); }
   if(id==='entrate') updateRimanenza();
   if(id==='librietto') { setTimeout(() => renderLibrietto(), 50); }
@@ -18247,6 +18305,307 @@ function autoAggiornaSaldoCC(saldoInfo, bank) {
   renderDashSaldoBanca();
   if(document.getElementById('sec-contocorrente')?.classList.contains('active')) renderCC();
   showToast(`💳 Saldo CC aggiornato da ${bankName}: ${fmt(saldoInfo.amount)} al ${new Date(saldoInfo.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'})}`);
+}
+
+// ═══════════════════════════════════════════════
+// BUDGET SETTIMANALE INTELLIGENTE
+// ═══════════════════════════════════════════════
+
+const BUDGET_CATS = [
+  { key: 'bar',          label: '☕ Bar & caffè',        icon: '☕', pct: 12, color: '#d4a853' },
+  { key: 'supermercato', label: '🛒 Spesa supermercato',  icon: '🛒', pct: 30, color: '#4ae87a' },
+  { key: 'ristorante',   label: '🍽️ Ristorante',          icon: '🍽️', pct: 20, color: '#ff8c5a' },
+  { key: 'trasporti',    label: '🚗 Trasporti',           icon: '🚗', pct: 15, color: '#4a90e8' },
+  { key: 'viaggi',       label: '✈️ Viaggi',              icon: '✈️', pct: 15, color: '#a78bfa' },
+  { key: 'altro',        label: '📦 Altro',               icon: '📦', pct: 8,  color: '#888' },
+];
+
+// Parole chiave per classificare le spese per categoria
+const BUDGET_KEYWORDS = {
+  bar:          /bar|caff[eè]|cappuccino|cornett|espresso|brioche|meridiana|tasso|tabacch/i,
+  supermercato: /coop|esselunga|carrefour|lidl|eurospin|supermercato|pam|penny|conad|iper|spesa|nova coop/i,
+  ristorante:   /ristorante|pizzeria|trattoria|osteria|kebab|sushi|mcdonald|burger|pizza|poke|buonristoro|glovo|deliveroo|just eat/i,
+  trasporti:    /gtt|trenitalia|atm|taxi|uber|parking|parcheggio|benzinaio|eni|ip |q8|total|autostradale|telepass/i,
+  viaggi:       /ryanair|easyjet|airbnb|booking|hotel|albergo|resort|crociera|costa crociere|trainline|blablacar/i,
+};
+
+function saveBudgetWeekly(val) {
+  const v = parseFloat(val);
+  if(!isNaN(v) && v > 0) save('budget_weekly', { amount: v });
+  else localStorage.removeItem(getKey('budget_weekly'));
+}
+
+function loadBudgetWeekly() {
+  const s = load('budget_weekly', null);
+  return s ? s.amount : null;
+}
+
+function getBudgetCatKey(e) {
+  const d = (e.desc || '') + ' ' + (e.cat || '');
+  for(const [key, re] of Object.entries(BUDGET_KEYWORDS)) {
+    if(re.test(d)) return key;
+  }
+  return 'altro';
+}
+
+function getWeekSpendingByCat() {
+  // Prendi le spese della settimana corrente (lun-dom)
+  const today = new Date();
+  const dow = today.getDay() === 0 ? 6 : today.getDay() - 1; // lun=0
+  const startW = new Date(today); startW.setDate(today.getDate() - dow); startW.setHours(0,0,0,0);
+  const endW   = new Date(startW); endW.setDate(startW.getDate() + 6); endW.setHours(23,59,59,999);
+
+  const byCat = {};
+  BUDGET_CATS.forEach(c => { byCat[c.key] = 0; });
+
+  const months = new Set();
+  let d = new Date(startW);
+  while(d <= endW) { months.add(d.getFullYear() + '_' + (d.getMonth()+1)); d.setDate(d.getDate()+1); }
+
+  months.forEach(mk => {
+    const exps = load('expenses_' + mk, []) || [];
+    exps.forEach(e => {
+      const ed = new Date((e.date||'').replace(/(\d{2})\/(\d{2})\/(\d{4})/, '$3-$2-$1') + 'T12:00:00');
+      if(isNaN(ed) || ed < startW || ed > endW) return;
+      // Escludi spese fisse e bonifici
+      if(e.pay === 'bonifico' || e.cat === 'rata') return;
+      const catKey = getBudgetCatKey(e);
+      byCat[catKey] = (byCat[catKey] || 0) + (e.amount || 0);
+    });
+  });
+
+  return byCat;
+}
+
+let _budgetChartType = 'bar';
+let _budgetChartInst  = null;
+
+function setBudgetChartType(t) {
+  _budgetChartType = t;
+  const btnBar  = document.getElementById('budget-chart-btn-bar');
+  const btnLine = document.getElementById('budget-chart-btn-line');
+  if(btnBar)  { btnBar.style.background  = t==='bar'  ? 'var(--gold-dim)' : 'transparent'; btnBar.style.color  = t==='bar'  ? 'var(--gold)' : 'var(--text-muted)'; btnBar.style.borderColor  = t==='bar'  ? 'var(--gold)' : 'var(--border)'; }
+  if(btnLine) { btnLine.style.background = t==='line' ? 'var(--gold-dim)' : 'transparent'; btnLine.style.color = t==='line' ? 'var(--gold)' : 'var(--text-muted)'; btnLine.style.borderColor = t==='line' ? 'var(--gold)' : 'var(--border)'; }
+  renderBudgetTrendChart();
+}
+
+// Ritorna le spese giorno per giorno della settimana corrente
+function getWeekDailySpending() {
+  const today = new Date();
+  const dow = today.getDay() === 0 ? 6 : today.getDay() - 1; // lun=0
+  const startW = new Date(today);
+  startW.setDate(today.getDate() - dow);
+  startW.setHours(0,0,0,0);
+
+  const DAYS = ['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  const days = Array.from({length: 7}, (_, i) => {
+    const d = new Date(startW);
+    d.setDate(startW.getDate() + i);
+    return d;
+  });
+
+  // Per ogni giorno: totale speso e breakdown per categoria
+  const dailyTot  = Array(7).fill(0);
+  const dailyCats = Array.from({length:7}, () => { const o={}; BUDGET_CATS.forEach(c=>o[c.key]=0); return o; });
+
+  const months = new Set(days.map(d => d.getFullYear()+'_'+(d.getMonth()+1)));
+  months.forEach(mk => {
+    const exps = load('expenses_'+mk,[]) || [];
+    exps.forEach(e => {
+      const raw = (e.date||'').replace(/(\d{2})\/(\d{2})\/(\d{4})/,'$3-$2-$1');
+      const ed  = new Date(raw+'T12:00:00');
+      if(isNaN(ed)) return;
+      const idx = days.findIndex(d => d.toDateString() === ed.toDateString());
+      if(idx === -1) return;
+      if(e.pay==='bonifico'||e.cat==='rata') return;
+      const k = getBudgetCatKey(e);
+      dailyTot[idx]     += (e.amount||0);
+      dailyCats[idx][k] += (e.amount||0);
+    });
+  });
+
+  return { days, DAYS, dailyTot, dailyCats, todayIdx: dow, startW };
+}
+
+function renderBudgetTrendChart() {
+  const canvas = document.getElementById('budgetTrendChart');
+  if(!canvas || typeof Chart === 'undefined') return;
+  const budget = loadBudgetWeekly();
+  if(!budget) return;
+
+  const { days, DAYS, dailyTot, dailyCats, todayIdx } = getWeekDailySpending();
+  const budgetPerDay = budget / 7;
+
+  // Label giorni con evidenza oggi
+  const labels = DAYS.map((d, i) => i === todayIdx ? d + ' ◀' : d);
+
+  // Subtitle: oggi hai speso X su Y budget giornaliero
+  const subEl = document.getElementById('budget-chart-subtitle');
+  const todaySpent = dailyTot[todayIdx] || 0;
+  if(subEl) {
+    const fmt = v => '€' + v.toFixed(2).replace('.',',');
+    const rimanente = budget - dailyTot.reduce((s,v)=>s+v,0);
+    subEl.textContent = `Oggi: ${fmt(todaySpent)} · Budget/giorno: ${fmt(budgetPerDay)} · Rimane: ${fmt(Math.max(0,rimanente))} questa settimana`;
+    subEl.style.color = rimanente < 0 ? 'var(--red)' : rimanente < budget*0.2 ? '#ffb400' : 'var(--text-muted)';
+  }
+
+  if(_budgetChartInst) { _budgetChartInst.destroy(); _budgetChartInst = null; }
+
+  if(_budgetChartType === 'bar') {
+    // Barre impilate per categoria, giorno per giorno
+    const datasets = BUDGET_CATS.map(cat => ({
+      label: cat.label,
+      data: dailyCats.map(dc => Math.round((dc[cat.key]||0)*100)/100),
+      backgroundColor: cat.color + 'cc',
+      borderColor: cat.color,
+      borderWidth: 1,
+      borderRadius: 4,
+    }));
+
+    // Linea budget giornaliero
+    datasets.push({
+      label: '🎯 Budget/giorno',
+      data: Array(7).fill(Math.round(budgetPerDay*100)/100),
+      type: 'line',
+      borderColor: 'rgba(201,168,76,0.9)',
+      borderWidth: 2,
+      borderDash: [5,4],
+      pointRadius: 0,
+      fill: false,
+      order: -1,
+    });
+
+    _budgetChartInst = new Chart(canvas, {
+      type: 'bar',
+      data: { labels, datasets },
+      options: {
+        animation: false, responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': €' + (ctx.parsed.y||0).toFixed(2).replace('.',',') } }
+        },
+        scales: {
+          x: { stacked: true, grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'rgba(255,255,255,0.55)',font:{size:11}} },
+          y: { stacked: true, grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'rgba(255,255,255,0.55)',font:{size:11},callback:v=>'€'+v} }
+        }
+      }
+    });
+  } else {
+    // Linea cumulativa: quanto ho speso in totale man mano che passano i giorni
+    let cum = 0;
+    const cumData = dailyTot.map((v,i) => {
+      cum += v;
+      return i <= todayIdx ? Math.round(cum*100)/100 : null;
+    });
+
+    // Proiezione fino a domenica (linea tratteggiata)
+    const avgPerDay = todayIdx > 0 ? cum / (todayIdx+1) : cum;
+    const projData  = dailyTot.map((_, i) => {
+      if(i < todayIdx) return null;
+      if(i === todayIdx) return Math.round(cum*100)/100;
+      return Math.round((cum + avgPerDay*(i-todayIdx))*100)/100;
+    });
+
+    // Linea budget totale
+    const budgetLine = Array(7).fill(Math.round(budget*100)/100);
+
+    _budgetChartInst = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [
+          { label:'💸 Speso',     data:cumData,   borderColor:'#4a90e8', backgroundColor:'rgba(74,144,232,0.12)', fill:true, tension:0.3, borderWidth:2.5, pointRadius:4, pointBackgroundColor:'#4a90e8', spanGaps:false },
+          { label:'📍 Proiezione',data:projData,  borderColor:'#ff8c5a', borderDash:[5,4], fill:false, tension:0.3, borderWidth:2, pointRadius:3, pointBackgroundColor:'#ff8c5a', spanGaps:false },
+          { label:'🎯 Budget',    data:budgetLine,borderColor:'rgba(201,168,76,0.8)', borderDash:[6,3], fill:false, borderWidth:2, pointRadius:0 },
+        ]
+      },
+      options: {
+        animation:false, responsive:true, maintainAspectRatio:false,
+        plugins: {
+          legend:{display:false},
+          tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': €'+(ctx.parsed.y||0).toFixed(2).replace('.',',')}}
+        },
+        scales: {
+          x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'rgba(255,255,255,0.55)',font:{size:11}}},
+          y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'rgba(255,255,255,0.55)',font:{size:11},callback:v=>'€'+v}}
+        }
+      }
+    });
+  }
+
+  // Legenda
+  const legEl = document.getElementById('budget-chart-legend');
+  if(legEl) {
+    const items = _budgetChartType === 'bar'
+      ? BUDGET_CATS.map(c => `<span style="font-size:11px;display:flex;align-items:center;gap:4px;color:var(--text-muted);"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${c.color};"></span>${c.label}</span>`)
+      : ['<span style="font-size:11px;color:#4a90e8;">━ Speso</span>','<span style="font-size:11px;color:#ff8c5a;">╌ Proiezione</span>','<span style="font-size:11px;color:var(--gold);">╌ Budget €'+budget+'</span>'];
+    legEl.innerHTML = items.join('');
+  }
+}
+
+function renderBudgetCard() {
+  const budget = loadBudgetWeekly();
+  const input  = document.getElementById('budgetWeeklyInput');
+  if(input && budget) input.value = budget;
+
+  const emptyMsg = document.getElementById('budget-empty-msg');
+  const header   = document.getElementById('budget-progress-header');
+  const grid     = document.getElementById('budget-cats-grid');
+
+  if(!budget) {
+    if(emptyMsg) emptyMsg.style.display = 'block';
+    if(header)   header.style.display   = 'none';
+    if(grid)     { grid.style.display   = 'none'; grid.innerHTML = ''; }
+    return;
+  }
+
+  if(emptyMsg) emptyMsg.style.display = 'none';
+  if(header)   header.style.display   = 'block';
+  if(grid)     grid.style.display     = 'grid';
+  const chartWrap = document.getElementById('budget-chart-wrap');
+  if(chartWrap) chartWrap.style.display = 'block';
+
+  const byCat  = getWeekSpendingByCat();
+  const totUsed = Object.values(byCat).reduce((s,v) => s+v, 0);
+  const pctUsed = Math.min(100, Math.round(totUsed / budget * 100));
+  const remaining = budget - totUsed;
+  const fmtE = v => '€' + Math.abs(v).toFixed(2).replace('.', ',');
+
+  // Header
+  const usedVal = document.getElementById('budget-used-val');
+  const mainBar = document.getElementById('budget-main-bar');
+  const remLbl  = document.getElementById('budget-remaining-label');
+  const totLbl  = document.getElementById('budget-total-label');
+
+  if(usedVal) { usedVal.textContent = fmtE(totUsed); usedVal.style.color = pctUsed > 90 ? 'var(--red)' : pctUsed > 70 ? '#ffb400' : '#4ae87a'; }
+  if(mainBar) { mainBar.style.width = pctUsed + '%'; mainBar.style.background = pctUsed > 90 ? 'var(--red)' : pctUsed > 70 ? '#ffb400' : 'var(--gold)'; }
+  if(remLbl)  { remLbl.textContent = remaining >= 0 ? '✅ Rimangono ' + fmtE(remaining) : '⚠️ Sforato di ' + fmtE(Math.abs(remaining)); remLbl.style.color = remaining >= 0 ? '#4ae87a' : 'var(--red)'; }
+  if(totLbl)  totLbl.textContent = 'Budget: ' + fmtE(budget);
+
+  // Categorie
+  if(!grid) return;
+  // Render grafico trend
+  setTimeout(renderBudgetTrendChart, 50);
+  grid.innerHTML = BUDGET_CATS.map(cat => {
+    const spent    = byCat[cat.key] || 0;
+    const alloc    = Math.round(budget * cat.pct / 100);
+    const pct      = Math.min(100, Math.round(spent / alloc * 100));
+    const over     = spent > alloc;
+    const barColor = pct > 90 ? 'var(--red)' : pct > 70 ? '#ffb400' : cat.color;
+    return `<div style="background:var(--surface);border-radius:12px;padding:12px 14px;border:1px solid ${over ? 'rgba(224,92,92,0.4)' : 'var(--border)'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span style="font-size:13px;font-weight:600;">${cat.label}</span>
+        <span style="font-size:11px;color:var(--text-muted);">${fmtE(alloc)}</span>
+      </div>
+      <div style="background:rgba(255,255,255,0.07);border-radius:20px;height:7px;margin-bottom:5px;overflow:hidden;">
+        <div style="height:100%;border-radius:20px;background:${barColor};width:${pct}%;transition:width 0.4s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;">
+        <span style="color:${over ? 'var(--red)' : 'var(--text-muted)'};">${over ? '⚠️ ' : ''}${fmtE(spent)} usati</span>
+        <span style="color:${over ? 'var(--red)' : '#4ae87a'};">${over ? '-' + fmtE(spent-alloc) : '+' + fmtE(alloc-spent)}</span>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 function ccOpenSetSaldo() {
