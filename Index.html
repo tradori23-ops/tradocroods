@@ -9254,10 +9254,11 @@ function renderWeek() {
       if(e.pay === 'bonifico' || e.cat === 'rata') weekBonifico += e.amount;
       else weekLibere += e.amount;
       // Per fonte
-      const src = e.source || 'manuale';
-      if(src === 'sella')    weekSella    += e.amount;
+      const src = e.source || (e.pay === 'tickets' ? 'tickets' : 'manuale');
+      if(src === 'sella' || e.pay === 'bancomat' && !e.source)    weekSella    += e.amount;
       else if(src === 'satispay') weekSatispay += e.amount;
       else if(src === 'revolut')  weekRevolut  += e.amount;
+      else if(src === 'tickets' || e.pay === 'tickets') {} // tickets: non contanti, ignora
       else                        weekManuale  += e.amount;
     });
   });
