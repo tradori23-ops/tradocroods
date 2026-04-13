@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260411-v120';
+  var BUILD = '20260413-v121';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -4770,7 +4770,14 @@ body.ios-device .btn-gold:hover {
       <!-- TAB: BUDGET SETTIMANALE -->
       <div id="gtab-content-budget" style="display:none;">
         <div class="card mb-20">
-          <div class="card-title">🎯 Budget vs Spese — Settimane del mese</div>
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <span>🎯 Budget vs Spese — Settimane del mese</span>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button class="calendar-nav" onclick="budgetNavMonth(-1)" title="Mese precedente">◀</button>
+              <span id="budgetMonthLabel" style="font-size:13px;font-weight:700;color:var(--gold);min-width:110px;text-align:center;">—</span>
+              <button class="calendar-nav" onclick="budgetNavMonth(1)" title="Mese successivo">▶</button>
+            </div>
+          </div>
 
           <!-- Messaggio no budget -->
           <div id="budgetNoBudget" style="text-align:center;padding:40px 20px;color:var(--text-muted);font-size:14px;display:none;">
@@ -11384,11 +11391,16 @@ function getWeekTotal(dates) {
   monthsToLoad.forEach(key => { exp = exp.concat(load('expenses_' + key, [])); });
   return exp.filter(e => {
     const dateStr = localDateStr ? localDateStr(new Date(e.date + 'T12:00:00')) : e.date;
-    return dates.some(d => {
+    const inDay = dates.some(d => {
       const ds = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
       const ds2 = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
       return e.date === ds || e.date === ds2;
     });
+    if(!inDay) return false;
+    // Escludi fisse/giroconti — coerente con renderWeek()
+    const isBonRate = e.pay === 'bonifico' || e.cat === 'rata';
+    if(!isBonRate && typeof vsIsExcluded === 'function' && vsIsExcluded(e)) return false;
+    return true;
   }).reduce((s, e) => s + e.amount, 0);
 }
 
@@ -11428,10 +11440,31 @@ function renderWeekBudgetBar(weekTotal) {
     </div>`;
 }
 
+// Navigazione mese nel tab Budget
+function budgetNavMonth(dir) {
+  const moEl = document.getElementById('globalMonth');
+  const yrEl = document.getElementById('globalYear');
+  let mo = parseInt(moEl.value) + dir;
+  let yr = parseInt(yrEl.value);
+  if(mo < 1) { mo = 12; yr--; }
+  if(mo > 12) { mo = 1; yr++; }
+  moEl.value = mo;
+  yrEl.value = yr;
+  renderBudgetChart();
+}
+
 // Grafico Budget vs Spese per tutte le settimane del mese
 function renderBudgetChart() {
   const noB = document.getElementById('budgetNoBudget');
   const wrap = document.getElementById('budgetChartWrap');
+
+  // Aggiorna label mese/anno nella navigazione
+  const _bml = document.getElementById('budgetMonthLabel');
+  if(_bml) {
+    const _byr = parseInt(document.getElementById('globalYear').value);
+    const _bmo = parseInt(document.getElementById('globalMonth').value) - 1;
+    _bml.textContent = MESI[_bmo] + ' ' + _byr;
+  }
 
   const weeks = getMonthWeeks();
   // Verifica che almeno una settimana abbia un budget
