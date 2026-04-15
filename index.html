@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260415-v124';
+  var BUILD = '20260415-v125';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3984,16 +3984,8 @@ function sendRegistrationEmails(userName, userEmail) {
               <input type="number" id="salvSaved" step="0.01" min="0" value="0" placeholder="0,00" oninput="calcSalvPreview()">
             </div>
           </div>
-          <!-- Preview calcolato -->
-          <div id="salvPreview" style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;display:none;">
-            <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);font-weight:700;margin-bottom:10px;">📊 Piano di risparmio</div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <div><span style="color:var(--text-muted);">Settimane totali:</span><br><strong id="salvPrevWeeks">—</strong></div>
-              <div><span style="color:var(--text-muted);">Rate rimaste:</span><br><strong id="salvPrevRateLeft">—</strong></div>
-              <div><span style="color:var(--text-muted);">Da risparmiare:</span><br><strong id="salvPrevMissing">—</strong></div>
-              <div><span style="color:var(--text-muted);">Versamento/settimana:</span><br><strong id="salvPrevWeekly" style="color:var(--gold);font-size:16px;">—</strong></div>
-            </div>
-          </div>
+          <!-- Preview calcolato — contenuto generato dinamicamente da calcSalvPreview() -->
+          <div id="salvPreview" style="border-radius:12px;margin-bottom:16px;font-size:13px;display:none;"></div>
           <div style="display:flex;gap:10px;">
             <button class="btn btn-outline" onclick="closeSalvModal()" style="flex:1;">Annulla</button>
             <button class="btn btn-gold" onclick="saveSalvItem()" style="flex:2;">💾 Salva Obiettivo</button>
@@ -12172,8 +12164,9 @@ function closeSalvModal() {
 }
 
 function calcSalvPreview() {
-  const target  = parseFloat(document.getElementById('salvTarget').value) || 0;
-  const saved   = parseFloat(document.getElementById('salvSaved').value)  || 0;
+  const _pNum = v => parseFloat((v||'').toString().replace(/\./g,'').replace(',','.')) || 0;
+  const target  = _pNum(document.getElementById('salvTarget').value);
+  const saved   = _pNum(document.getElementById('salvSaved').value);
   const startV  = document.getElementById('salvStart').value;
   const endV    = document.getElementById('salvEnd').value;
   const day     = parseInt(document.getElementById('salvDay').value) || 1;
@@ -12197,44 +12190,67 @@ function calcSalvPreview() {
     ? p.nextPay.toLocaleDateString('it-IT',{day:'numeric',month:'long'})
     : '—';
 
+  const pctPrev   = Math.min((saved / target) * 100, 100);
+  const barColPrev = pctPrev >= 100 ? '#4ae87a' : pctPrev > 60 ? '#c9a84c' : '#4ab8e8';
+
   prev.style.display = 'block';
+  prev.style.background = 'rgba(201,168,76,0.06)';
+  prev.style.border = '1px solid rgba(201,168,76,0.22)';
+  prev.style.padding = '14px';
   prev.innerHTML = `
-    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);font-weight:700;margin-bottom:12px;">📊 Piano di risparmio</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);font-weight:700;margin-bottom:10px;">📊 Piano di risparmio</div>
+
+    <!-- Barra progresso già risparmiato -->
+    <div style="margin-bottom:12px;">
+      <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:5px;">
+        <span style="color:var(--text-muted);">Già risparmiato: <strong style="color:${barColPrev};">${fmt(saved)}</strong></span>
+        <span style="color:var(--text-muted);">Obiettivo: <strong>${fmt(target)}</strong></span>
+      </div>
+      <div style="background:rgba(255,255,255,0.07);border-radius:6px;height:8px;overflow:hidden;">
+        <div style="width:${pctPrev}%;height:100%;background:${barColPrev};border-radius:6px;transition:width 0.4s;"></div>
+      </div>
+      <div style="text-align:center;font-size:10px;color:var(--text-muted);margin-top:3px;">Mancano ancora <strong style="color:var(--text);">${fmt(p.missing)}</strong></div>
+    </div>
+
+    <!-- KPI rata / settimanale -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
       <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;text-align:center;">
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Rata mensile</div>
-        <div style="font-size:20px;font-weight:800;color:#4ab8e8;">${fmt(p.rataMs)}</div>
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;">Rata mensile</div>
+        <div style="font-size:18px;font-weight:800;color:#4ab8e8;">${fmt(p.rataMs)}</div>
         <div style="font-size:10px;color:var(--text-muted);">${p.rateRimaste} mesi rimasti</div>
       </div>
-      <div style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:10px;text-align:center;">
-        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Versamento/settimana</div>
-        <div style="font-size:20px;font-weight:800;color:var(--gold);">${fmt(p.weekly)}</div>
+      <div style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:10px;color:var(--text-muted);margin-bottom:3px;">Metti/settimana</div>
+        <div style="font-size:18px;font-weight:800;color:var(--gold);">${fmt(p.weekly)}</div>
         <div style="font-size:10px;color:var(--text-muted);">${fmt(p.rataMs)} ÷ ${p.weeksToNext} sett.</div>
       </div>
     </div>
-    <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:12px;">
+
+    <!-- Piano d'azione -->
+    <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:10px;">
       <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:8px;">📅 Piano d'azione — fino al ${nextStr} (gg ${day})</div>
       ${pianoHtml}
-      <div style="display:flex;justify-content:space-between;padding:6px 0;margin-top:4px;">
-        <span style="font-weight:700;color:var(--text);">Totale al ${nextStr}:</span>
-        <span style="font-weight:800;color:#4ae87a;">${fmt(p.rataMs)} ✅ Pronti per la rata!</span>
+      <div style="display:flex;justify-content:space-between;padding:6px 0;margin-top:4px;border-top:1px solid rgba(255,255,255,0.06);">
+        <span style="font-weight:700;font-size:12px;">Totale al ${nextStr}:</span>
+        <span style="font-weight:800;color:#4ae87a;font-size:12px;">${fmt(p.rataMs)} ✅ Pronti!</span>
       </div>
     </div>
+
     ${p.weeklyRound !== p.weekly ? `<div style="background:rgba(74,232,122,0.06);border:1px solid rgba(74,232,122,0.2);border-radius:10px;padding:10px 12px;">
-      <div style="font-size:11px;font-weight:700;color:#4ae87a;margin-bottom:6px;">💡 Arrotonda per eccesso</div>
-      <div style="font-size:12px;color:var(--text-muted);">Metti <strong style="color:#4ae87a;">${fmt(p.weeklyRound)}</strong>/sett. invece di ${fmt(p.weekly)}
-      → in ${p.weeksToNext} settimane avrai <strong>${fmt(p.weeklyRound * p.weeksToNext)}</strong></div>
-      ${p.tesoretto > 0.01 ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Dopo ${p.rateRimaste} mesi accumuli un tesoretto extra di ~<strong style="color:#4ae87a;">${fmt(p.tesoretto)}</strong> 🎉</div>` : ''}
+      <div style="font-size:11px;font-weight:700;color:#4ae87a;margin-bottom:5px;">💡 Arrotonda per eccesso</div>
+      <div style="font-size:12px;color:var(--text-muted);">Metti <strong style="color:#4ae87a;">${fmt(p.weeklyRound)}</strong>/sett. → in ${p.weeksToNext} sett. avrai <strong>${fmt(p.weeklyRound * p.weeksToNext)}</strong>
+      ${p.tesoretto > 0.01 ? `<br><span style="font-size:11px;">Dopo ${p.rateRimaste} mesi: tesoretto ~<strong style="color:#4ae87a;">${fmt(p.tesoretto)}</strong> 🎉</span>` : ''}</div>
     </div>` : ''}`;
 }
 
 function saveSalvItem() {
   const name   = document.getElementById('salvName').value.trim();
-  const target = parseFloat(document.getElementById('salvTarget').value);
+  const _pNum2 = v => parseFloat((v||'').toString().replace(/\./g,'').replace(',','.')) || 0;
+  const target = _pNum2(document.getElementById('salvTarget').value);
   const start  = document.getElementById('salvStart').value;
   const end    = document.getElementById('salvEnd').value;
   const day    = parseInt(document.getElementById('salvDay').value) || 1;
-  const saved  = parseFloat(document.getElementById('salvSaved').value) || 0;
+  const saved  = _pNum2(document.getElementById('salvSaved').value);
   if(!name)   { showToast('⚠️ Inserisci un nome'); return; }
   if(!target || target <= 0) { showToast('⚠️ Inserisci un obiettivo valido'); return; }
   if(!start || !end || end <= start) { showToast('⚠️ Date non valide'); return; }
