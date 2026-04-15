@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260413-v121';
+  var BUILD = '20260415-v123';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3290,6 +3290,49 @@ body.ios-device .btn-gold:hover {
 }
 
 </style>
+<!-- EmailJS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────
+//  EMAILJS CONFIG — compila questi 4 valori dopo aver creato
+//  il tuo account su https://www.emailjs.com
+// ─────────────────────────────────────────────────────────────
+const EMAILJS_PUBLIC_KEY   = 'INSERISCI_QUI_LA_TUA_PUBLIC_KEY';   // Account → API Keys
+const EMAILJS_SERVICE_ID   = 'INSERISCI_QUI_IL_SERVICE_ID';        // Email Services → Service ID
+const EMAILJS_TMPL_ADMIN   = 'INSERISCI_QUI_IL_TEMPLATE_ADMIN';    // template notifica a te
+const EMAILJS_ADMIN_EMAIL  = 'sergio.tradori@outlook.it';           // tua mail (destinatario notifica)
+const EMAILJS_TMPL_USER    = 'INSERISCI_QUI_IL_TEMPLATE_UTENTE';   // template benvenuto al nuovo utente
+// ─────────────────────────────────────────────────────────────
+
+(function(){
+  if(typeof emailjs !== 'undefined') emailjs.init({ publicKey: EMAILJS_PUBLIC_KEY });
+})();
+
+function sendRegistrationEmails(userName, userEmail) {
+  if(typeof emailjs === 'undefined') return;
+  if(!EMAILJS_PUBLIC_KEY || EMAILJS_PUBLIC_KEY.startsWith('INSERISCI')) return;
+
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('it-IT', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  const timeStr = now.toLocaleTimeString('it-IT', { hour:'2-digit', minute:'2-digit' });
+
+  // Mail all'admin (sergio)
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TMPL_ADMIN, {
+    admin_email : EMAILJS_ADMIN_EMAIL,
+    user_name   : userName,
+    user_email  : userEmail,
+    reg_date    : dateStr,
+    reg_time    : timeStr,
+  }).catch(e => console.warn('[EmailJS admin]', e));
+
+  // Mail di benvenuto al nuovo utente
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TMPL_USER, {
+    to_email    : userEmail,
+    to_name     : userName,
+    reg_date    : dateStr,
+  }).catch(e => console.warn('[EmailJS user]', e));
+}
+</script>
 </head>
 <body>
 <!-- Animazione conferma globale -->
@@ -3895,6 +3938,68 @@ body.ios-device .btn-gold:hover {
       </div>
 
     </div>
+
+
+      <!-- ===== SALVADANAIO ===== -->
+      <div class="card mt-20" id="salvadanaiCard">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:18px;">
+          <div class="card-title" style="margin:0;">🐷 Salvadanaio</div>
+          <button class="btn btn-gold" onclick="openAddSalvModal()" style="font-size:13px;padding:8px 16px;">➕ Nuovo Obiettivo</button>
+        </div>
+        <div id="salvadanaiList" style="display:flex;flex-direction:column;gap:14px;"></div>
+        <div id="salvadanaiEmpty" style="text-align:center;padding:32px;color:var(--text-muted);font-size:14px;display:none;">
+          <div style="font-size:42px;margin-bottom:10px;">🐷</div>
+          <div>Nessun obiettivo di risparmio.<br>Clicca <strong>➕ Nuovo Obiettivo</strong> per iniziare.</div>
+        </div>
+      </div>
+
+      <!-- MODAL AGGIUNTA/MODIFICA SALVADANAIO -->
+      <div id="salvModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:4000;background:rgba(0,0,0,0.75);backdrop-filter:blur(5px);align-items:center;justify-content:center;padding:20px;">
+        <div class="modal" style="width:480px;max-width:100%;">
+          <h3 id="salvModalTitle">🐷 Nuovo Salvadanaio</h3>
+          <input type="hidden" id="salvEditId">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+            <div class="fld" style="grid-column:1/-1;">
+              <label>Nome Obiettivo</label>
+              <input type="text" id="salvName" placeholder="es. Vacanze estive, Laptop nuovo…">
+            </div>
+            <div class="fld" style="grid-column:1/-1;">
+              <label>Cifra Obiettivo (€)</label>
+              <input type="number" id="salvTarget" step="0.01" min="1" placeholder="es. 1500,00" oninput="calcSalvPreview()">
+            </div>
+            <div class="fld">
+              <label>Data Inizio</label>
+              <input type="date" id="salvStart" oninput="calcSalvPreview()">
+            </div>
+            <div class="fld">
+              <label>Data Fine</label>
+              <input type="date" id="salvEnd" oninput="calcSalvPreview()">
+            </div>
+            <div class="fld">
+              <label>Giorno del mese (versamento)</label>
+              <input type="number" id="salvDay" min="1" max="31" placeholder="es. 27" oninput="calcSalvPreview()">
+            </div>
+            <div class="fld">
+              <label>Già risparmiato (€)</label>
+              <input type="number" id="salvSaved" step="0.01" min="0" value="0" placeholder="0,00" oninput="calcSalvPreview()">
+            </div>
+          </div>
+          <!-- Preview calcolato -->
+          <div id="salvPreview" style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:12px;padding:14px;margin-bottom:16px;font-size:13px;display:none;">
+            <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);font-weight:700;margin-bottom:10px;">📊 Piano di risparmio</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div><span style="color:var(--text-muted);">Settimane totali:</span><br><strong id="salvPrevWeeks">—</strong></div>
+              <div><span style="color:var(--text-muted);">Rate rimaste:</span><br><strong id="salvPrevRateLeft">—</strong></div>
+              <div><span style="color:var(--text-muted);">Da risparmiare:</span><br><strong id="salvPrevMissing">—</strong></div>
+              <div><span style="color:var(--text-muted);">Versamento/settimana:</span><br><strong id="salvPrevWeekly" style="color:var(--gold);font-size:16px;">—</strong></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-outline" onclick="closeSalvModal()" style="flex:1;">Annulla</button>
+            <button class="btn btn-gold" onclick="saveSalvItem()" style="flex:2;">💾 Salva Obiettivo</button>
+          </div>
+        </div>
+      </div>
 
     <!-- ===== ENTRATE ===== -->
     <div id="sec-entrate" class="section">
@@ -7194,6 +7299,7 @@ function _completeRegistration(name, email, pass) {
   if(users.find(u=>u.email===email)) { showMsg('Email già registrata.','error'); return; }
   users.push({ name, email, pass });
   saveUsers(users);
+  sendRegistrationEmails(name, email);
   showMsg('Profilo creato! Scegli il profilo e accedi.','success');
   renderProfilesGrid();
   backToProfiles();
@@ -8023,6 +8129,7 @@ function refreshAll() {
   renderCalendar();
   renderGraphButtons();
   renderRate();
+  renderSalvadanai();
   initBudgetUI();
   updateDocBadges();
 
@@ -8080,6 +8187,7 @@ function showSection(id, el) {
     ai:'✨ AI Assistente'
   };
   document.getElementById('pageTitle').textContent = titles[id]||id;
+  if(id==='speseFisse') { renderSalvadanai(); }
   if(id==='grafici') {
     // Aggiorna preview budget
     const bprev = document.getElementById('grafici-budget-preview');
@@ -11961,6 +12069,236 @@ function migrateRateIfNeeded() {
   }
   localStorage.removeItem(globalKey);
 }
+
+// ══════════════════════════════════════════════════════
+//  SALVADANAIO — Obiettivi di risparmio
+// ══════════════════════════════════════════════════════
+
+function getSalvItems() { return load('salvadanai', []); }
+function saveSalvItems(arr) { save('salvadanai', arr); }
+
+function openAddSalvModal() {
+  document.getElementById('salvEditId').value = '';
+  document.getElementById('salvModalTitle').textContent = '🐷 Nuovo Salvadanaio';
+  document.getElementById('salvName').value = '';
+  document.getElementById('salvTarget').value = '';
+  document.getElementById('salvDay').value = '';
+  document.getElementById('salvSaved').value = '0';
+  // Default: oggi → +1 anno
+  const today = new Date();
+  const end = new Date(today); end.setFullYear(end.getFullYear() + 1);
+  document.getElementById('salvStart').value = today.toISOString().slice(0,10);
+  document.getElementById('salvEnd').value = end.toISOString().slice(0,10);
+  document.getElementById('salvPreview').style.display = 'none';
+  const m = document.getElementById('salvModal');
+  m.style.display = 'flex';
+  calcSalvPreview();
+}
+
+function openEditSalvModal(id) {
+  const items = getSalvItems();
+  const item = items.find(x => x.id === id);
+  if(!item) return;
+  document.getElementById('salvEditId').value = id;
+  document.getElementById('salvModalTitle').textContent = '✏️ Modifica Salvadanaio';
+  document.getElementById('salvName').value = item.name;
+  document.getElementById('salvTarget').value = item.target;
+  document.getElementById('salvStart').value = item.start;
+  document.getElementById('salvEnd').value = item.end;
+  document.getElementById('salvDay').value = item.day || '';
+  document.getElementById('salvSaved').value = item.saved || 0;
+  const m = document.getElementById('salvModal');
+  m.style.display = 'flex';
+  calcSalvPreview();
+}
+
+function closeSalvModal() {
+  document.getElementById('salvModal').style.display = 'none';
+}
+
+function calcSalvPreview() {
+  const target  = parseFloat(document.getElementById('salvTarget').value) || 0;
+  const saved   = parseFloat(document.getElementById('salvSaved').value)  || 0;
+  const startV  = document.getElementById('salvStart').value;
+  const endV    = document.getElementById('salvEnd').value;
+  const day     = parseInt(document.getElementById('salvDay').value) || 1;
+  const prev    = document.getElementById('salvPreview');
+  if(!target || !startV || !endV) { prev.style.display = 'none'; return; }
+  const start = new Date(startV + 'T12:00:00');
+  const end   = new Date(endV   + 'T12:00:00');
+  if(end <= start) { prev.style.display = 'none'; return; }
+
+  // Calcola numero di rate mensili rimaste (versamenti dal giorno 'day' di ogni mese)
+  let rateRimaste = 0;
+  const now = new Date();
+  let d = new Date(start.getFullYear(), start.getMonth(), day);
+  if(d < start) d.setMonth(d.getMonth() + 1);
+  while(d <= end) {
+    if(d >= now) rateRimaste++;
+    d.setMonth(d.getMonth() + 1);
+  }
+
+  // Settimane totali tra oggi e fine
+  const msLeft   = Math.max(end - now, 0);
+  const weeksLeft = Math.floor(msLeft / (7 * 24 * 3600 * 1000));
+  const missing  = Math.max(target - saved, 0);
+  const weekly   = weeksLeft > 0 ? missing / weeksLeft : missing;
+
+  prev.style.display = 'block';
+  document.getElementById('salvPrevWeeks').textContent    = weeksLeft + ' settimane';
+  document.getElementById('salvPrevRateLeft').textContent = rateRimaste + ' versamenti';
+  document.getElementById('salvPrevMissing').textContent  = '€' + missing.toFixed(2).replace('.',',');
+  document.getElementById('salvPrevWeekly').textContent   = '€' + weekly.toFixed(2).replace('.',',') + '/sett.';
+}
+
+function saveSalvItem() {
+  const name   = document.getElementById('salvName').value.trim();
+  const target = parseFloat(document.getElementById('salvTarget').value);
+  const start  = document.getElementById('salvStart').value;
+  const end    = document.getElementById('salvEnd').value;
+  const day    = parseInt(document.getElementById('salvDay').value) || 1;
+  const saved  = parseFloat(document.getElementById('salvSaved').value) || 0;
+  if(!name)   { showToast('⚠️ Inserisci un nome'); return; }
+  if(!target || target <= 0) { showToast('⚠️ Inserisci un obiettivo valido'); return; }
+  if(!start || !end || end <= start) { showToast('⚠️ Date non valide'); return; }
+
+  const items = getSalvItems();
+  const editId = document.getElementById('salvEditId').value;
+  if(editId) {
+    const idx = items.findIndex(x => x.id === editId);
+    if(idx >= 0) items[idx] = { ...items[idx], name, target, start, end, day, saved };
+  } else {
+    items.push({ id: Date.now().toString(), name, target, start, end, day, saved, created: new Date().toISOString() });
+  }
+  saveSalvItems(items);
+  closeSalvModal();
+  renderSalvadanai();
+  showToast('🐷 Salvadanaio salvato!');
+}
+
+function deleteSalvItem(id) {
+  if(!confirm('Eliminare questo salvadanaio?')) return;
+  const items = getSalvItems().filter(x => x.id !== id);
+  saveSalvItems(items);
+  renderSalvadanai();
+  showToast('🗑 Eliminato');
+}
+
+function addSalvDeposit(id) {
+  const amtStr = prompt('Quanto vuoi aggiungere al salvadanaio? (€)');
+  if(amtStr === null) return;
+  const amt = parseFloat(amtStr.replace(',','.'));
+  if(isNaN(amt) || amt <= 0) { showToast('⚠️ Importo non valido'); return; }
+  const items = getSalvItems();
+  const idx = items.findIndex(x => x.id === id);
+  if(idx < 0) return;
+  items[idx].saved = (items[idx].saved || 0) + amt;
+  saveSalvItems(items);
+  renderSalvadanai();
+  showToast('✅ +€' + amt.toFixed(2).replace('.',',') + ' aggiunto!');
+}
+
+function renderSalvadanai() {
+  const items  = getSalvItems();
+  const list   = document.getElementById('salvadanaiList');
+  const empty  = document.getElementById('salvadanaiEmpty');
+  if(!list) return;
+  if(!items.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const now = new Date();
+  list.innerHTML = items.map(item => {
+    const start  = new Date(item.start + 'T12:00:00');
+    const end    = new Date(item.end   + 'T12:00:00');
+    const saved  = item.saved || 0;
+    const target = item.target || 0;
+    const pct    = Math.min((saved / target) * 100, 100);
+    const missing = Math.max(target - saved, 0);
+    const day    = item.day || 1;
+
+    // Settimane rimaste
+    const msLeft    = Math.max(end - now, 0);
+    const weeksLeft = Math.floor(msLeft / (7 * 24 * 3600 * 1000));
+    const weekly    = weeksLeft > 0 ? missing / weeksLeft : 0;
+
+    // Rate mensili rimaste
+    let rateRimaste = 0;
+    let nextDate = null;
+    let d = new Date(start.getFullYear(), start.getMonth(), day);
+    if(d < start) d.setMonth(d.getMonth() + 1);
+    while(d <= end) {
+      if(d >= now) {
+        if(!nextDate) nextDate = new Date(d);
+        rateRimaste++;
+      }
+      d.setMonth(d.getMonth() + 1);
+    }
+
+    const isComplete = saved >= target;
+    const isExpired  = end < now && !isComplete;
+    const barColor   = isComplete ? '#4ae87a' : isExpired ? '#e05c5c' : pct > 75 ? '#c9a84c' : '#4ab8e8';
+    const statusBadge = isComplete
+      ? '<span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">✅ Completato</span>'
+      : isExpired
+        ? '<span style="background:rgba(224,92,92,0.15);color:#e05c5c;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">⏰ Scaduto</span>'
+        : '<span style="background:rgba(74,184,232,0.12);color:#4ab8e8;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">🔄 In corso</span>';
+
+    const nextStr = nextDate
+      ? nextDate.toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' })
+      : '—';
+    const endStr = end.toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' });
+
+    return `<div style="background:var(--dark3);border:1.5px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 20px;">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:16px;font-weight:700;margin-bottom:4px;">🐷 ${item.name}</div>
+          ${statusBadge}
+        </div>
+        <div style="display:flex;gap:6px;">
+          ${!isComplete ? `<button onclick="addSalvDeposit('${item.id}')" style="background:rgba(74,232,122,0.15);border:1px solid rgba(74,232,122,0.3);color:#4ae87a;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);">+💰 Versa</button>` : ''}
+          <button onclick="openEditSalvModal('${item.id}')" style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:var(--font);">✏️</button>
+          <button onclick="deleteSalvItem('${item.id}')" style="background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:#e05c5c;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer;font-family:var(--font);">🗑</button>
+        </div>
+      </div>
+
+      <!-- Barra progresso -->
+      <div style="background:rgba(255,255,255,0.06);border-radius:8px;height:12px;overflow:hidden;margin-bottom:8px;">
+        <div style="width:${pct}%;height:100%;background:${barColor};border-radius:8px;transition:width 0.6s ease;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:14px;">
+        <span>€${saved.toFixed(2).replace('.',',')} risparmiati</span>
+        <span style="font-weight:700;color:${barColor};">${Math.round(pct)}%</span>
+        <span>Obiettivo: €${target.toFixed(2).replace('.',',')}</span>
+      </div>
+
+      <!-- KPI grid -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;">
+        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:var(--gold);">€${weekly.toFixed(2).replace('.',',')}</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">da versare/settimana</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:#4ab8e8;">${weeksLeft}</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">settimane rimaste</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
+          <div style="font-size:18px;font-weight:800;color:#a78bfa;">${rateRimaste}</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">vers. mensili rimasti</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
+          <div style="font-size:14px;font-weight:700;color:var(--text);">${nextStr}</div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">prossimo vers. (gg ${day})</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-muted);text-align:right;">📅 Scadenza: ${endStr} · Mancano €${missing.toFixed(2).replace('.',',')}</div>
+    </div>`;
+  }).join('');
+}
+
 
 function calcRatePreview() {
   const totale = parseFloat(document.getElementById('rataTotale').value);
