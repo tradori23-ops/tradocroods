@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260415-v123';
+  var BUILD = '20260415-v124';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -12074,6 +12074,61 @@ function migrateRateIfNeeded() {
 //  SALVADANAIO — Obiettivi di risparmio
 // ══════════════════════════════════════════════════════
 
+
+// ── LOGICA SALVADANAIO: piano di risparmio mensile → settimane ──
+function _salvCalcPlan(target, saved, startV, endV, day) {
+  const now   = new Date();
+  const start = new Date(startV + 'T12:00:00');
+  const end   = new Date(endV   + 'T12:00:00');
+  const missing = Math.max(target - saved, 0);
+
+  // Raccogli tutte le date di versamento mensile future (>= oggi, <= fine)
+  const payDates = [];
+  let d = new Date(start.getFullYear(), start.getMonth(), day);
+  if(d < start) d.setMonth(d.getMonth() + 1);
+  while(d <= end) {
+    if(d >= now) payDates.push(new Date(d));
+    d = new Date(d.getFullYear(), d.getMonth() + 1, day);
+  }
+
+  const rateRimaste = payDates.length;
+  const nextPay     = payDates[0] || null;
+
+  // Settimane totali tra oggi e fine
+  const msLeft    = Math.max(end - now, 0);
+  const weeksLeft = Math.floor(msLeft / (7 * 24 * 3600 * 1000));
+
+  // Rata mensile = mancante / mesi rimasti
+  const rataMs = rateRimaste > 0 ? missing / rateRimaste : missing;
+
+  // Settimane fino al prossimo versamento (dal giorno di oggi a nextPay)
+  let weeksToNext = 0;
+  if(nextPay) {
+    const msToNext = Math.max(nextPay - now, 0);
+    weeksToNext    = Math.max(Math.floor(msToNext / (7 * 24 * 3600 * 1000)), 1);
+  }
+
+  // Versamento settimanale = rata mensile / settimane fino al prossimo payment day
+  const weekly = weeksToNext > 0 ? rataMs / weeksToNext : rataMs;
+  // Arrotondamento per eccesso (al €0.50 superiore)
+  const weeklyRound = Math.ceil(weekly * 2) / 2;
+  // Tesoretto totale su tutti i mesi se si arrotonda
+  const tesoretto = rateRimaste > 0
+    ? (weeklyRound * weeksToNext - rataMs) * rateRimaste
+    : 0;
+
+  // Piano settimana per settimana fino al prossimo versamento
+  const piano = [];
+  for(let i = 1; i <= weeksToNext; i++) {
+    piano.push({ sett: i, amt: weekly, amtR: weeklyRound });
+  }
+
+  return {
+    missing, rataMs, weekly, weeklyRound, weeksToNext,
+    weeksLeft, rateRimaste, nextPay, payDates, piano, tesoretto, end
+  };
+}
+
 function getSalvItems() { return load('salvadanai', []); }
 function saveSalvItems(arr) { save('salvadanai', arr); }
 
@@ -12123,32 +12178,54 @@ function calcSalvPreview() {
   const endV    = document.getElementById('salvEnd').value;
   const day     = parseInt(document.getElementById('salvDay').value) || 1;
   const prev    = document.getElementById('salvPreview');
-  if(!target || !startV || !endV) { prev.style.display = 'none'; return; }
-  const start = new Date(startV + 'T12:00:00');
-  const end   = new Date(endV   + 'T12:00:00');
-  if(end <= start) { prev.style.display = 'none'; return; }
+  if(!target || !startV || !endV) { prev.style.display='none'; return; }
+  const start = new Date(startV+'T12:00:00'), end = new Date(endV+'T12:00:00');
+  if(end <= start) { prev.style.display='none'; return; }
 
-  // Calcola numero di rate mensili rimaste (versamenti dal giorno 'day' di ogni mese)
-  let rateRimaste = 0;
-  const now = new Date();
-  let d = new Date(start.getFullYear(), start.getMonth(), day);
-  if(d < start) d.setMonth(d.getMonth() + 1);
-  while(d <= end) {
-    if(d >= now) rateRimaste++;
-    d.setMonth(d.getMonth() + 1);
-  }
+  const p = _salvCalcPlan(target, saved, startV, endV, day);
+  const fmt = v => '€' + v.toFixed(2).replace('.',',');
 
-  // Settimane totali tra oggi e fine
-  const msLeft   = Math.max(end - now, 0);
-  const weeksLeft = Math.floor(msLeft / (7 * 24 * 3600 * 1000));
-  const missing  = Math.max(target - saved, 0);
-  const weekly   = weeksLeft > 0 ? missing / weeksLeft : missing;
+  // Piano settimane
+  const pianoHtml = p.piano.map(s =>
+    `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+      <span style="color:var(--text-muted);">Settimana ${s.sett}:</span>
+      <span style="font-weight:700;color:var(--gold);">Metti da parte ${fmt(s.amt)}</span>
+    </div>`
+  ).join('');
+
+  const nextStr = p.nextPay
+    ? p.nextPay.toLocaleDateString('it-IT',{day:'numeric',month:'long'})
+    : '—';
 
   prev.style.display = 'block';
-  document.getElementById('salvPrevWeeks').textContent    = weeksLeft + ' settimane';
-  document.getElementById('salvPrevRateLeft').textContent = rateRimaste + ' versamenti';
-  document.getElementById('salvPrevMissing').textContent  = '€' + missing.toFixed(2).replace('.',',');
-  document.getElementById('salvPrevWeekly').textContent   = '€' + weekly.toFixed(2).replace('.',',') + '/sett.';
+  prev.innerHTML = `
+    <div style="font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);font-weight:700;margin-bottom:12px;">📊 Piano di risparmio</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Rata mensile</div>
+        <div style="font-size:20px;font-weight:800;color:#4ab8e8;">${fmt(p.rataMs)}</div>
+        <div style="font-size:10px;color:var(--text-muted);">${p.rateRimaste} mesi rimasti</div>
+      </div>
+      <div style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.3);border-radius:10px;padding:10px;text-align:center;">
+        <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">Versamento/settimana</div>
+        <div style="font-size:20px;font-weight:800;color:var(--gold);">${fmt(p.weekly)}</div>
+        <div style="font-size:10px;color:var(--text-muted);">${fmt(p.rataMs)} ÷ ${p.weeksToNext} sett.</div>
+      </div>
+    </div>
+    <div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:12px;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:8px;">📅 Piano d'azione — fino al ${nextStr} (gg ${day})</div>
+      ${pianoHtml}
+      <div style="display:flex;justify-content:space-between;padding:6px 0;margin-top:4px;">
+        <span style="font-weight:700;color:var(--text);">Totale al ${nextStr}:</span>
+        <span style="font-weight:800;color:#4ae87a;">${fmt(p.rataMs)} ✅ Pronti per la rata!</span>
+      </div>
+    </div>
+    ${p.weeklyRound !== p.weekly ? `<div style="background:rgba(74,232,122,0.06);border:1px solid rgba(74,232,122,0.2);border-radius:10px;padding:10px 12px;">
+      <div style="font-size:11px;font-weight:700;color:#4ae87a;margin-bottom:6px;">💡 Arrotonda per eccesso</div>
+      <div style="font-size:12px;color:var(--text-muted);">Metti <strong style="color:#4ae87a;">${fmt(p.weeklyRound)}</strong>/sett. invece di ${fmt(p.weekly)}
+      → in ${p.weeksToNext} settimane avrai <strong>${fmt(p.weeklyRound * p.weeksToNext)}</strong></div>
+      ${p.tesoretto > 0.01 ? `<div style="font-size:11px;color:var(--text-muted);margin-top:4px;">Dopo ${p.rateRimaste} mesi accumuli un tesoretto extra di ~<strong style="color:#4ae87a;">${fmt(p.tesoretto)}</strong> 🎉</div>` : ''}
+    </div>` : ''}`;
 }
 
 function saveSalvItem() {
@@ -12199,60 +12276,50 @@ function addSalvDeposit(id) {
 }
 
 function renderSalvadanai() {
-  const items  = getSalvItems();
-  const list   = document.getElementById('salvadanaiList');
-  const empty  = document.getElementById('salvadanaiEmpty');
+  const items = getSalvItems();
+  const list  = document.getElementById('salvadanaiList');
+  const empty = document.getElementById('salvadanaiEmpty');
   if(!list) return;
-  if(!items.length) {
-    list.innerHTML = '';
-    empty.style.display = 'block';
-    return;
-  }
+  if(!items.length) { list.innerHTML=''; empty.style.display='block'; return; }
   empty.style.display = 'none';
-
   const now = new Date();
+  const fmt = v => '€' + v.toFixed(2).replace('.',',');
+
   list.innerHTML = items.map(item => {
-    const start  = new Date(item.start + 'T12:00:00');
-    const end    = new Date(item.end   + 'T12:00:00');
-    const saved  = item.saved || 0;
+    const saved  = item.saved  || 0;
     const target = item.target || 0;
+    const day    = item.day    || 1;
     const pct    = Math.min((saved / target) * 100, 100);
-    const missing = Math.max(target - saved, 0);
-    const day    = item.day || 1;
-
-    // Settimane rimaste
-    const msLeft    = Math.max(end - now, 0);
-    const weeksLeft = Math.floor(msLeft / (7 * 24 * 3600 * 1000));
-    const weekly    = weeksLeft > 0 ? missing / weeksLeft : 0;
-
-    // Rate mensili rimaste
-    let rateRimaste = 0;
-    let nextDate = null;
-    let d = new Date(start.getFullYear(), start.getMonth(), day);
-    if(d < start) d.setMonth(d.getMonth() + 1);
-    while(d <= end) {
-      if(d >= now) {
-        if(!nextDate) nextDate = new Date(d);
-        rateRimaste++;
-      }
-      d.setMonth(d.getMonth() + 1);
-    }
+    const p      = _salvCalcPlan(target, saved, item.start, item.end, day);
 
     const isComplete = saved >= target;
-    const isExpired  = end < now && !isComplete;
+    const isExpired  = p.end < now && !isComplete;
     const barColor   = isComplete ? '#4ae87a' : isExpired ? '#e05c5c' : pct > 75 ? '#c9a84c' : '#4ab8e8';
+
     const statusBadge = isComplete
       ? '<span style="background:rgba(74,232,122,0.15);color:#4ae87a;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">✅ Completato</span>'
       : isExpired
         ? '<span style="background:rgba(224,92,92,0.15);color:#e05c5c;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">⏰ Scaduto</span>'
         : '<span style="background:rgba(74,184,232,0.12);color:#4ab8e8;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:700;">🔄 In corso</span>';
 
-    const nextStr = nextDate
-      ? nextDate.toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' })
+    const nextStr = p.nextPay
+      ? p.nextPay.toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'})
       : '—';
-    const endStr = end.toLocaleDateString('it-IT', { day:'numeric', month:'long', year:'numeric' });
+    const endStr = p.end.toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});
+
+    // Piano d'azione compatto (prime 4 settimane)
+    const pianoRows = p.piano.slice(0,4).map(s =>
+      `<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">
+        <span style="font-size:12px;color:var(--text-muted);">Settimana ${s.sett}</span>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <span style="font-size:12px;font-weight:700;color:var(--gold);">${fmt(s.amt)}</span>
+          ${s.amtR !== s.amt ? `<span style="font-size:10px;color:#4ae87a;">→ ${fmt(s.amtR)} arroton.</span>` : ''}
+        </div>
+      </div>`
+    ).join('');
 
     return `<div style="background:var(--dark3);border:1.5px solid rgba(255,255,255,0.07);border-radius:16px;padding:18px 20px;">
+      <!-- Header -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
         <div>
           <div style="font-size:16px;font-weight:700;margin-bottom:4px;">🐷 ${item.name}</div>
@@ -12266,35 +12333,48 @@ function renderSalvadanai() {
       </div>
 
       <!-- Barra progresso -->
-      <div style="background:rgba(255,255,255,0.06);border-radius:8px;height:12px;overflow:hidden;margin-bottom:8px;">
+      <div style="background:rgba(255,255,255,0.06);border-radius:8px;height:12px;overflow:hidden;margin-bottom:6px;">
         <div style="width:${pct}%;height:100%;background:${barColor};border-radius:8px;transition:width 0.6s ease;"></div>
       </div>
       <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-bottom:14px;">
-        <span>€${saved.toFixed(2).replace('.',',')} risparmiati</span>
+        <span>${fmt(saved)} risparmiati</span>
         <span style="font-weight:700;color:${barColor};">${Math.round(pct)}%</span>
-        <span>Obiettivo: €${target.toFixed(2).replace('.',',')}</span>
+        <span>Obiettivo: ${fmt(target)}</span>
       </div>
 
-      <!-- KPI grid -->
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;">
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
-          <div style="font-size:18px;font-weight:800;color:var(--gold);">€${weekly.toFixed(2).replace('.',',')}</div>
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">da versare/settimana</div>
+      <!-- KPI top -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+        <div style="background:rgba(201,168,76,0.1);border:1px solid rgba(201,168,76,0.25);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Rata mensile</div>
+          <div style="font-size:16px;font-weight:800;color:#4ab8e8;">${fmt(p.rataMs)}</div>
+          <div style="font-size:9px;color:var(--text-muted);">${p.rateRimaste} mesi rimasti</div>
         </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
-          <div style="font-size:18px;font-weight:800;color:#4ab8e8;">${weeksLeft}</div>
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">settimane rimaste</div>
+        <div style="background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.35);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Metti/settimana</div>
+          <div style="font-size:16px;font-weight:800;color:var(--gold);">${fmt(p.weekly)}</div>
+          <div style="font-size:9px;color:var(--text-muted);">${p.weeksToNext} sett. al gg ${day}</div>
         </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
-          <div style="font-size:18px;font-weight:800;color:#a78bfa;">${rateRimaste}</div>
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">vers. mensili rimasti</div>
-        </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 12px;text-align:center;">
-          <div style="font-size:14px;font-weight:700;color:var(--text);">${nextStr}</div>
-          <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">prossimo vers. (gg ${day})</div>
+        <div style="background:rgba(74,232,122,0.07);border:1px solid rgba(74,232,122,0.2);border-radius:10px;padding:10px;text-align:center;">
+          <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;">Arrotonda a</div>
+          <div style="font-size:16px;font-weight:800;color:#4ae87a;">${fmt(p.weeklyRound)}</div>
+          <div style="font-size:9px;color:var(--text-muted);">${p.tesoretto > 0.01 ? '+'+fmt(p.tesoretto)+' tesoretto' : 'già tondo'}</div>
         </div>
       </div>
-      <div style="margin-top:10px;font-size:11px;color:var(--text-muted);text-align:right;">📅 Scadenza: ${endStr} · Mancano €${missing.toFixed(2).replace('.',',')}</div>
+
+      <!-- Piano d'azione -->
+      ${!isComplete && p.piano.length ? `<div style="background:rgba(255,255,255,0.03);border-radius:10px;padding:12px;margin-bottom:10px;">
+        <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:8px;">📅 Piano d'azione → ${nextStr} (gg ${day})</div>
+        ${pianoRows}
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;margin-top:4px;">
+          <span style="font-size:12px;font-weight:700;">Totale al gg ${day}:</span>
+          <span style="font-size:13px;font-weight:800;color:#4ae87a;">${fmt(p.rataMs)} ✅ Pronti per la rata!</span>
+        </div>
+        ${p.tesoretto > 0.01 ? `<div style="font-size:11px;color:var(--text-muted);margin-top:6px;padding-top:6px;border-top:1px solid rgba(255,255,255,0.05);">
+          💡 Arrotondando a ${fmt(p.weeklyRound)}/sett. → tesoretto finale ~<strong style="color:#4ae87a;">${fmt(p.tesoretto)}</strong>
+        </div>` : ''}
+      </div>` : ''}
+
+      <div style="font-size:11px;color:var(--text-muted);text-align:right;">📅 Scadenza: ${endStr} · Mancano ${fmt(p.missing)}</div>
     </div>`;
   }).join('');
 }
