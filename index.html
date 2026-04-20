@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260415-v125';
+  var BUILD = '20260418-v133';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -1786,175 +1786,157 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
   .day-item { font-size: 10px; padding: 2px 0; }
 }
 
-/* ═══════════════════════════════════════════════════
-   iPhone 12 / 13 / 14 — 390px larghezza logica
-   Layout compatto, spazi uniformi, font scalati
-   ═══════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════
+   iPhone 17 Pro Max — 430px larghezza logica
+   Ottimizzato per schermo 6,9" OLED con Dynamic Island
+   ═══════════════════════════════════════════════════════════ */
 @media(max-width:440px) {
 
-  /* ── Base: blocca overflow orizzontale ── */
-  html, body, #app, .main-content, [id^="sec-"] {
-    overflow-x: hidden !important;
-    max-width: 100vw !important;
-    box-sizing: border-box !important;
+  /* ── Safe area Dynamic Island / notch ── */
+  .topbar {
+    padding-top: max(10px, env(safe-area-inset-top, 10px)) !important;
+    padding-left: max(10px, env(safe-area-inset-left, 10px)) !important;
+    padding-right: max(10px, env(safe-area-inset-right, 10px)) !important;
+  }
+  .main-content {
+    padding-bottom: max(16px, env(safe-area-inset-bottom, 16px)) !important;
   }
 
-  /* ── Spaziatura contenuto principale ── */
-  .main-content { padding: 10px !important; }
-
-  /* ── Topbar: compatta ── */
+  /* ── Topbar: hamburger | titolo+occhio | actions ── */
   .topbar {
-    margin-bottom: 10px !important;
+    display: flex !important;
+    align-items: center !important;
     gap: 6px !important;
     flex-wrap: nowrap !important;
-    align-items: center !important;
+    min-height: 48px !important;
   }
+  /* Il div titolo+occhio cresce al centro */
+  .topbar > div:has(#pageTitle) {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    overflow: hidden !important;
+  }
+  #pageTitle {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+  /* Icona occhio: piccola, quadrata */
+  #privacyEyeBtn {
+    flex-shrink: 0 !important;
+    font-size: 16px !important;
+    padding: 3px 5px !important;
+    border-radius: 7px !important;
+    min-width: 28px !important;
+    min-height: 28px !important;
+  }
+  /* Actions: solo emoji, no testo, gap ridotto */
   .topbar-actions {
-    gap: 5px !important;
+    flex-shrink: 0 !important;
+    gap: 3px !important;
     flex-wrap: nowrap !important;
   }
-  /* Bottoni topbar: solo emoji, no testo, più piccoli */
   .topbar-actions .btn,
   .topbar-actions .btn-outline,
   .topbar-actions .btn-green,
   .topbar-actions .btn-danger,
-  .theme-toggle {
-    padding: 6px 8px !important;
-    font-size: 15px !important;
-    min-height: 36px !important;
-    border-radius: 10px !important;
+  .topbar-actions .theme-toggle {
+    padding: 5px 7px !important;
+    font-size: 14px !important;
+    min-height: 32px !important;
+    min-width: 32px !important;
+    border-radius: 9px !important;
   }
   .topbar-actions .btn-txt,
-  .theme-toggle .btn-txt { display: none !important; }
-  .page-title { font-size: 15px !important; font-weight: 700 !important; }
-  .hamburger-btn { width: 34px !important; height: 34px !important; font-size: 16px !important; }
+  .topbar-actions .theme-toggle .btn-txt { display: none !important; }
+  .hamburger-btn {
+    flex-shrink: 0 !important;
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 15px !important;
+  }
+
+  /* ── Contenuto principale ── */
+  .main-content { padding: 10px 10px 80px !important; }
+  .card { padding: 12px 13px !important; border-radius: 14px !important; }
+  body { font-size: 13px !important; }
 
   /* ── Month selector ── */
   .month-selector {
     padding: 7px 10px !important;
     gap: 6px !important;
+    border-radius: 14px !important;
     margin-bottom: 10px !important;
   }
   .month-selector label { font-size: 12px !important; }
-  .month-selector select {
-    font-size: 14px !important;
-    padding: 5px 8px !important;
-    border-radius: 10px !important;
+  .month-selector select { font-size: 14px !important; padding: 5px 8px !important; }
+
+  /* ── Dashboard: importi scalati ── */
+  #sum-balance, [style*="font-size:52px"] { font-size: 32px !important; }
+  [style*="font-size:42px"] { font-size: 28px !important; }
+  [style*="font-size:38px"] { font-size: 25px !important; }
+  [style*="font-size:36px"] { font-size: 24px !important; }
+  [style*="font-size:28px"] { font-size: 20px !important; }
+  [style*="font-size:26px"] { font-size: 18px !important; }
+  [style*="font-size:22px"] { font-size: 17px !important; }
+
+  /* ── Dashboard card padding ── */
+  #dash-rim-box,
+  [style*="border-radius:18px"],
+  [style*="border-radius: 18px"] {
+    padding: 12px 13px !important;
+    border-radius: 14px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    overflow: hidden !important;
   }
 
-  /* ── Card generali ── */
-  .card { padding: 12px !important; border-radius: 14px !important; }
-
-  /* ── Font globale ridotto del 10% ── */
-  body { font-size: 13px !important; }
-
-  /* ── Dashboard: tutte le griglie → 1 colonna ── */
+  /* ── Griglie 2col → 1col ── */
   [style*="grid-template-columns:1fr 1fr"],
   [style*="grid-template-columns: 1fr 1fr"] {
     grid-template-columns: 1fr !important;
     gap: 10px !important;
   }
 
-  /* ── Importi grandi: scala uniforme ── */
-  #sum-balance { font-size: 34px !important; }
-  [style*="font-size:52px"] { font-size: 32px !important; }
-  [style*="font-size:42px"] { font-size: 28px !important; }
-  [style*="font-size:38px"] { font-size: 26px !important; }
-  [style*="font-size:28px"] { font-size: 20px !important; }
-  [style*="font-size:26px"] { font-size: 18px !important; }
-  [style*="font-size:22px"] { font-size: 17px !important; }
-
-  /* ── Cards dashboard: padding compatto ── */
-  #dash-rim-box,
-  [style*="border-radius:18px"],
-  [style*="border-radius: 18px"] {
-    padding: 12px 14px !important;
-    border-radius: 14px !important;
-    box-sizing: border-box !important;
-    width: 100% !important;
-  }
-
-  /* ── Spese Settimanali: 2 colonne ── */
-  .week-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 5px !important;
-  }
+  /* ── Settimana: 2 colonne compatte ── */
+  .week-grid { grid-template-columns: repeat(2,1fr) !important; gap: 5px !important; }
   .day-card { min-height: 75px !important; border-radius: 10px !important; }
   .day-header { font-size: 9px !important; padding: 5px 6px !important; }
   .day-items { padding: 2px 4px !important; }
   .day-item { font-size: 9px !important; }
 
-  /* ── Sezione pianificazione vistaSpese ── */
-  #vs-totale-card [style*="grid-template-columns"] {
-    grid-template-columns: 1fr !important;
-    gap: 8px !important;
-  }
-  /* Nascondi operatori ÷ e = inline */
-  #vs-totale-card > div > div[style*="font-size:20px"] { display: none !important; }
-  #vs-rim-reale-banner {
-    flex-direction: column !important;
-    padding: 12px !important;
-    gap: 4px !important;
-  }
-  #vs-rim-reale-val { font-size: 26px !important; }
-
-  /* ── AI Assistente ── */
-  #ai-messages {
-    height: 44vh !important;
-    padding: 10px !important;
-    gap: 8px !important;
-  }
-  .ai-bubble {
-    max-width: 82% !important;
-    font-size: 12px !important;
-    padding: 9px 12px !important;
-    border-radius: 12px 12px 12px 4px !important;
-    line-height: 1.55 !important;
-  }
-  .ai-bubble-user { border-radius: 12px 12px 4px 12px !important; }
-  .ai-avatar { width: 26px !important; height: 26px !important; font-size: 13px !important; border-radius: 8px !important; }
-  .ai-msg { gap: 7px !important; }
-  .ai-quick-btn { font-size: 11px !important; padding: 5px 10px !important; }
-  #ai-input { font-size: 14px !important; }
-
-  /* ── FAB AI: non copre testo ── */
-  #tc-ai-fab {
-    bottom: 76px !important;
-    right: 12px !important;
-    width: 46px !important;
-    height: 46px !important;
-    font-size: 19px !important;
-    border-radius: 14px !important;
-  }
-
   /* ── Spese Fisse form ── */
   .new-fixed-form { grid-template-columns: 1fr !important; }
   #rataFormGrid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
 
-  /* ── Totale settimana header ── */
-  #sec-settimanale [style*="justify-content:space-between"][style*="flex-wrap:wrap"] {
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    gap: 8px !important;
-  }
-  #weekTotalAmount { font-size: 18px !important; }
-
   /* ── Modali ── */
-  .modal-box, [id="weekDetailModal"] > div {
-    padding: 14px !important;
-    border-radius: 16px !important;
-    max-height: 85vh !important;
-  }
+  .modal, .modal-box { padding: 14px !important; border-radius: 16px !important; max-height: 88vh !important; }
   #weekDetailStats > div { padding: 8px 6px !important; }
-  #weekDetailStats > div > div:first-child { font-size: 14px !important; }
 
-  /* ── Form aggiungi spesa nel modal ── */
-  #weekDetailAddPanel { padding: 10px 12px !important; }
-  #weekDetailAddForm > div { gap: 7px !important; margin-bottom: 7px !important; }
+  /* ── AI ── */
+  #ai-messages { height: 44vh !important; }
+  .ai-bubble { max-width: 84% !important; font-size: 12px !important; }
+  #tc-ai-fab { bottom: 76px !important; right: 12px !important; width: 46px !important; height: 46px !important; }
 
-  /* ── Sezione AI header card ── */
-  #sec-ai .card:first-child { padding: 14px !important; }
+  /* ── Salvadanaio KPI 3col → 1col su schermi strettissimi ── */
+  #salvadanaiList [style*="grid-template-columns:repeat(3,1fr)"],
+  #salvadanaiList [style*="grid-template-columns: repeat(3,1fr)"] {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* ── Blur overlay ── */
+  .section-blur-overlay .blur-icon { font-size: 36px !important; }
+  .section-blur-overlay .blur-label { font-size: 12px !important; }
 }
+/* ════════════════════════════════════════════════════════ */
 
 @media(max-width:600px) {
 
@@ -2010,13 +1992,14 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
 
   /* ═══ TOPBAR ═══ */
   .topbar {
-    gap: 8px !important;
-    margin-bottom: 12px !important;
+    gap: 6px !important;
+    margin-bottom: 10px !important;
+    overflow: hidden !important;
   }
   .topbar-actions .btn-txt,
   .theme-toggle .btn-txt { display: none !important; }
-  .topbar-actions { gap: 6px !important; }
-  .page-title { font-size: 16px !important; }
+  .topbar-actions { gap: 4px !important; flex-wrap: nowrap !important; }
+  .page-title { font-size: 15px !important; }
 
   /* ═══ MONTH SELECTOR ═══ */
   .month-selector {
@@ -3614,14 +3597,16 @@ function sendRegistrationEmails(userName, userEmail) {
     <!-- TOPBAR -->
     <div class="topbar">
       <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
-      <h1 class="page-title" id="pageTitle">Dashboard</h1>
+      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+        <h1 class="page-title" id="pageTitle" style="margin:0;">Dashboard</h1>
+        <button id="privacyEyeBtn" onclick="togglePrivacyBlur()" title="Nascondi/mostra sezione">👁️</button>
+      </div>
       <div class="topbar-actions">
         <!-- Bottoni sempre visibili -->
         <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"><span class="btn-emoji">🌙</span><span class="btn-txt"> Notte</span></button>
         <button class="btn btn-green" onclick="lockScreen()"><span class="btn-emoji">🔒</span><span class="btn-txt"> Blocca</span></button>
-        <button class="btn btn-outline" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sincronizza</span></button>
-
-        <button class="btn btn-danger" onclick="esci()"><span class="btn-emoji">🚪</span><span class="btn-txt"> Esci</span></button>
+        <button class="btn btn-outline topbar-desktop-only" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sincronizza</span></button>
+        <button class="btn btn-danger topbar-desktop-only" onclick="esci()"><span class="btn-emoji">🚪</span><span class="btn-txt"> Esci</span></button>
         <!-- Bottone ⋯ menu per le azioni extra (visibile solo su mobile) -->
         <button class="btn btn-outline topbar-more-btn" onclick="toggleTopbarMenu()" style="border-color:rgba(201,168,76,0.4);color:var(--gold);font-size:18px;padding:6px 12px;" title="Altre azioni">⋯</button>
         <!-- Bottoni nascosti su mobile, visibili su desktop -->
@@ -3637,10 +3622,15 @@ function sendRegistrationEmails(userName, userEmail) {
     <div id="topbarMobileMenu" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:8000;" onclick="closeTopbarMenu()">
       <div style="position:absolute;top:60px;right:12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:8px;min-width:200px;box-shadow:0 8px 32px rgba(0,0,0,0.5);display:flex;flex-direction:column;gap:4px;" onclick="event.stopPropagation()">
         <div style="font-size:10px;color:var(--text-muted);padding:4px 12px;letter-spacing:1px;font-weight:700;">AZIONI</div>
+        <button onclick="togglePrivacyBlur();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text-muted);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;" id="mobilePrivacyBtn">👁️ Nascondi sezione</button>
         <button onclick="handleInstallClick();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--gold);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">📲 Installa App</button>
         <button onclick="printPage();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">🖨️ Stampa</button>
         <button onclick="cambiaUtente();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">👤 Cambia Utente</button>
 
+        <div style="height:1px;background:var(--border);margin:4px 0;"></div>
+        <div style="font-size:10px;color:var(--text-muted);padding:4px 12px;letter-spacing:1px;font-weight:700;">GENERALI</div>
+        <button onclick="sincronizzaOra();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--text);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">🔄 Sincronizza</button>
+        <button onclick="esci();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:#e05c5c;font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">🚪 Esci</button>
         <div style="height:1px;background:var(--border);margin:4px 0;"></div>
         <div style="font-size:10px;color:var(--text-muted);padding:4px 12px;letter-spacing:1px;font-weight:700;">RESET</div>
         <button onclick="resetMonth();closeTopbarMenu()" style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:none;border:none;color:var(--red);font-size:14px;cursor:pointer;border-radius:10px;font-family:var(--font);text-align:left;width:100%;">♻️ Reset Mese</button>
@@ -3968,21 +3958,22 @@ function sendRegistrationEmails(userName, userEmail) {
               <input type="number" id="salvTarget" step="0.01" min="1" placeholder="es. 1500,00" oninput="calcSalvPreview()">
             </div>
             <div class="fld">
+              <label>Numero di Rate <span id="salvRataMensilePreview" style="color:var(--gold);font-weight:700;font-size:12px;"></span></label>
+              <input type="number" id="salvNumRate" min="1" max="360" placeholder="es. 24" oninput="calcSalvPreview()">
+            </div>
+            <div class="fld">
+              <label>Giorno versamento (del mese)</label>
+              <input type="number" id="salvDay" min="1" max="31" placeholder="es. 5" oninput="calcSalvPreview()">
+            </div>
+            <div class="fld">
               <label>Data Inizio</label>
               <input type="date" id="salvStart" oninput="calcSalvPreview()">
-            </div>
-            <div class="fld">
-              <label>Data Fine</label>
-              <input type="date" id="salvEnd" oninput="calcSalvPreview()">
-            </div>
-            <div class="fld">
-              <label>Giorno del mese (versamento)</label>
-              <input type="number" id="salvDay" min="1" max="31" placeholder="es. 27" oninput="calcSalvPreview()">
             </div>
             <div class="fld">
               <label>Già risparmiato (€)</label>
               <input type="number" id="salvSaved" step="0.01" min="0" value="0" placeholder="0,00" oninput="calcSalvPreview()">
             </div>
+            <input type="hidden" id="salvEnd">
           </div>
           <!-- Preview calcolato — contenuto generato dinamicamente da calcSalvPreview() -->
           <div id="salvPreview" style="border-radius:12px;margin-bottom:16px;font-size:13px;display:none;"></div>
@@ -8122,6 +8113,7 @@ function refreshAll() {
   renderGraphButtons();
   renderRate();
   renderSalvadanai();
+  applyBlurState();
   initBudgetUI();
   updateDocBadges();
 
@@ -8180,6 +8172,7 @@ function showSection(id, el) {
   };
   document.getElementById('pageTitle').textContent = titles[id]||id;
   if(id==='speseFisse') { renderSalvadanai(); }
+  requestAnimationFrame(() => applyBlurState());
   if(id==='grafici') {
     // Aggiorna preview budget
     const bprev = document.getElementById('grafici-budget-preview');
@@ -12067,57 +12060,68 @@ function migrateRateIfNeeded() {
 // ══════════════════════════════════════════════════════
 
 
-// ── LOGICA SALVADANAIO: piano di risparmio mensile → settimane ──
-function _salvCalcPlan(target, saved, startV, endV, day) {
-  const now   = new Date();
-  const start = new Date(startV + 'T12:00:00');
-  const end   = new Date(endV   + 'T12:00:00');
-  const missing = Math.max(target - saved, 0);
+// ── LOGICA SALVADANAIO: rata fissa mensile → piano settimanale ──
+// numRate = numero rate totali (es. 24); rataMs = target/numRate (FISSA)
+function _salvCalcPlan(target, saved, startV, endV, day, numRate) {
+  const _dateOnly = dt => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+  const now    = new Date();
+  const nowDay = _dateOnly(now);
+  const start  = new Date(startV + 'T12:00:00');
 
-  // Raccogli tutte le date di versamento mensile future (>= oggi, <= fine)
-  const payDates = [];
+  // Rata mensile FISSA = totale / numero rate
+  const rataMs  = numRate > 0 ? target / numRate : target;
+
+  // Calcola data fine automaticamente: start + numRate mesi
+  let endAuto;
+  if(endV) {
+    endAuto = new Date(endV + 'T12:00:00');
+  } else {
+    endAuto = new Date(start.getFullYear(), start.getMonth() + numRate, day);
+  }
+  const end = endAuto;
+
+  // Trova il prossimo giorno di versamento >= oggi e >= start
+  const startDay = _dateOnly(start);
   let d = new Date(start.getFullYear(), start.getMonth(), day);
-  if(d < start) d.setMonth(d.getMonth() + 1);
-  while(d <= end) {
-    if(d >= now) payDates.push(new Date(d));
-    d = new Date(d.getFullYear(), d.getMonth() + 1, day);
+  if(_dateOnly(d) < startDay) d = new Date(d.getFullYear(), d.getMonth() + 1, day);
+
+  // Raccogli tutte le date future
+  const payDates = [];
+  let tmp = new Date(d);
+  while(_dateOnly(tmp) <= _dateOnly(end)) {
+    if(_dateOnly(tmp) >= nowDay) payDates.push(new Date(tmp));
+    tmp = new Date(tmp.getFullYear(), tmp.getMonth() + 1, day);
   }
 
   const rateRimaste = payDates.length;
   const nextPay     = payDates[0] || null;
+  const missing     = Math.max(target - saved, 0);
 
-  // Settimane totali tra oggi e fine
-  const msLeft    = Math.max(end - now, 0);
+  // Settimane totali rimaste (da oggi a fine)
+  const msLeft    = Math.max(_dateOnly(end) - nowDay, 0);
   const weeksLeft = Math.floor(msLeft / (7 * 24 * 3600 * 1000));
 
-  // Rata mensile = mancante / mesi rimasti
-  const rataMs = rateRimaste > 0 ? missing / rateRimaste : missing;
-
-  // Settimane fino al prossimo versamento (dal giorno di oggi a nextPay)
-  let weeksToNext = 0;
+  // Settimane al PROSSIMO versamento (giorno X del mese prossimo/corrente)
+  let weeksToNext = 4;
   if(nextPay) {
-    const msToNext = Math.max(nextPay - now, 0);
-    weeksToNext    = Math.max(Math.floor(msToNext / (7 * 24 * 3600 * 1000)), 1);
+    const ms = Math.max(_dateOnly(nextPay) - nowDay, 0);
+    weeksToNext = Math.max(Math.round(ms / (7 * 24 * 3600 * 1000)), 1);
   }
 
-  // Versamento settimanale = rata mensile / settimane fino al prossimo payment day
-  const weekly = weeksToNext > 0 ? rataMs / weeksToNext : rataMs;
-  // Arrotondamento per eccesso (al €0.50 superiore)
+  // Versamento settimanale = rata FISSA / settimane disponibili prima del versamento
+  const weekly      = rataMs / weeksToNext;
   const weeklyRound = Math.ceil(weekly * 2) / 2;
-  // Tesoretto totale su tutti i mesi se si arrotonda
-  const tesoretto = rateRimaste > 0
-    ? (weeklyRound * weeksToNext - rataMs) * rateRimaste
-    : 0;
+  // Tesoretto su tutta la durata (eccesso arrotondamento × numero rate)
+  const excessPerRate = (weeklyRound * weeksToNext) - rataMs;
+  const tesoretto     = excessPerRate > 0 ? excessPerRate * numRate : 0;
 
   // Piano settimana per settimana fino al prossimo versamento
   const piano = [];
-  for(let i = 1; i <= weeksToNext; i++) {
-    piano.push({ sett: i, amt: weekly, amtR: weeklyRound });
-  }
+  for(let i = 1; i <= weeksToNext; i++) piano.push({ sett: i, amt: weekly, amtR: weeklyRound });
 
   return {
     missing, rataMs, weekly, weeklyRound, weeksToNext,
-    weeksLeft, rateRimaste, nextPay, payDates, piano, tesoretto, end
+    weeksLeft, rateRimaste, numRate, nextPay, payDates, piano, tesoretto, end
   };
 }
 
@@ -12130,6 +12134,7 @@ function openAddSalvModal() {
   document.getElementById('salvName').value = '';
   document.getElementById('salvTarget').value = '';
   document.getElementById('salvDay').value = '';
+  if(document.getElementById('salvNumRate')) document.getElementById('salvNumRate').value = '';
   document.getElementById('salvSaved').value = '0';
   // Default: oggi → +1 anno
   const today = new Date();
@@ -12153,6 +12158,7 @@ function openEditSalvModal(id) {
   document.getElementById('salvStart').value = item.start;
   document.getElementById('salvEnd').value = item.end;
   document.getElementById('salvDay').value = item.day || '';
+  if(document.getElementById('salvNumRate')) document.getElementById('salvNumRate').value = item.numRate || '';
   document.getElementById('salvSaved').value = item.saved || 0;
   const m = document.getElementById('salvModal');
   m.style.display = 'flex';
@@ -12165,17 +12171,29 @@ function closeSalvModal() {
 
 function calcSalvPreview() {
   const _pNum = v => parseFloat((v||'').toString().replace(/\./g,'').replace(',','.')) || 0;
-  const target  = _pNum(document.getElementById('salvTarget').value);
-  const saved   = _pNum(document.getElementById('salvSaved').value);
-  const startV  = document.getElementById('salvStart').value;
-  const endV    = document.getElementById('salvEnd').value;
-  const day     = parseInt(document.getElementById('salvDay').value) || 1;
-  const prev    = document.getElementById('salvPreview');
-  if(!target || !startV || !endV) { prev.style.display='none'; return; }
-  const start = new Date(startV+'T12:00:00'), end = new Date(endV+'T12:00:00');
-  if(end <= start) { prev.style.display='none'; return; }
+  const target   = _pNum(document.getElementById('salvTarget').value);
+  const saved    = _pNum(document.getElementById('salvSaved').value);
+  const startV   = document.getElementById('salvStart').value;
+  const day      = parseInt(document.getElementById('salvDay').value) || 1;
+  const numRate  = parseInt(document.getElementById('salvNumRate')?.value) || 0;
+  const prev     = document.getElementById('salvPreview');
 
-  const p = _salvCalcPlan(target, saved, startV, endV, day);
+  // Aggiorna inline label rata mensile
+  const rml = document.getElementById('salvRataMensilePreview');
+  if(rml && target > 0 && numRate > 0) rml.textContent = '→ €' + (target/numRate).toFixed(2).replace('.',',') + '/mese';
+  else if(rml) rml.textContent = '';
+
+  if(!target || !startV || !numRate) { prev.style.display='none'; return; }
+
+  // Data fine = calcolata automaticamente da start + numRate mesi
+  const startObj = new Date(startV+'T12:00:00');
+  const endObj   = new Date(startObj.getFullYear(), startObj.getMonth() + numRate, day);
+  const endV     = endObj.getFullYear()+'-'+String(endObj.getMonth()+1).padStart(2,'0')+'-'+String(endObj.getDate()).padStart(2,'0');
+  // Aggiorna campo nascosto end
+  const endEl = document.getElementById('salvEnd');
+  if(endEl) endEl.value = endV;
+
+  const p = _salvCalcPlan(target, saved, startV, endV, day, numRate);
   const fmt = v => '€' + v.toFixed(2).replace('.',',');
 
   // Piano settimane
@@ -12245,23 +12263,28 @@ function calcSalvPreview() {
 
 function saveSalvItem() {
   const name   = document.getElementById('salvName').value.trim();
-  const _pNum2 = v => parseFloat((v||'').toString().replace(/\./g,'').replace(',','.')) || 0;
-  const target = _pNum2(document.getElementById('salvTarget').value);
-  const start  = document.getElementById('salvStart').value;
-  const end    = document.getElementById('salvEnd').value;
-  const day    = parseInt(document.getElementById('salvDay').value) || 1;
-  const saved  = _pNum2(document.getElementById('salvSaved').value);
-  if(!name)   { showToast('⚠️ Inserisci un nome'); return; }
+  const _pNum2  = v => parseFloat((v||'').toString().replace(/\./g,'').replace(',','.')) || 0;
+  const target  = _pNum2(document.getElementById('salvTarget').value);
+  const start   = document.getElementById('salvStart').value;
+  const day     = parseInt(document.getElementById('salvDay').value) || 1;
+  const numRate = parseInt(document.getElementById('salvNumRate')?.value) || 0;
+  const saved   = _pNum2(document.getElementById('salvSaved').value);
+  // Calcola data fine automaticamente
+  const startObj = new Date(start + 'T12:00:00');
+  const endObj   = new Date(startObj.getFullYear(), startObj.getMonth() + numRate, day);
+  const end      = endObj.getFullYear()+'-'+String(endObj.getMonth()+1).padStart(2,'0')+'-'+String(endObj.getDate()).padStart(2,'0');
+  if(!name)    { showToast('⚠️ Inserisci un nome'); return; }
   if(!target || target <= 0) { showToast('⚠️ Inserisci un obiettivo valido'); return; }
-  if(!start || !end || end <= start) { showToast('⚠️ Date non valide'); return; }
+  if(!start)   { showToast('⚠️ Inserisci la data di inizio'); return; }
+  if(!numRate || numRate < 1) { showToast('⚠️ Inserisci il numero di rate'); return; }
 
   const items = getSalvItems();
   const editId = document.getElementById('salvEditId').value;
   if(editId) {
     const idx = items.findIndex(x => x.id === editId);
-    if(idx >= 0) items[idx] = { ...items[idx], name, target, start, end, day, saved };
+    if(idx >= 0) items[idx] = { ...items[idx], name, target, start, end, day, numRate, saved };
   } else {
-    items.push({ id: Date.now().toString(), name, target, start, end, day, saved, created: new Date().toISOString() });
+    items.push({ id: Date.now().toString(), name, target, start, end, day, numRate, saved, created: new Date().toISOString() });
   }
   saveSalvItems(items);
   closeSalvModal();
@@ -12306,7 +12329,8 @@ function renderSalvadanai() {
     const target = item.target || 0;
     const day    = item.day    || 1;
     const pct    = Math.min((saved / target) * 100, 100);
-    const p      = _salvCalcPlan(target, saved, item.start, item.end, day);
+    const numRate = item.numRate || 12;
+    const p      = _salvCalcPlan(target, saved, item.start, item.end, day, numRate);
 
     const isComplete = saved >= target;
     const isExpired  = p.end < now && !isComplete;
@@ -12395,6 +12419,120 @@ function renderSalvadanai() {
   }).join('');
 }
 
+
+
+// ══════════════════════════════════════════════════════
+//  PRIVACY BLUR — nascondi sezione con password
+// ══════════════════════════════════════════════════════
+const BLUR_KEY = () => `tc_blur_${currentUser?.email||'anon'}`;
+
+function getBlurredSections() {
+  try { return JSON.parse(localStorage.getItem(BLUR_KEY()) || '[]'); } catch(e) { return []; }
+}
+function setBlurredSections(arr) {
+  localStorage.setItem(BLUR_KEY(), JSON.stringify(arr));
+}
+
+function applyBlurState() {
+  const blurred = getBlurredSections();
+  document.querySelectorAll('.section').forEach(sec => {
+    const id = sec.id.replace('sec-','');
+    const existing = sec.querySelector('.section-blur-overlay');
+    if(blurred.includes(id)) {
+      if(!existing) {
+        const ov = document.createElement('div');
+        ov.className = 'section-blur-overlay';
+        ov.setAttribute('data-section', id);
+        ov.innerHTML = `<div class="blur-icon">🔒</div><div class="blur-label">Sezione nascosta — clicca per sbloccare</div>`;
+        ov.onclick = () => openPrivacyModal('unlock', id);
+        sec.appendChild(ov);
+      }
+    } else {
+      if(existing) existing.remove();
+    }
+  });
+  // Aggiorna icona del bottone per la sezione corrente
+  const btn = document.getElementById('privacyEyeBtn');
+  if(btn) {
+    const cur = currentSection || 'dashboard';
+    const isBlurred = blurred.includes(cur);
+    btn.textContent = isBlurred ? '🙈' : '👁️';
+    btn.classList.toggle('blurred', isBlurred);
+    btn.title = isBlurred ? 'Sezione nascosta — clicca per sbloccare' : 'Nascondi questa sezione';
+  }
+}
+
+// Chiamato dal pulsante occhio nella topbar
+function togglePrivacyBlur() {
+  const sec = currentSection || 'dashboard';
+  const blurred = getBlurredSections();
+  if(blurred.includes(sec)) {
+    // È già sfocata → chiedi password per sbloccare
+    openPrivacyModal('unlock', sec);
+  } else {
+    // Non sfocata → chiedi password per nascondere
+    openPrivacyModal('blur', sec);
+  }
+}
+
+let _privacyAction = null;
+let _privacySection = null;
+
+function openPrivacyModal(action, sec) {
+  _privacyAction  = action;
+  _privacySection = sec;
+  const modal = document.getElementById('privacyModal');
+  const icon  = document.getElementById('privacyModalIcon');
+  const title = document.getElementById('privacyModalTitle');
+  const desc  = document.getElementById('privacyModalDesc');
+  const btn   = document.getElementById('privacyPwdBtn');
+  document.getElementById('privacyPwdInput').value = '';
+  document.getElementById('privacyPwdErr').textContent = '';
+  if(action === 'blur') {
+    icon.textContent  = '🙈';
+    title.textContent = 'Nascondi sezione';
+    desc.textContent  = 'Inserisci la tua password per attivare la privacy su questa sezione';
+    btn.textContent   = '🙈 Nascondi';
+  } else {
+    icon.textContent  = '🔓';
+    title.textContent = 'Sblocca sezione';
+    desc.textContent  = 'Inserisci la tua password per visualizzare questa sezione';
+    btn.textContent   = '🔓 Sblocca';
+  }
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('privacyPwdInput').focus(), 100);
+}
+
+function closePrivacyModal() {
+  document.getElementById('privacyModal').style.display = 'none';
+  _privacyAction = null; _privacySection = null;
+}
+
+function confirmPrivacyPwd() {
+  const pwd  = document.getElementById('privacyPwdInput').value;
+  const errEl = document.getElementById('privacyPwdErr');
+  if(!pwd) { errEl.textContent = 'Inserisci la password'; return; }
+  // Verifica password dell'utente corrente
+  const users = getUsers ? getUsers() : [];
+  const user  = users.find(u => u.email === currentUser?.email);
+  if(!user || user.pass !== pwd) {
+    errEl.textContent = 'Password non corretta';
+    document.getElementById('privacyPwdInput').value = '';
+    document.getElementById('privacyPwdInput').focus();
+    return;
+  }
+  const blurred = getBlurredSections();
+  if(_privacyAction === 'blur') {
+    if(!blurred.includes(_privacySection)) blurred.push(_privacySection);
+  } else {
+    const idx = blurred.indexOf(_privacySection);
+    if(idx >= 0) blurred.splice(idx, 1);
+  }
+  setBlurredSections(blurred);
+  closePrivacyModal();
+  applyBlurState();
+}
+// ══════════════════════════════════════════════════════
 
 function calcRatePreview() {
   const totale = parseFloat(document.getElementById('rataTotale').value);
@@ -12547,6 +12685,26 @@ function renderRate() {
         <span>🔢 Rate pagate: <strong>${r.ratePagate}/${r.num}</strong></span>
         ${completata ? '<span style="color:var(--green);font-weight:700;">🎉 Completato!</span>' : `<span>⏳ Rimangono: <strong>${rateRimaste} rate (€${residuo.toFixed(2).replace('.',',')})</strong></span>`}
       </div>
+      ${(() => {
+        // Cerca un salvadanaio collegato (nome simile)
+        const salvs = typeof getSalvItems === 'function' ? getSalvItems() : [];
+        const rName = r.name.toLowerCase();
+        const linked = salvs.find(s => {
+          const sName = s.name.toLowerCase();
+          const words = sName.split(/\s+/).filter(w=>w.length>=4);
+          return words.some(w => rName.includes(w)) || rName.split(/\s+/).filter(w=>w.length>=4).some(w => sName.includes(w));
+        });
+        if(!linked) return '';
+        const pct = Math.min(100, linked.target > 0 ? (linked.saved||0)/linked.target*100 : 0);
+        return `<div style="margin-top:8px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:8px;padding:7px 10px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:13px;">🐷</span>
+          <div style="flex:1;">
+            <div style="font-size:11px;color:var(--text-muted);">Salvadanaio collegato: <strong style="color:var(--gold);">${linked.name}</strong></div>
+            <div style="background:rgba(255,255,255,0.07);border-radius:4px;height:5px;margin-top:4px;overflow:hidden;"><div style="width:${pct.toFixed(0)}%;height:100%;background:var(--gold);border-radius:4px;"></div></div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:var(--gold);">€${(linked.saved||0).toFixed(2).replace('.',',')} / €${linked.target.toFixed(2).replace('.',',')}</span>
+        </div>`;
+      })()}
     </div>`;
   };
 
@@ -14663,6 +14821,51 @@ function confirmSellaImport() {
     localStorage.setItem(libKey, JSON.stringify(existing));
   }
 
+
+  // ── Sync Salvadanaio ─────────────────────────────────────────
+  // Match SOLO per importo: rata PDF == target/numRate del salvadanaio (±2%)
+  // Es. Findomestic €71,58 → salvadanaio iPhone 17 (€1718÷24=€71,58)
+  let salvCount = 0;
+  const salvItems = getSalvItems ? getSalvItems() : [];
+  if(salvItems.length) {
+    // Usa SOLO le transazioni riconosciute come rate (sellaRataP) + spese generiche
+    const allTxns = [...(sellaRataP||[]), ...(sellaParsed||[])];
+    let salvChanged = false;
+    for(const salv of salvItems) {
+      const numRate   = salv.numRate || 12;
+      const rataMs    = salv.target / numRate;
+      if(rataMs <= 0) continue;
+      const paidDates = salv._paidDates || [];
+      const payDay    = salv.day || 1; // giorno del mese atteso per il versamento
+      for(const txn of allTxns) {
+        const amt  = txn.amount || 0;
+        const dKey = (txn.date||'') + '_' + Math.round(amt * 100);
+        if(paidDates.includes(dKey)) continue; // dedup data+importo
+        // 1. Match per importo (±2%)
+        if(Math.abs(amt - rataMs) / rataMs > 0.02) continue;
+        // 2. Match per data: il bonifico deve cadere entro ±7 giorni dal giorno atteso
+        if(txn.date) {
+          const txnDate  = new Date(txn.date + 'T12:00:00');
+          const txnDay   = txnDate.getDate();
+          const dayDiff  = Math.abs(txnDay - payDay);
+          // Gestisce fine/inizio mese (es. gg 30 vs gg 1 = diff 1, non 29)
+          const dayDiffWrapped = Math.min(dayDiff, 31 - dayDiff);
+          if(dayDiffWrapped > 7) continue; // fuori finestra ±7 giorni
+        }
+        salv.saved      = parseFloat(((salv.saved || 0) + amt).toFixed(2));
+        salv._paidDates = [...paidDates, dKey];
+        salvChanged     = true;
+        salvCount++;
+        break;
+      }
+    }
+    if(salvChanged) {
+      saveSalvItems(salvItems);
+      if(document.getElementById('salvadanaiList')) renderSalvadanai();
+    }
+  }
+  // ─────────────────────────────────────────────────────────────
+
   bumpVersion();
   fbPushToCloud();
   sellaParsed = [];
@@ -14681,6 +14884,7 @@ function confirmSellaImport() {
   if(fixedCount)   parts.push(`${fixedCount} spese fisse ✅`);
   if(libCount)     parts.push(`${libCount} mov. libretto 🏦`);
   if(rataCount)    parts.push(`${rataNewCount ? rataNewCount+' rate create · ' : ''}${rataCount} pagamenti rata aggiornati 📦`);
+  if(salvCount)    parts.push(`${salvCount} salvadanaio aggiornato 🐷`);
   showToast(`✅ Importati da Banca Sella: ${parts.join(' · ')}!`);
 }
 
@@ -20367,7 +20571,17 @@ function cancelSatispayRicevute() {
 
 function toggleTopbarMenu() {
   const m = document.getElementById('topbarMobileMenu');
-  if(m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  if(!m) return;
+  const opening = m.style.display === 'none';
+  m.style.display = opening ? 'block' : 'none';
+  if(opening) {
+    const mpb = document.getElementById('mobilePrivacyBtn');
+    if(mpb) {
+      const blurred = typeof getBlurredSections === 'function' ? getBlurredSections() : [];
+      const cur = currentSection || 'dashboard';
+      mpb.innerHTML = blurred.includes(cur) ? '🔓 Sblocca sezione' : '🙈 Nascondi sezione';
+    }
+  }
 }
 function closeTopbarMenu() {
   const m = document.getElementById('topbarMobileMenu');
@@ -21012,6 +21226,100 @@ function printDetailModal(modalId) {
     body{padding:10mm 12mm}
     button{display:none!important}
   }
+
+/* ══ PRIVACY BLUR ══════════════════════════════════════════ */
+.section-blur-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  backdrop-filter: blur(18px) brightness(0.7);
+  -webkit-backdrop-filter: blur(18px) brightness(0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  border-radius: 0;
+  cursor: pointer;
+  background: rgba(0,0,0,0.18);
+}
+.section-blur-overlay .blur-icon { font-size: 48px; filter: drop-shadow(0 2px 8px rgba(0,0,0,0.5)); }
+.section-blur-overlay .blur-label {
+  font-size: 14px; font-weight: 700; color: rgba(255,255,255,0.85);
+  letter-spacing: 0.5px; text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+}
+.section { position: relative; overflow: visible; }
+#privacyEyeBtn {
+  background: none; border: none; cursor: pointer;
+  font-size: 20px; padding: 4px 6px; border-radius: 8px;
+  transition: background 0.2s; color: var(--text-muted);
+  line-height: 1;
+}
+#privacyEyeBtn:hover { background: rgba(255,255,255,0.08); }
+#privacyEyeBtn.blurred { color: var(--gold); }
+/* Modal password privacy */
+#privacyModal {
+  display: none; position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,0.75); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; padding: 20px;
+}
+#privacyModal .priv-box {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 28px 24px; width: 320px; max-width: 100%;
+  text-align: center; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+/* ══════════════════════════════════════════════════════════ */
+
+/* ── iPhone 17 Pro Max: topbar minimale ── */
+@media(max-width:440px) {
+  /* Nascondi occhio topbar su mobile — è nel menu ⋯ */
+  #privacyEyeBtn { display: none !important; }
+
+  /* Topbar: solo hamburger + titolo + tema + blocca + ⋯ */
+  .topbar > div:has(#pageTitle) {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+  }
+  #pageTitle {
+    font-size: 16px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Card Saldo Reale Banca: layout verticale */
+  #dash-saldo-banca-row > div > div:first-child {
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+  #dash-saldo-banca-row > div > div:last-child {
+    flex: 1 1 100% !important;
+    justify-content: space-between !important;
+  }
+  #dash-saldo-banca-row > div {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+  #dash-saldo-banca-val { font-size: 28px !important; }
+
+  /* Topbar actions: tema + blocca + ⋯ ben spaziati */
+  .topbar-actions {
+    gap: 5px !important;
+    flex-shrink: 0 !important;
+  }
+  .topbar-actions > button {
+    min-width: 36px !important;
+    min-height: 36px !important;
+    padding: 6px 8px !important;
+    font-size: 16px !important;
+    border-radius: 10px !important;
+  }
+  /* Bottone ⋯: leggermente più grande */
+  .topbar-more-btn {
+    font-size: 20px !important;
+    padding: 4px 10px !important;
+  }
+}
 </style>
 </head><body>
 <div class="ph">
@@ -21344,6 +21652,27 @@ window.addEventListener('beforeprint', function() {
   <span id="tc-ai-fab-pulse"></span>
   ✨
 </button>
+
+
+<!-- PRIVACY BLUR MODAL -->
+<div id="privacyModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;">
+  <div class="priv-box" style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:28px 24px;width:320px;max-width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+    <div style="font-size:40px;margin-bottom:12px;" id="privacyModalIcon">🔒</div>
+    <div style="font-size:16px;font-weight:700;margin-bottom:6px;" id="privacyModalTitle">Conferma password</div>
+    <div style="font-size:13px;color:var(--text-muted);margin-bottom:18px;" id="privacyModalDesc">Inserisci la tua password per sbloccare questa sezione</div>
+    <div style="position:relative;margin-bottom:8px;">
+      <input type="password" id="privacyPwdInput" placeholder="Password"
+        style="width:100%;padding:12px 44px 12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--dark3);color:var(--text);font-size:14px;font-family:var(--font);box-sizing:border-box;"
+        onkeydown="if(event.key==='Enter')confirmPrivacyPwd()">
+      <button onclick="togglePwd('privacyPwdInput','privacyEye')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted);" id="privacyEye">👁️</button>
+    </div>
+    <div id="privacyPwdErr" style="color:#e05c5c;font-size:12px;min-height:16px;margin-bottom:12px;"></div>
+    <div style="display:flex;gap:10px;">
+      <button onclick="closePrivacyModal()" class="btn btn-outline" style="flex:1;">Annulla</button>
+      <button onclick="confirmPrivacyPwd()" class="btn btn-gold" style="flex:2;" id="privacyPwdBtn">🔓 Sblocca</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
