@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260424-v141';
+  var BUILD = '20260424-v143';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -4857,7 +4857,6 @@ function sendRegistrationEmails(userName, userEmail) {
         <button class="graph-tab" id="gtab-year" onclick="switchGraphTab('year')">📆 Grafico Annuale</button>
         <button class="graph-tab" id="gtab-giri" onclick="switchGraphTab('giri')">💸 Giri Conti</button>
         <button class="graph-tab" id="gtab-pdf" onclick="switchGraphTab('pdf')">📥 Importi PDF</button>
-        <button class="graph-tab" id="gtab-librietto" onclick="switchGraphTab('librietto')">🏦 Libretto</button>
         <button class="graph-tab" id="gtab-salute" onclick="switchGraphTab('salute')">🧠 Salute</button>
       </div>
 
@@ -5051,6 +5050,10 @@ function sendRegistrationEmails(userName, userEmail) {
               <div style="font-size:10px;color:#60a5fa;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Sella</div>
               <div id="giriHeroSel" style="font-size:18px;font-weight:800;color:#93c5fd;">—</div>
             </div>
+            <div style="background:rgba(74,200,160,0.15);border:1px solid rgba(74,200,160,0.4);border-radius:10px;padding:8px 14px;text-align:center;">
+              <div style="font-size:10px;color:#34d399;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Libretto</div>
+              <div id="giriHeroLib" style="font-size:18px;font-weight:800;color:#6ee7b7;">—</div>
+            </div>
           </div>
         </div>
 
@@ -5113,20 +5116,6 @@ function sendRegistrationEmails(userName, userEmail) {
       </div>
 
       <!-- ===== LIBRETTO TAB IN GRAFICI ===== -->
-      <div id="gtab-content-librietto" style="display:none;">
-        <div class="card mb-20">
-          <div class="card-title">🏦 Comparazione Giroconti Libretto</div>
-          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Quante volte e quanto hai spostato dal conto corrente al libretto (e viceversa).</p>
-          <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;">
-            <button class="graph-tab active" id="lib2-view-bar"   onclick="switchLib2View('bar')">💶 Importi</button>
-            <button class="graph-tab"        id="lib2-view-count" onclick="switchLib2View('count')">🔢 Frequenza</button>
-            <select id="lib2YearSel" onchange="renderLib2Chart()" style="background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-left:auto;"></select>
-          </div>
-          <div id="lib2-kpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:16px;"></div>
-          <div class="chart-container" style="height:300px;"><canvas id="lib2Chart"></canvas></div>
-        </div>
-      </div>
-
       <!-- ===== SALUTE TAB ===== -->
       <div id="gtab-content-salute" style="display:none;">
         <div class="card mb-20">
@@ -8180,7 +8169,7 @@ function refreshAll() {
   renderSalvadanai();
   applyBlurState();
   initBudgetUI();
-  setTimeout(migrateGiriKey, 500); // migra giri salvati con chiave errata
+  setTimeout(() => { migrateGiriKey(); migrateLibrettoToGiri(); }, 600); // migra dati
   updateDocBadges();
 
   // Se siamo nella sezione grafici, aggiorna il tab attivo
@@ -8232,7 +8221,6 @@ function showSection(id, el) {
     calendario:'🗓️ Calendario & Note',
     emergenza:'🚨 Emergenza',
     documenti:'📁 Importa PDF & Documenti',
-    librietto:'🏦 Libretto di Risparmio',
     vistaSpese:'🗓️ Spese Settimanali — Sella/Satispay/Revolut', /* legacy */
     ai:'✨ AI Assistente'
   };
@@ -9767,6 +9755,35 @@ function getGiri() {
 }
 
 // Migra dati salvati con chiave sbagliata "[object Object]"
+
+// ── Migrazione Libretto → Giri Conti ──────────────────────────────────────
+// Sposta i dati del vecchio tab Libretto dentro saveGiro('libretto', ...)
+// Eseguita una volta sola (flag tc_librietto_migrated)
+function migrateLibrettoToGiri() {
+  const flagKey = `tc_${currentUser?.email}_librietto_migrated`;
+  if(localStorage.getItem(flagKey)) return; // già fatto
+  const libKey = `tc_${currentUser?.email}_librietto`;
+  const raw = localStorage.getItem(libKey);
+  if(!raw) { localStorage.setItem(flagKey, '1'); return; }
+  let items;
+  try { items = JSON.parse(raw); } catch { localStorage.setItem(flagKey, '1'); return; }
+  if(!items.length) { localStorage.setItem(flagKey, '1'); return; }
+
+  let migrated = 0;
+  for(const item of items) {
+    if(!item.date || !item.amount) continue;
+    const nota = item.direction === 'deposito' ? '→ Libretto' : '← Libretto';
+    saveGiro('libretto', item.date, item.amount, nota);
+    migrated++;
+  }
+  localStorage.setItem(flagKey, '1');
+  if(migrated > 0) {
+    console.log(`✅ Migrati ${migrated} movimenti libretto → Giri Conti`);
+    showToast(`✅ ${migrated} movimenti libretto migrati nei Giri Conti`);
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 function migrateGiriKey() {
   const badKey = 'tc_[object Object]_giri';
   const raw = localStorage.getItem(badKey);
@@ -9848,6 +9865,7 @@ function renderGiriChart() {
   const revolut  = giriYear.filter(g => g.type === 'revolut' || g.type === 'revolut_sella');
   const satispay = giriYear.filter(g => g.type === 'satispay');
   const sella    = giriYear.filter(g => g.type === 'sella');
+  const libretto = giriYear.filter(g => g.type === 'libretto');
 
   // KPI
   const totRev = revolut.reduce((s,g)=>s+g.amount,0);
@@ -9855,17 +9873,21 @@ function renderGiriChart() {
   const months = [...new Set(giriYear.map(g=>g.date.substring(0,7)))].length || 1;
   // Aggiorna hero badges
   const totSel = sella.reduce((s,g)=>s+g.amount, 0);
+  const totLib = libretto.reduce((s,g)=>s+g.amount, 0);
   const heroRev = document.getElementById('giriHeroRev');
   const heroSat = document.getElementById('giriHeroSat');
   const heroSel = document.getElementById('giriHeroSel');
+  const heroLib = document.getElementById('giriHeroLib');
   if(heroRev) heroRev.textContent = '€'+totRev.toFixed(2).replace('.',',');
   if(heroSat) heroSat.textContent = '€'+totSat.toFixed(2).replace('.',',');
   if(heroSel) heroSel.textContent = '€'+totSel.toFixed(2).replace('.',',');
+  if(heroLib) heroLib.textContent = '€'+totLib.toFixed(2).replace('.',',');
 
   const avgRev = totRev / Math.max(revolut.length, 1);
   const avgSat = totSat / Math.max(satispay.length, 1);
   const avgSel = totSel / Math.max(sella.length, 1);
-  const totAll = totRev + totSat + totSel;
+  const avgLib = totLib / Math.max(libretto.length, 1);
+  const totAll = totRev + totSat + totSel + totLib;
 
   const kpiCard = (bg, border, accent, icon, label, val, sub1, sub2) =>
     `<div style="background:${bg};border:1.5px solid ${border};border-radius:16px;padding:18px 20px;position:relative;overflow:hidden;">
@@ -9892,6 +9914,11 @@ function renderGiriChart() {
       `€${totSel.toFixed(2).replace('.',',')}`,
       `${sella.length} giri · media €${avgSel.toFixed(0)}/giro`,
       sella.length ? `Ultimo: ${sella[sella.length-1].date.split('-').reverse().join('/')}` : '') +
+    kpiCard('rgba(74,200,160,0.10)','rgba(74,200,160,0.3)','#34d399','📗',
+      `Libretto ${curYear}`,
+      `€${totLib.toFixed(2).replace('.',',')}`,
+      `${libretto.length} giri · media €${avgLib.toFixed(0)}/giro`,
+      libretto.length ? `Ultimo: ${libretto[libretto.length-1].date.split('-').reverse().join('/')}` : '') +
     kpiCard('rgba(201,168,76,0.10)','rgba(201,168,76,0.3)','var(--gold)','📊',
       `Totale ${curYear}`,
       `€${totAll.toFixed(2).replace('.',',')}`,
@@ -9901,16 +9928,17 @@ function renderGiriChart() {
   // Build chart labels & datasets
   let labels = [], dataRev = [], dataSat = [];
 
-  let dataSel = [];
+  let dataSel = [], dataLib = [];
   if(currentGiriPeriod === 'week') {
     const lastMon = giriYear.length ? giriYear[giriYear.length-1].date.substring(0,7) : `${curYear}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
     for(let w=1; w<=5; w++) {
       labels.push(`Sett. ${w}`);
       const wStart = (w-1)*7+1, wEnd = w*7;
-      const inWin = (g, t) => g.date.startsWith(lastMon) && (t==='revolut'?g.type==='revolut'||g.type==='revolut_sella':g.type===t) && parseInt(g.date.substring(8))>=wStart && parseInt(g.date.substring(8))<=wEnd;
+      const inWin = (g,t) => g.date.startsWith(lastMon) && (t==='revolut'?g.type==='revolut'||g.type==='revolut_sella':g.type===t) && parseInt(g.date.substring(8))>=wStart && parseInt(g.date.substring(8))<=wEnd;
       dataRev.push(giri.filter(g=>inWin(g,'revolut')).reduce((s,g)=>s+g.amount,0));
       dataSat.push(giri.filter(g=>inWin(g,'satispay')).reduce((s,g)=>s+g.amount,0));
       dataSel.push(giri.filter(g=>inWin(g,'sella')).reduce((s,g)=>s+g.amount,0));
+      dataLib.push(giri.filter(g=>inWin(g,'libretto')).reduce((s,g)=>s+g.amount,0));
     }
   } else if(currentGiriPeriod === 'month') {
     const MESI_LABEL = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
@@ -9920,6 +9948,7 @@ function renderGiriChart() {
       dataRev.push(giri.filter(g=>g.date.startsWith(mStr)&&(g.type==='revolut'||g.type==='revolut_sella')).reduce((s,g)=>s+g.amount,0));
       dataSat.push(giri.filter(g=>g.date.startsWith(mStr)&&g.type==='satispay').reduce((s,g)=>s+g.amount,0));
       dataSel.push(giri.filter(g=>g.date.startsWith(mStr)&&g.type==='sella').reduce((s,g)=>s+g.amount,0));
+      dataLib.push(giri.filter(g=>g.date.startsWith(mStr)&&g.type==='libretto').reduce((s,g)=>s+g.amount,0));
     }
   } else {
     const allYears = [...new Set([...giri.map(g=>g.date.substring(0,4)), String(new Date().getFullYear())])].sort();
@@ -9927,6 +9956,7 @@ function renderGiriChart() {
     dataRev = allYears.map(yr => giri.filter(g=>g.date.startsWith(yr)&&(g.type==='revolut'||g.type==='revolut_sella')).reduce((s,g)=>s+g.amount,0));
     dataSat = allYears.map(yr => giri.filter(g=>g.date.startsWith(yr)&&g.type==='satispay').reduce((s,g)=>s+g.amount,0));
     dataSel = allYears.map(yr => giri.filter(g=>g.date.startsWith(yr)&&g.type==='sella').reduce((s,g)=>s+g.amount,0));
+    dataLib = allYears.map(yr => giri.filter(g=>g.date.startsWith(yr)&&g.type==='libretto').reduce((s,g)=>s+g.amount,0));
   }
 
   const ctx = document.getElementById('giriChart');
@@ -9978,6 +10008,14 @@ function renderGiriChart() {
           borderColor: 'rgba(74,144,232,1)',
           borderWidth: 1,
           borderRadius: 6,
+        },
+        {
+          label: '📗 Libretto Risparmio',
+          data: dataLib,
+          backgroundColor: 'rgba(74,200,160,0.75)',
+          borderColor: 'rgba(52,211,153,1)',
+          borderWidth: 1,
+          borderRadius: 6,
         }
       ]
     },
@@ -10013,14 +10051,16 @@ function renderGiriChart() {
     const mRev = items.filter(g=>g.type==='revolut'||g.type==='revolut_sella').reduce((s,g)=>s+g.amount,0);
     const mSat = items.filter(g=>g.type==='satispay').reduce((s,g)=>s+g.amount,0);
     const mSel = items.filter(g=>g.type==='sella').reduce((s,g)=>s+g.amount,0);
+    const mLib = items.filter(g=>g.type==='libretto').reduce((s,g)=>s+g.amount,0);
     const rows = items.sort((a,b)=>b.date.localeCompare(a.date)).map(g => {
       const isRev = g.type==='revolut'||g.type==='revolut_sella';
       const isSel = g.type==='sella';
-      const accent = isRev ? '#a78bfa' : isSel ? '#60a5fa' : '#fb923c';
-      const bg     = isRev ? 'rgba(103,65,217,0.08)' : isSel ? 'rgba(74,144,232,0.08)' : 'rgba(255,120,0,0.07)';
-      const border = isRev ? 'rgba(103,65,217,0.25)' : isSel ? 'rgba(74,144,232,0.25)' : 'rgba(255,120,0,0.25)';
-      const icon   = isRev ? '💜' : isSel ? '🏦' : '🟠';
-      const dest   = isRev ? 'Revolut' : isSel ? 'Banca Sella' : 'Satispay';
+      const isLib = g.type==='libretto';
+      const accent = isRev ? '#a78bfa' : isSel ? '#60a5fa' : isLib ? '#34d399' : '#fb923c';
+      const bg     = isRev ? 'rgba(103,65,217,0.08)' : isSel ? 'rgba(74,144,232,0.08)' : isLib ? 'rgba(74,200,160,0.07)' : 'rgba(255,120,0,0.07)';
+      const border = isRev ? 'rgba(103,65,217,0.25)' : isSel ? 'rgba(74,144,232,0.25)' : isLib ? 'rgba(74,200,160,0.25)' : 'rgba(255,120,0,0.25)';
+      const icon   = isRev ? '💜' : isSel ? '🏦' : isLib ? '📗' : '🟠';
+      const dest   = isRev ? 'Revolut' : isSel ? 'Banca Sella' : isLib ? 'Libretto Risparmio' : 'Satispay';
       const d = g.date.split('-');
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${bg};border:1px solid ${border};border-radius:12px;margin-bottom:6px;">
         <div style="font-size:22px;flex-shrink:0;">${icon}</div>
@@ -10038,6 +10078,7 @@ function renderGiriChart() {
           <span style="color:#a78bfa;font-weight:600;">💜 €${mRev.toFixed(2).replace('.',',')}</span>
           <span style="color:#fb923c;font-weight:600;">🟠 €${mSat.toFixed(2).replace('.',',')}</span>
           ${mSel>0?`<span style="color:#60a5fa;font-weight:600;">🏦 €${mSel.toFixed(2).replace('.',',')}</span>`:''}
+          ${mLib>0?`<span style="color:#34d399;font-weight:600;">📗 €${mLib.toFixed(2).replace('.',',')}</span>`:''}
         </div>
       </div>
       ${rows}
@@ -10156,7 +10197,7 @@ let currentLib2View = 'bar';
 
 function switchGraphTab(tab) {
   currentGraphTab = tab;
-  ['cat','trend','budget','week','year','giri','pdf','librietto','salute'].forEach(t => {
+  ['cat','trend','budget','week','year','giri','pdf','salute'].forEach(t => {
     document.getElementById('gtab-'+t).classList.toggle('active', t===tab);
     document.getElementById('gtab-content-'+t).style.display = t===tab ? 'block' : 'none';
   });
@@ -10168,7 +10209,6 @@ function switchGraphTab(tab) {
     if(tab==='budget') renderBudgetChart();
     if(tab==='giri') renderGiriChart();
     if(tab==='pdf') renderPdfChart();
-    if(tab==='librietto') renderLib2Chart();
     if(tab==='salute') renderSaluteChart();
   }, 50);
 }
@@ -14601,9 +14641,12 @@ function parseSellaText(text) {
       if(/libretto di risparmio/i.test(desc)) {
         const direction = /giro al[l]?\s|verso|a libretto/i.test(desc) ? 'deposito' : 'prelievo';
         libriettoResults.push({ date: dateStr, amount, desc, direction });
+        // Traccia anche in Giri Conti con direzione nella nota
+        saveGiro('libretto', dateStr, amount, direction === 'deposito' ? '→ Libretto' : '← Libretto');
       }
       if(/giro al[l]?\s/i.test(desc) && /libretto/i.test(desc)) {
         libriettoResults.push({ date: dateStr, amount, desc, direction: 'deposito' });
+        saveGiro('libretto', dateStr, amount, '→ Libretto');
       }
       continue;
     }
