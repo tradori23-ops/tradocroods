@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260424-v145';
+  var BUILD = '20260424-v146';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5030,39 +5030,39 @@ function sendRegistrationEmails(userName, userEmail) {
       <div id="gtab-content-giri" style="display:none;">
 
         <!-- Hero header -->
-        <div style="background:linear-gradient(135deg,rgba(103,65,217,0.18) 0%,rgba(255,120,0,0.12) 100%);border:1px solid rgba(103,65,217,0.25);border-radius:20px;padding:22px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+        <div class="giri-hero-wrap" style="border-radius:20px;padding:22px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
           <div>
             <div style="font-size:22px;font-weight:800;font-family:'Playfair Display',serif;letter-spacing:-0.5px;margin-bottom:4px;">
               <span style="background:linear-gradient(90deg,#7b41e8,#ff7800);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">💸 Giri a Revolut & Satispay</span>
             </div>
             <div style="font-size:13px;color:var(--text-muted);">Bonifici rilevati automaticamente dai PDF bancari · si accumulano mese per mese</div>
           </div>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <div style="background:rgba(103,65,217,0.2);border:1px solid rgba(103,65,217,0.4);border-radius:10px;padding:8px 14px;text-align:center;">
-              <div style="font-size:10px;color:#a78bfa;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Revolut</div>
-              <div id="giriHeroRev" style="font-size:18px;font-weight:800;color:#c4b5fd;">—</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <div class="giri-badge-rev" style="border-radius:10px;padding:8px 14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Revolut</div>
+              <div id="giriHeroRev" style="font-size:18px;font-weight:800;">—</div>
             </div>
-            <div style="background:rgba(255,120,0,0.15);border:1px solid rgba(255,120,0,0.4);border-radius:10px;padding:8px 14px;text-align:center;">
-              <div style="font-size:10px;color:#fb923c;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Satispay</div>
-              <div id="giriHeroSat" style="font-size:18px;font-weight:800;color:#fdba74;">—</div>
+            <div class="giri-badge-sat" style="border-radius:10px;padding:8px 14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Satispay</div>
+              <div id="giriHeroSat" style="font-size:18px;font-weight:800;">—</div>
             </div>
-            <div style="background:rgba(74,144,232,0.18);border:1px solid rgba(74,144,232,0.4);border-radius:10px;padding:8px 14px;text-align:center;">
-              <div style="font-size:10px;color:#60a5fa;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Sella</div>
-              <div id="giriHeroSel" style="font-size:18px;font-weight:800;color:#93c5fd;">—</div>
+            <div class="giri-badge-sel" style="border-radius:10px;padding:8px 14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Sella</div>
+              <div id="giriHeroSel" style="font-size:18px;font-weight:800;">—</div>
             </div>
-            <div style="background:rgba(74,200,160,0.15);border:1px solid rgba(74,200,160,0.4);border-radius:10px;padding:8px 14px;text-align:center;">
-              <div style="font-size:10px;color:#34d399;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Libretto</div>
-              <div id="giriHeroLib" style="font-size:18px;font-weight:800;color:#6ee7b7;">—</div>
+            <div class="giri-badge-lib" style="border-radius:10px;padding:8px 14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Libretto</div>
+              <div id="giriHeroLib" style="font-size:18px;font-weight:800;">—</div>
             </div>
           </div>
         </div>
 
         <!-- Controlli periodo + anno -->
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
-          <div style="background:var(--dark3);border:1px solid var(--border);border-radius:12px;padding:4px;display:flex;gap:2px;">
-            <button id="giri-tab-week"  onclick="switchGiriPeriod('week')"  style="padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;background:linear-gradient(135deg,rgba(103,65,217,0.8),rgba(138,92,246,0.8));color:#fff;transition:all 0.2s;">📅 Settimane</button>
-            <button id="giri-tab-month" onclick="switchGiriPeriod('month')" style="padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;background:transparent;color:var(--text-muted);transition:all 0.2s;">📆 Mesi</button>
-            <button id="giri-tab-year"  onclick="switchGiriPeriod('year')"  style="padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;background:transparent;color:var(--text-muted);transition:all 0.2s;">📊 Annuale</button>
+          <div class="giri-pill-wrap">
+            <button id="giri-tab-week"  onclick="switchGiriPeriod('week')"  class="giri-period-btn giri-period-active" style="padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:all 0.2s;">📅 Settimane</button>
+            <button id="giri-tab-month" onclick="switchGiriPeriod('month')" class="giri-period-btn" style="padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:all 0.2s;">📆 Mesi</button>
+            <button id="giri-tab-year"  onclick="switchGiriPeriod('year')"  class="giri-period-btn" style="padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;transition:all 0.2s;">📊 Annuale</button>
           </div>
           <select id="giriYearSel" onchange="renderGiriChart()" style="background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-left:auto;"></select>
         </div>
@@ -9822,19 +9822,17 @@ function _applyGiriTabStyles(p) {
   ['week','month','year'].forEach(t => {
     const btn = document.getElementById('giri-tab-'+t);
     if(!btn) return;
-    if(t === p) {
-      btn.style.background = 'linear-gradient(135deg,rgba(103,65,217,0.85),rgba(138,92,246,0.85))';
-      btn.style.color = '#fff';
-      btn.style.boxShadow = '0 2px 12px rgba(103,65,217,0.4)';
-    } else {
-      btn.style.background = 'transparent';
-      btn.style.color = 'var(--text-muted)';
-      btn.style.boxShadow = 'none';
-    }
+    // Usa classList invece di inline styles — rispetta il tema via CSS
+    btn.classList.toggle('giri-period-active', t === p);
+    // Pulisci eventuali stili inline residui
+    btn.style.background = '';
+    btn.style.color = '';
+    btn.style.boxShadow = '';
   });
 }
 
 function switchGiriPeriod(p) {
+  if(currentGiriPeriod === p) return; // evita ri-render inutile
   currentGiriPeriod = p;
   _applyGiriTabStyles(p);
   renderGiriChart();
@@ -9889,41 +9887,50 @@ function renderGiriChart() {
   const avgLib = totLib / Math.max(libretto.length, 1);
   const totAll = totRev + totSat + totSel + totLib;
 
-  const kpiCard = (bg, border, accent, icon, label, val, sub1, sub2) =>
-    `<div style="background:${bg};border:1.5px solid ${border};border-radius:16px;padding:18px 20px;position:relative;overflow:hidden;">
-      <div style="position:absolute;top:12px;right:16px;font-size:28px;opacity:0.18;">${icon}</div>
-      <div style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:${accent};margin-bottom:8px;">${label}</div>
-      <div style="font-size:26px;font-weight:800;font-family:'Playfair Display',serif;color:${accent};margin-bottom:6px;">${val}</div>
+  // Opacità adattiva: in dark mode serve più opacità per essere visibili
+  const _lm = document.body.classList.contains('light');
+  const _o1 = _lm ? '0.07' : '0.22'; // background principale
+  const _o2 = _lm ? '0.30' : '0.55'; // bordo
+  // Testi accent in dark vs light
+  const _rev_acc = _lm ? '#5b21b6' : '#c4b5fd';
+  const _sat_acc = _lm ? '#c2410c' : '#fdba74';
+  const _sel_acc = _lm ? '#1d4ed8' : '#93c5fd';
+  const _lib_acc = _lm ? '#065f46' : '#6ee7b7';
+  const _tot_acc = _lm ? '#8a6500' : 'var(--gold)';
+
+  const kpiCard = (r,g,b, icon, label, val, sub1, sub2, acc) => {
+    const bg  = `rgba(${r},${g},${b},${_o1})`;
+    const brd = `rgba(${r},${g},${b},${_o2})`;
+    return `<div style="background:${bg};border:1.5px solid ${brd};border-radius:16px;padding:18px 20px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:12px;right:16px;font-size:28px;opacity:${_lm?'0.12':'0.22'};">${icon}</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:${acc};margin-bottom:8px;">${label}</div>
+      <div style="font-size:26px;font-weight:800;font-family:'Playfair Display',serif;color:${acc};margin-bottom:6px;">${val}</div>
       <div style="font-size:11px;color:var(--text-muted);">${sub1}</div>
       ${sub2?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${sub2}</div>`:''}
     </div>`;
+  };
 
   kpiEl.innerHTML =
-    kpiCard('rgba(103,65,217,0.12)','rgba(103,65,217,0.4)','#a78bfa','💜',
-      `Revolut ${curYear}`,
+    kpiCard(103,65,217,  '💜', `Revolut ${curYear}`,
       `€${totRev.toFixed(2).replace('.',',')}`,
       `${revolut.length} giri · media €${avgRev.toFixed(0)}/giro`,
-      revolut.length ? `Ultimo: ${revolut[revolut.length-1].date.split('-').reverse().join('/')}` : '') +
-    kpiCard('rgba(255,120,0,0.10)','rgba(255,120,0,0.4)','#fb923c','🟠',
-      `Satispay ${curYear}`,
+      revolut.length ? `Ultimo: ${revolut[revolut.length-1].date.split('-').reverse().join('/')}` : '', _rev_acc) +
+    kpiCard(255,120,0,   '🟠', `Satispay ${curYear}`,
       `€${totSat.toFixed(2).replace('.',',')}`,
       `${satispay.length} giri · media €${avgSat.toFixed(0)}/giro`,
-      satispay.length ? `Ultimo: ${satispay[satispay.length-1].date.split('-').reverse().join('/')}` : '') +
-    kpiCard('rgba(74,144,232,0.10)','rgba(74,144,232,0.35)','#60a5fa','🏦',
-      `Sella ${curYear}`,
+      satispay.length ? `Ultimo: ${satispay[satispay.length-1].date.split('-').reverse().join('/')}` : '', _sat_acc) +
+    kpiCard(74,144,232,  '🏦', `Sella ${curYear}`,
       `€${totSel.toFixed(2).replace('.',',')}`,
       `${sella.length} giri · media €${avgSel.toFixed(0)}/giro`,
-      sella.length ? `Ultimo: ${sella[sella.length-1].date.split('-').reverse().join('/')}` : '') +
-    kpiCard('rgba(74,200,160,0.10)','rgba(74,200,160,0.3)','#34d399','📗',
-      `Libretto ${curYear}`,
+      sella.length ? `Ultimo: ${sella[sella.length-1].date.split('-').reverse().join('/')}` : '', _sel_acc) +
+    kpiCard(74,200,160,  '📗', `Libretto ${curYear}`,
       `€${totLib.toFixed(2).replace('.',',')}`,
       `${libretto.length} giri · media €${avgLib.toFixed(0)}/giro`,
-      libretto.length ? `Ultimo: ${libretto[libretto.length-1].date.split('-').reverse().join('/')}` : '') +
-    kpiCard('rgba(201,168,76,0.10)','rgba(201,168,76,0.3)','var(--gold)','📊',
-      `Totale ${curYear}`,
+      libretto.length ? `Ultimo: ${libretto[libretto.length-1].date.split('-').reverse().join('/')}` : '', _lib_acc) +
+    kpiCard(201,168,76,  '📊', `Totale ${curYear}`,
       `€${totAll.toFixed(2).replace('.',',')}`,
       `${months} ${months===1?'mese':'mesi'} · ${giriYear.length} giri`,
-      `Media mensile: €${(totAll/months).toFixed(0)}`);
+      `Media mensile: €${(totAll/months).toFixed(0)}`, _tot_acc);
 
   // Build chart labels & datasets
   let labels = [], dataRev = [], dataSat = [];
@@ -21928,6 +21935,102 @@ body.light #weekDetailStats [style*="color:#a78bfa"] { color: #5b21b6 !important
 body.light #weekDetailStats [style*="color:var(--gold)"] { color: #8a6500 !important; }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
+
+/* ══ GIRI CONTI — Theme-aware hero & badges ══════════════════════════════ */
+
+/* Hero wrapper — dark mode */
+.giri-hero-wrap {
+  background: linear-gradient(135deg, rgba(103,65,217,0.22) 0%, rgba(255,120,0,0.16) 100%);
+  border: 1px solid rgba(103,65,217,0.35);
+}
+/* Hero wrapper — light mode */
+body.light .giri-hero-wrap {
+  background: linear-gradient(135deg, rgba(103,65,217,0.07) 0%, rgba(255,120,0,0.05) 100%) !important;
+  border-color: rgba(103,65,217,0.2) !important;
+}
+
+/* Badge Revolut */
+.giri-badge-rev {
+  background: rgba(103,65,217,0.28);
+  border: 1px solid rgba(103,65,217,0.55);
+}
+.giri-badge-rev > div:first-child { color: #c4b5fd; }
+.giri-badge-rev #giriHeroRev { color: #e9d5ff; }
+body.light .giri-badge-rev { background: rgba(103,65,217,0.08) !important; border-color: rgba(103,65,217,0.3) !important; }
+body.light .giri-badge-rev > div:first-child { color: #5b21b6 !important; }
+body.light .giri-badge-rev #giriHeroRev { color: #4c1d95 !important; }
+
+/* Badge Satispay */
+.giri-badge-sat {
+  background: rgba(255,120,0,0.25);
+  border: 1px solid rgba(255,120,0,0.5);
+}
+.giri-badge-sat > div:first-child { color: #fdba74; }
+.giri-badge-sat #giriHeroSat { color: #fed7aa; }
+body.light .giri-badge-sat { background: rgba(255,120,0,0.07) !important; border-color: rgba(255,120,0,0.3) !important; }
+body.light .giri-badge-sat > div:first-child { color: #c2410c !important; }
+body.light .giri-badge-sat #giriHeroSat { color: #9a3412 !important; }
+
+/* Badge Sella */
+.giri-badge-sel {
+  background: rgba(74,144,232,0.25);
+  border: 1px solid rgba(74,144,232,0.5);
+}
+.giri-badge-sel > div:first-child { color: #93c5fd; }
+.giri-badge-sel #giriHeroSel { color: #bfdbfe; }
+body.light .giri-badge-sel { background: rgba(74,144,232,0.07) !important; border-color: rgba(74,144,232,0.3) !important; }
+body.light .giri-badge-sel > div:first-child { color: #1d4ed8 !important; }
+body.light .giri-badge-sel #giriHeroSel { color: #1e3a8a !important; }
+
+/* Badge Libretto */
+.giri-badge-lib {
+  background: rgba(74,200,160,0.22);
+  border: 1px solid rgba(74,200,160,0.45);
+}
+.giri-badge-lib > div:first-child { color: #6ee7b7; }
+.giri-badge-lib #giriHeroLib { color: #a7f3d0; }
+body.light .giri-badge-lib { background: rgba(74,200,160,0.07) !important; border-color: rgba(74,200,160,0.3) !important; }
+body.light .giri-badge-lib > div:first-child { color: #065f46 !important; }
+body.light .giri-badge-lib #giriHeroLib { color: #064e3b !important; }
+
+/* Pill periodo — dark mode */
+#gtab-content-giri .giri-pill-wrap {
+  background: var(--dark3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+  display: flex;
+  gap: 2px;
+}
+/* ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Giri Conti pill selector ─────────────────────────────────── */
+.giri-pill-wrap {
+  background: var(--dark3);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 4px;
+  display: flex;
+  gap: 2px;
+}
+.giri-period-btn {
+  background: transparent;
+  color: var(--text-muted);
+}
+.giri-period-btn.giri-period-active,
+.giri-period-btn[data-active="true"] {
+  background: linear-gradient(135deg, rgba(103,65,217,0.85), rgba(138,92,246,0.85));
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(103,65,217,0.35);
+}
+body.light .giri-pill-wrap { background: #efeffa !important; border-color: rgba(201,168,76,0.35) !important; }
+body.light .giri-period-btn { color: #44446a !important; }
+body.light .giri-period-btn.giri-period-active,
+body.light .giri-period-btn[data-active="true"] {
+  background: linear-gradient(135deg, rgba(103,65,217,0.8), rgba(138,92,246,0.8)) !important;
+  color: #fff !important;
+}
+/* ─────────────────────────────────────────────────────────────── */
 </style>
 </head><body>
 <div class="ph">
