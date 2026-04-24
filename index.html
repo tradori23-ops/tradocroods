@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260424-v148';
+  var BUILD = '20260424-v150';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3693,7 +3693,7 @@ function sendRegistrationEmails(userName, userEmail) {
         <option value="9">Settembre</option><option value="10">Ottobre</option>
         <option value="11">Novembre</option><option value="12">Dicembre</option>
       </select>
-      <select id="globalYear" onchange="refreshAllDebounced(); syncGlobalToCal();">
+      <select id="globalYear" onchange="showYearWarning(); refreshAllDebounced(); syncGlobalToCal();">
       </select>
     </div>
 
@@ -8268,28 +8268,40 @@ function showSection(id, el) {
 function showYearWarning() {
   const selYear = parseInt(document.getElementById('globalYear').value);
   const nowYear = new Date().getFullYear();
-  let banner = document.getElementById('futureYearBanner');
-  if(!banner) {
-    banner = document.createElement('div');
-    banner.id = 'futureYearBanner';
-    banner.style.cssText = 'display:none;background:rgba(224,92,92,0.15);border:1px solid rgba(224,92,92,0.4);border-radius:12px;padding:12px 18px;margin-bottom:16px;font-size:13px;color:var(--red);font-weight:600;';
-    banner.innerHTML = '⛔ Hai selezionato un anno futuro. La visualizzazione è consentita ma non puoi aggiungere entrate o spese.';
-    const ms = document.querySelector('.month-selector');
-    if(ms) ms.insertAdjacentElement('afterend', banner);
+  if(selYear > nowYear) {
+    showToast('⛔ Anno ' + selYear + ' futuro — reindirizzato a Emergenza');
+    const navItem = document.querySelector('.nav-item[onclick*="emergenza"]');
+    showSection('emergenza', navItem);
+    // Ripristina anno corrente nel selettore
+    setTimeout(() => {
+      document.getElementById('globalYear').value = nowYear;
+      refreshAllDebounced();
+    }, 400);
+    return;
   }
-  banner.style.display = selYear > nowYear ? 'block' : 'none';
+  // Rimuovi banner vecchio se presente
+  const old = document.getElementById('futureYearBanner');
+  if(old) old.remove();
 }
 
 // ===== YEAR GUARD =====
-function isFutureYear() {
-  const selYear = parseInt(document.getElementById('globalYear').value);
-  const nowYear = new Date().getFullYear();
-  return selYear > nowYear;
+function isFutureYear(dateStr) {
+  // Controlla la data inserita se fornita, altrimenti usa globalYear
+  let checkYear;
+  if(dateStr) {
+    checkYear = parseInt((dateStr||'').substring(0,4));
+  } else {
+    checkYear = parseInt(document.getElementById('globalYear').value);
+  }
+  return checkYear > new Date().getFullYear();
 }
 
-function showFutureBlock() {
-  const yr = document.getElementById('globalYear').value;
-  alert('⛔ Non puoi aggiungere dati per il ' + yr + ': anno futuro!\nSeleziona anno corrente o passato.');
+function showFutureBlock(yr) {
+  const year = yr || document.getElementById('globalYear').value;
+  showToast('⛔ Anno ' + year + ' non ancora disponibile — reindirizzato a Emergenza');
+  // Reindirizza alla sezione emergenza
+  const navItem = document.querySelector('.nav-item[onclick*="emergenza"]');
+  showSection('emergenza', navItem);
 }
 
 // ===== FIXED =====
@@ -8570,7 +8582,8 @@ function getTotalFixedPaid() {
 
 // ===== INCOME =====
 function addIncome() {
-  if(isFutureYear()) { showFutureBlock(); return; }
+  const _incDate = document.getElementById('incDate')?.value;
+  if(isFutureYear(_incDate)) { showFutureBlock(_incDate?.substring(0,4)); return; }
   const type = document.getElementById('incomeType').value;
   const amount = parseFloat(document.getElementById('incomeAmount').value);
   const causale = document.getElementById('incomeCausale').value.trim()||'—';
@@ -9128,13 +9141,18 @@ function calcWeekOffsetForDate(targetDate) {
 }
 
 function addExpense() {
-  if(isFutureYear()) { showFutureBlock(); return; }
   const cat = document.getElementById('expCat').value;
   const amount = parseFloat(document.getElementById('expAmount').value);
   const desc = document.getElementById('expDesc').value.trim()||'—';
   const pay = document.getElementById('expPay').value;
   const date = document.getElementById('expDate').value;
-  if(!amount||amount<=0||!date) { alert('Compila importo e data.'); return; }
+  if(!amount||amount<=0||!date) { showToast('⚠️ Compila importo e data'); return; }
+  // Controlla anno della data inserita — se futuro → sezione Emergenza
+  if(isFutureYear(date)) {
+    const yr = date.substring(0,4);
+    showFutureBlock(yr);
+    return;
+  }
   const exp = getExpenses();
   exp.push({ id: Date.now(), cat, amount, desc, pay, date,
     source: pay==='satispay'?'satispay':pay==='tickets'?'tickets':pay==='bancomat'||pay==='bonifico'?'sella':'manuale'
@@ -17928,13 +17946,13 @@ function vsToggleAddIncomeCard() {
 }
 
 function vsAddIncomeCard() {
-  if(isFutureYear()) { showFutureBlock(); return; }
   const type   = document.getElementById('vs-inc-card-type').value;
   const amount = parseFloat(document.getElementById('vs-inc-card-amount').value);
   const causale = document.getElementById('vs-inc-card-causale').value.trim() || '—';
   const dateVal = document.getElementById('vs-inc-card-date').value;
   if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido'); return; }
   if(!dateVal) { showToast('⚠️ Seleziona una data'); return; }
+  if(isFutureYear(dateVal)) { showFutureBlock(dateVal.substring(0,4)); return; }
   const d       = new Date(dateVal + 'T12:00:00');
   const dateDisp = d.toLocaleDateString('it-IT');
   const inc = getIncome();
@@ -18147,13 +18165,13 @@ function getEmergenze() { return load('emergenze', []); }
 function saveEmergenze(d) { save('emergenze', d); }
 
 function addEmergenza() {
-  if(isFutureYear()) { showFutureBlock(); return; }
+  // La sezione Emergenza accetta anche anni futuri (è il punto di arrivo)
   const type = document.getElementById('emgType').value;
   const amount = parseFloat(document.getElementById('emgAmount').value);
   const desc = document.getElementById('emgDesc').value.trim()||'—';
   const pay = document.getElementById('emgPay').value;
   const date = document.getElementById('emgDate').value;
-  if(!amount||amount<=0||!date) { alert('Compila importo e data.'); return; }
+  if(!amount||amount<=0||!date) { showToast('⚠️ Compila importo e data'); return; }
   const emg = getEmergenze();
   emg.push({ id: Date.now(), type, amount, desc, pay, date, month: periodKey() });
   saveEmergenze(emg);
