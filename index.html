@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260424-v143';
+  var BUILD = '20260424-v145';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3754,12 +3754,12 @@ function sendRegistrationEmails(userName, userEmail) {
 
       <!-- ROW 2b: Saldo Conto Corrente -->
       <!-- SALDO BANCA: calcolato automaticamente + correzione manuale -->
-      <div id="dash-saldo-banca-row" style="background:var(--card);border-radius:18px;padding:18px 24px;margin-bottom:14px;border:2px solid rgba(74,144,232,0.35);">
+      <div id="dash-cc-banner" style="background:var(--card);border-radius:18px;padding:18px 24px;margin-bottom:14px;border:2px solid rgba(74,144,232,0.35);">
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;">
           <div style="flex:1;min-width:0;">
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">🏦 Saldo Reale Banca</div>
+            <div id="dash-cc-sub" style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:#4a90e8;margin-bottom:4px;">🏦 Saldo Reale Banca</div>
             <div style="font-size:11px;color:var(--text-muted);" id="dash-saldo-banca-sub">Calcolato automaticamente</div>
-            <div style="font-size:10px;color:var(--text-muted);margin-top:3px;" id="dash-saldo-banca-date">—</div>
+            <div style="font-size:10px;color:var(--text-muted);margin-top:3px;" id="saldo-banca-date">—</div>
           </div>
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
             <div style="text-align:right;">
@@ -9357,11 +9357,11 @@ function renderDashboard() {
       scales: {
         x: {
           ticks: { color: tc, font: { size: 10 }, maxTicksLimit: 10 },
-          grid: { color: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)' }
+          grid: { color: isLight ? 'rgba(0,0,0,0.05)' : document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)' }
         },
         y: {
           ticks: { color: tc, font: { size: 10 }, callback: v => '€'+v },
-          grid: { color: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)' },
+          grid: { color: isLight ? 'rgba(0,0,0,0.05)' : document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)' },
           beginAtZero: true,
         }
       }
@@ -10022,7 +10022,7 @@ function renderGiriChart() {
     options: {
       animation: false, responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { labels: { color: '#e0e0e0', font: { family: 'DM Sans', size: 12 } } },
+        legend: { labels: { color: chartTextColor(), font: { family: 'DM Sans', size: 12 } } },
         tooltip: {
           callbacks: {
             label: ctx => ` €${ctx.parsed.y.toFixed(2)}`
@@ -10030,8 +10030,8 @@ function renderGiriChart() {
         }
       },
       scales: {
-        x: { stacked: false, ticks: { color: '#aaa' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-        y: { ticks: { color: '#aaa', callback: v => '€'+v }, grid: { color: 'rgba(255,255,255,0.05)' } }
+        x: { stacked: false, ticks: { color: chartMutedColor() }, grid: { color: document.body.classList.contains('light')?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color: chartMutedColor(), callback: v => '€'+v }, grid: { color: document.body.classList.contains('light')?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)' } }
       }
     }
   });
@@ -10106,7 +10106,7 @@ function renderTrendChart() {
   const activeCats = [...new Set([...acA, ...acB])];
 
   const isLight = document.body.classList.contains('light');
-  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)';
+  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const textColor = isLight ? '#444' : 'rgba(255,255,255,0.6)';
 
   if(trendChartInst) trendChartInst.destroy();
@@ -10192,8 +10192,6 @@ function renderTrendChart() {
 let currentGraphTab = 'cat';
 let currentPdfSource = 'all';
 let pdfChartInst = null;
-let lib2ChartInst = null;
-let currentLib2View = 'bar';
 
 function switchGraphTab(tab) {
   currentGraphTab = tab;
@@ -10213,13 +10211,10 @@ function switchGraphTab(tab) {
   }, 50);
 }
 
-function switchLib2View(v) {
-  currentLib2View = v;
-  ['bar','count'].forEach(t => document.getElementById('lib2-view-'+t)?.classList.toggle('active', t===v));
-  renderLib2Chart();
-}
+function switchLib2View(v) { /* tab rimosso */ }
 
 function renderLib2Chart() {
+  if(!document.getElementById('lib2Chart')) return; // tab rimosso
   const all = getLibrietto();
   const yrSel = document.getElementById('lib2YearSel');
 
@@ -10259,7 +10254,7 @@ function renderLib2Chart() {
   }
 
   const isLight = document.body.classList.contains('light');
-  const gridColor = isLight?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.07)';
+  const gridColor = isLight?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const textColor = isLight?'#444':'rgba(255,255,255,0.6)';
   const useCount = currentLib2View==='count';
 
@@ -10365,7 +10360,7 @@ function renderPdfChart() {
 
   // Grafico
   const isLight = document.body.classList.contains('light');
-  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)';
+  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const textColor = isLight ? '#444' : 'rgba(255,255,255,0.6)';
 
   const activeSources = currentPdfSource==='all' ? sources : [currentPdfSource];
@@ -10539,7 +10534,7 @@ function renderLibChart() {
   });
 
   const isLight = document.body.classList.contains('light');
-  const gridColor = isLight?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.07)';
+  const gridColor = isLight?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const textColor = isLight?'#444':'rgba(255,255,255,0.6)';
 
   const useCount = currentLibView==='count';
@@ -10723,7 +10718,7 @@ function renderSaluteChart() {
   const allExp = [...psico, ...riab].sort((a,b)=>(a.date||'').localeCompare(b.date||''));
 
   const isLight = document.body.classList.contains('light');
-  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)';
+  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const textColor = isLight ? '#444' : 'rgba(255,255,255,0.6)';
 
   const totPsico = psico.reduce((s,e)=>s+e.amount,0);
@@ -11011,7 +11006,7 @@ function renderCatChart(cat) {
   const allExp = getExpenses().filter(e => e.cat === cat);
   const color  = CAT_COLORS[cat]?.line || '#c9a84c';
   const fill   = CAT_COLORS[cat]?.fill || 'rgba(201,168,76,0.12)';
-  const gridColor = document.body.classList.contains('light') ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.05)';
+  const gridColor = document.body.classList.contains('light') ? 'rgba(0,0,0,0.07)' : document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
 
   // Build weekly buckets: key = "YYYY-Www"
   const weekBuckets = {};
@@ -11394,7 +11389,7 @@ function renderCatFreqChart(cat) {
   const color    = CAT_COLORS[cat]?.line || '#c9a84c';
   const fill     = CAT_COLORS[cat]?.fill || 'rgba(201,168,76,0.12)';
   const isLight  = document.body.classList.contains('light');
-  const gc       = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)';
+  const gc       = isLight ? 'rgba(0,0,0,0.07)' : document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const tc       = isLight ? '#444' : 'rgba(255,255,255,0.6)';
 
   const counts   = [0,0,0,0,0,0,0];
@@ -11470,7 +11465,7 @@ function renderWeekChart() {
   const mode = document.getElementById('weekChartMode').value;
   const catFilter = document.getElementById('weekChartCat').value;
   const payFilter = document.getElementById('weekChartPay')?.value || 'all';
-  const gridColor = document.body.classList.contains('light') ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.05)';
+  const gridColor = document.body.classList.contains('light') ? 'rgba(0,0,0,0.07)' : document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   let exp = getExpenses();
   if(catFilter !== 'all') exp = exp.filter(e=>e.cat===catFilter);
   if(payFilter !== 'all') exp = exp.filter(e=>e.pay===payFilter);
@@ -11581,7 +11576,7 @@ function renderYearChart() {
   const yr2   = yr2El?.value ? parseInt(yr2El.value) : null;
 
   const isLight  = document.body.classList.contains('light');
-  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.05)';
+  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const MESI_S = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
 
   // ── Carica tutti i dati di un anno ──
@@ -11744,7 +11739,7 @@ function renderBudgetWeekTable() {
     const amt = getBudgetForWeek(w.num);
     const dateLabel = `${w.start.getDate()} ${MESI[w.start.getMonth()]} – ${w.end.getDate()} ${MESI[w.end.getMonth()]}`;
     const hasB = amt !== null;
-    return `<div style="display:flex;align-items:center;gap:12px;background:var(--dark3);border-radius:12px;padding:12px 16px;border:1.5px solid ${hasB?'rgba(201,168,76,0.4)':'rgba(255,255,255,0.07)'};">
+    return `<div style="display:flex;align-items:center;gap:12px;background:var(--dark3);border-radius:12px;padding:12px 16px;border:1.5px solid ${hasB?'rgba(201,168,76,0.4)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)'};">
       <div style="min-width:140px;">
         <div style="font-size:13px;font-weight:700;color:var(--text);">Sett. ${w.num}</div>
         <div style="font-size:11px;color:var(--text-muted);">${dateLabel}</div>
@@ -11932,7 +11927,7 @@ function renderBudgetChart() {
   });
 
   const isLight = document.body.classList.contains('light');
-  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)';
+  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const textColor = isLight ? '#444' : 'rgba(255,255,255,0.6)';
 
   if(budgetChartInst) budgetChartInst.destroy();
@@ -16754,7 +16749,7 @@ function vsRenderDayDetailList(ds) {
       ? '<span style="background:rgba(255,92,92,0.12);color:#e05c8a;border-radius:5px;padding:2px 6px;font-size:10px;">📌 Spesa Fissa</span>'
       : '';
     const excludeReason = excluded ? vsExcludeReason(e) : '';
-    return `<div style="background:var(--dark3);border:1px solid ${excluded?'rgba(255,255,255,0.05)':'var(--border)'};border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;${excluded?'opacity:0.55;':''}">
+    return `<div style="background:var(--dark3);border:1px solid ${excluded?document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)':'var(--border)'};border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;${excluded?'opacity:0.55;':''}">
       <div style="font-size:18px;width:24px;text-align:center;">${CAT_ICONS[e.cat]||'💰'}</div>
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${e.desc==='—'?e.cat:e.desc}</div>
@@ -16909,7 +16904,7 @@ function renderVSCatChart() {
   const _weekRef   = _weekDates[3]; // giovedì = centro settimana
   const yr = (scope === 'month') ? _weekRef.getFullYear() : parseInt(document.getElementById('globalYear').value);
   const mo = (scope === 'month') ? (_weekRef.getMonth()+1)  : parseInt(document.getElementById('globalMonth').value);
-  const gc = document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
+  const gc = document.body.classList.contains('light')?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const cats   = ['ristorante','bar','viaggi','hotel','svago','musei','extra','supermercato'];
   const colors = ['#c9a84c','#7b5ea7','#4caf82','#e05c8a','#50a0dc','#e0785c','#96dc64','#dc64dc'];
 
@@ -16991,7 +16986,7 @@ function renderVSPayChart() {
   const _ref = _wd[3];
   const yr   = _ref.getFullYear();
   const mo   = _ref.getMonth()+1;
-  const gc = document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
+  const gc = document.body.classList.contains('light')?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
 
   // Ultimi 8 mesi centrati sul mese della settimana selezionata
   const months=[];
@@ -17082,7 +17077,7 @@ function renderVSTrend() {
   const { datasets: dsB } = buildCatDatasets(datesB, expB, cats, 'B', true);
 
   const isLight = document.body.classList.contains('light');
-  const gc = isLight?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.07)';
+  const gc = isLight?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const tc = isLight?'#444':'rgba(255,255,255,0.6)';
 
   const allDs = [...dsA,...dsB];
@@ -17176,7 +17171,7 @@ function renderVSWeekChart() {
   requestAnimationFrame(() => {
   const dates  = getWeekDates(vsWeekOffset);
   const exp    = vsLoadDates(dates);
-  const gc     = document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
+  const gc     = document.body.classList.contains('light')?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const isLight= document.body.classList.contains('light');
 
   // Per ogni giorno: totale importo + lista spese
@@ -17308,7 +17303,7 @@ function renderVSAnnual() {
   if(d2) datasets.push(mkDs(yr2,d2,'#7ecfff','rgba(126,207,255,0.1)',[5,4]));
   if(d3) datasets.push(mkDs(yr3,d3,'#a78bfa','rgba(167,139,250,0.1)',[2,3]));
 
-  const gc = document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
+  const gc = document.body.classList.contains('light')?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)';
   const isLight = document.body.classList.contains('light');
   if(vsAnnualChartInst) vsAnnualChartInst.destroy();
   vsAnnualChartInst = new Chart(document.getElementById('vsAnnualChart').getContext('2d'),{
@@ -18103,8 +18098,8 @@ function renderDashCatChart(yr, mo) {
         tooltip: { callbacks: { label: ctx => ' €'+ctx.parsed.x.toFixed(2).replace('.',',') } }
       },
       scales: {
-        x: { ticks: { color:'#aaa', font:{size:11}, callback: v => '€'+v }, grid: { color:'rgba(255,255,255,0.05)' } },
-        y: { ticks: { color:'#ccc', font:{size:11} }, grid: { display: false } }
+        x: { ticks: { color: chartMutedColor(), font:{size:11}, callback: v => '€'+v }, grid: { color: document.body.classList.contains('light')?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)' } },
+        y: { ticks: { color:chartMutedColor(), font:{size:11} }, grid: { display: false } }
       }
     }
   });
@@ -19507,7 +19502,7 @@ const BUDGET_CATS = [
   { key: 'ristorante',   label: '🍽️ Ristorante',          icon: '🍽️', pct: 20, color: '#ff8c5a' },
   { key: 'trasporti',    label: '🚗 Trasporti',           icon: '🚗', pct: 15, color: '#4a90e8' },
   { key: 'viaggi',       label: '✈️ Viaggi',              icon: '✈️', pct: 15, color: '#a78bfa' },
-  { key: 'altro',        label: '📦 Altro',               icon: '📦', pct: 8,  color: '#888' },
+  { key: 'altro',        label: '📦 Altro',               icon: '📦', pct: 8,  color: '#666' },
 ];
 
 // Parole chiave per classificare le spese per categoria
@@ -19675,8 +19670,8 @@ function renderBudgetTrendChart() {
           tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': €' + (ctx.parsed.y||0).toFixed(2).replace('.',',') } }
         },
         scales: {
-          x: { stacked: true, grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'rgba(255,255,255,0.55)',font:{size:11}} },
-          y: { stacked: true, grid:{color:'rgba(255,255,255,0.05)'}, ticks:{color:'rgba(255,255,255,0.55)',font:{size:11},callback:v=>'€'+v} }
+          x: { stacked: true, grid: { color: document.body.classList.contains('light')?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)'}, ticks:{color:'rgba(255,255,255,0.55)',font:{size:11}} },
+          y: { stacked: true, grid: { color: document.body.classList.contains('light')?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)'}, ticks:{color:'rgba(255,255,255,0.55)',font:{size:11},callback:v=>'€'+v} }
         }
       }
     });
@@ -19716,8 +19711,8 @@ function renderBudgetTrendChart() {
           tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': €'+(ctx.parsed.y||0).toFixed(2).replace('.',',')}}
         },
         scales: {
-          x:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'rgba(255,255,255,0.55)',font:{size:11}}},
-          y:{grid:{color:'rgba(255,255,255,0.05)'},ticks:{color:'rgba(255,255,255,0.55)',font:{size:11},callback:v=>'€'+v}}
+          x:{grid: { color: document.body.classList.contains('light')?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)'},ticks:{color:'rgba(255,255,255,0.55)',font:{size:11}}},
+          y:{grid: { color: document.body.classList.contains('light')?'rgba(0,0,0,0.07)':document.body.classList.contains('light')?'rgba(0,0,0,0.07)':'rgba(255,255,255,0.05)'},ticks:{color:'rgba(255,255,255,0.55)',font:{size:11},callback:v=>'€'+v}}
         }
       }
     });
@@ -20033,9 +20028,10 @@ function renderDashCCBanner() {
   const banner = document.getElementById('dash-cc-banner');
   if(!banner) return;
   const saldoIniz = getCCSaldoIniziale();
-  const saldoEl   = document.getElementById('dash-cc-saldo');
+  // Usa gli ID reali del DOM (alias per compatibilità)
+  const saldoEl   = document.getElementById('dash-saldo-banca-val');
   const subEl     = document.getElementById('dash-cc-sub');
-  const dataEl    = document.getElementById('dash-cc-data');
+  const dataEl    = document.getElementById('saldo-banca-date');
   if(!saldoIniz) {
     if(saldoEl) { saldoEl.textContent = '—'; saldoEl.style.color = 'var(--text-muted)'; }
     if(dataEl)  dataEl.textContent = 'Vai a Conto Corrente per impostare il saldo →';
@@ -21665,6 +21661,273 @@ function printDetailModal(modalId) {
     padding: 4px 10px !important;
   }
 }
+
+/* ══ GIRI CONTI — Modalità Giorno ═══════════════════════════════════════ */
+body.light #gtab-content-giri [style*="linear-gradient(135deg,rgba(103,65,217"] {
+  background: linear-gradient(135deg,rgba(103,65,217,0.08) 0%,rgba(255,120,0,0.06) 100%) !important;
+  border-color: rgba(103,65,217,0.2) !important;
+}
+
+/* Hero title gradient */
+body.light #gtab-content-giri span[style*="-webkit-text-fill-color:transparent"] {
+  background: linear-gradient(90deg,#5b21b6,#c2410c) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+}
+
+/* Hero subtitle */
+body.light #gtab-content-giri [style*="font-size:13px;color:var(--text-muted)"] {
+  color: #44446a !important;
+}
+
+/* Hero badges */
+body.light #gtab-content-giri [style*="rgba(103,65,217,0.2)"] {
+  background: rgba(103,65,217,0.08) !important;
+  border-color: rgba(103,65,217,0.3) !important;
+}
+body.light #gtab-content-giri [style*="rgba(255,120,0,0.15)"] {
+  background: rgba(255,120,0,0.07) !important;
+  border-color: rgba(255,120,0,0.3) !important;
+}
+body.light #gtab-content-giri [style*="rgba(74,144,232,0.18)"] {
+  background: rgba(74,144,232,0.08) !important;
+  border-color: rgba(74,144,232,0.3) !important;
+}
+body.light #gtab-content-giri [style*="rgba(74,200,160,0.15)"] {
+  background: rgba(74,200,160,0.07) !important;
+  border-color: rgba(74,200,160,0.3) !important;
+}
+
+/* Hero badge labels e valori */
+body.light #giriHeroRev { color: #5b21b6 !important; }
+body.light #giriHeroSat { color: #c2410c !important; }
+body.light #giriHeroSel { color: #1d4ed8 !important; }
+body.light #giriHeroLib { color: #065f46 !important; }
+
+/* Pill selector periodo */
+body.light #gtab-content-giri [style*="background:var(--dark3)"][style*="border-radius:12px"] {
+  background: #efeffa !important;
+  border-color: rgba(201,168,76,0.4) !important;
+}
+
+/* KPI cards */
+body.light #giriKpi > div[style*="rgba(103,65,217"] {
+  background: rgba(103,65,217,0.06) !important;
+  border-color: rgba(103,65,217,0.25) !important;
+}
+body.light #giriKpi > div[style*="rgba(255,120,0"] {
+  background: rgba(255,120,0,0.05) !important;
+  border-color: rgba(255,120,0,0.25) !important;
+}
+body.light #giriKpi > div[style*="rgba(74,144,232"] {
+  background: rgba(74,144,232,0.06) !important;
+  border-color: rgba(74,144,232,0.25) !important;
+}
+body.light #giriKpi > div[style*="rgba(74,200,160"] {
+  background: rgba(74,200,160,0.05) !important;
+  border-color: rgba(74,200,160,0.25) !important;
+}
+body.light #giriKpi > div[style*="rgba(201,168,76"] {
+  background: rgba(201,168,76,0.07) !important;
+}
+
+/* KPI valori principali */
+body.light #giriKpi [style*="color:#a78bfa"] { color: #5b21b6 !important; }
+body.light #giriKpi [style*="color:#fb923c"] { color: #c2410c !important; }
+body.light #giriKpi [style*="color:#60a5fa"] { color: #1d4ed8 !important; }
+body.light #giriKpi [style*="color:#34d399"] { color: #065f46 !important; }
+
+/* KPI icone di sfondo */
+body.light #giriKpi [style*="opacity:0.18"] { opacity: 0.06 !important; }
+
+/* Wrapper grafico */
+body.light #gtab-content-giri [style*="background:var(--dark3)"][style*="border-radius:18px"] {
+  background: #f5f4fc !important;
+  border-color: rgba(201,168,76,0.3) !important;
+}
+
+/* Lista transazioni — righe Revolut */
+body.light #giriList [style*="rgba(103,65,217,0.08)"] {
+  background: rgba(103,65,217,0.05) !important;
+  border-color: rgba(103,65,217,0.2) !important;
+}
+/* righe Satispay */
+body.light #giriList [style*="rgba(255,120,0,0.07)"] {
+  background: rgba(255,120,0,0.04) !important;
+  border-color: rgba(255,120,0,0.2) !important;
+}
+/* righe Sella */
+body.light #giriList [style*="rgba(74,144,232,0.08)"] {
+  background: rgba(74,144,232,0.05) !important;
+  border-color: rgba(74,144,232,0.2) !important;
+}
+/* righe Libretto */
+body.light #giriList [style*="rgba(74,200,160,0.07)"] {
+  background: rgba(74,200,160,0.05) !important;
+  border-color: rgba(74,200,160,0.2) !important;
+}
+
+/* Lista: colori accento in modalità giorno */
+body.light #giriList [style*="color:#a78bfa"] { color: #5b21b6 !important; }
+body.light #giriList [style*="color:#fb923c"] { color: #c2410c !important; }
+body.light #giriList [style*="color:#60a5fa"] { color: #1d4ed8 !important; }
+body.light #giriList [style*="color:#34d399"] { color: #065f46 !important; }
+
+/* Intestazioni mese */
+body.light #giriList [style*="color:var(--text)"] { color: #111122 !important; }
+body.light #giriList [style*="color:var(--text-muted)"] { color: #44446a !important; }
+
+/* Empty state */
+body.light #giriList [style*="border:1px dashed var(--border)"] {
+  background: #f5f4fc !important;
+  border-color: rgba(201,168,76,0.35) !important;
+}
+/* ══════════════════════════════════════════════════════════════════════ */
+
+/* ── Input e select inline con background var(--dark3) ── */
+body.light select,
+body.light textarea,
+body.light input[type="number"],
+body.light input[type="text"],
+body.light input[type="date"],
+body.light input[type="email"],
+body.light input[type="password"] {
+  background: #ffffff !important;
+  color: #111122 !important;
+  border-color: rgba(201,168,76,0.4) !important;
+}
+body.light select option { background: #ffffff; color: #111122; }
+/* Select nei grafici */
+body.light .graph-tab { background: #f0eefc; color: #2a2a4a; border-color: rgba(201,168,76,0.35); }
+body.light .graph-tab.active { background: #c9a84c; color: #111; border-color: #c9a84c; }
+body.light .graph-tab:hover { background: #e0ddf5; }
+/* week/budget/year chart controls */
+body.light #yearChartYear, body.light #yearChartYear2, body.light #yearChartMode,
+body.light #weekChartMode, body.light #weekChartCat, body.light #weekChartPay,
+body.light #giriYearSel, body.light #pdfYearSel, body.light #saluteYearSel {
+  background: #fff !important; color: #111122 !important;
+  border-color: rgba(201,168,76,0.4) !important;
+}
+/* Textarea note settimana */
+body.light #weekNoteText {
+  background: #fff !important; color: #111122 !important;
+}
+/* Salvadanaio modal inputs */
+body.light #salvModal input, body.light #salvModal select {
+  background: #fff !important; color: #111122 !important;
+}
+/* Preview salvadanaio in light mode */
+body.light #salvPreview {
+  background: rgba(201,168,76,0.06) !important;
+  border-color: rgba(201,168,76,0.25) !important;
+  color: #111122 !important;
+}
+body.light #salvPreview [style*="color:var(--text-muted)"] { color: #44446a !important; }
+body.light #salvPreview [style*="color:var(--gold)"] { color: #8a6500 !important; }
+body.light #salvPreview [style*="color:#4ab8e8"] { color: #1d4ed8 !important; }
+body.light #salvPreview [style*="color:#4ae87a"] { color: #065f46 !important; }
+/* Rata modal */
+body.light #editRataModal { background: #f5f4fc !important; border-color: rgba(201,168,76,0.3) !important; }
+
+/* ── Privacy Blur Modal light mode ── */
+body.light .priv-box,
+body.light #privacyModal .priv-box {
+  background: #ffffff !important;
+  border-color: rgba(201,168,76,0.4) !important;
+  color: #111122 !important;
+}
+body.light #privacyPwdInput {
+  background: #f5f4fc !important;
+  color: #111122 !important;
+  border-color: rgba(201,168,76,0.45) !important;
+}
+body.light .section-blur-overlay .blur-label { color: #111122 !important; }
+
+/* ══ LIGHT MODE — fix aggiuntivi v144 ══════════════════════════════════════ */
+
+/* Dashboard card SALDO BANCA */
+body.light #dash-cc-banner {
+  background: #ffffff !important;
+  border-color: rgba(74,144,232,0.4) !important;
+}
+body.light #dash-cc-sub { color: #1d4ed8 !important; }
+body.light #dash-saldo-banca-val { color: #111122 !important; }
+body.light #saldo-banca-date, body.light #dash-saldo-banca-sub { color: #44446a !important; }
+
+/* Conto Corrente card */
+body.light #sec-contocorrente [style*="rgba(255,255,255,0.04)"],
+body.light #sec-contocorrente [style*="rgba(255,255,255,0.06)"],
+body.light #sec-contocorrente [style*="rgba(255,255,255,0.08)"] {
+  background: rgba(0,0,0,0.03) !important;
+}
+body.light #sec-contocorrente [style*="color:#4ae87a"] { color: #065f46 !important; }
+body.light #sec-contocorrente [style*="color:#e05c5c"] { color: #991b1b !important; }
+body.light #sec-contocorrente [style*="color:#4a90e8"] { color: #1d4ed8 !important; }
+body.light #cc-saldo-reale-banca-card { background: #f0fdf4 !important; border-color: rgba(74,200,160,0.5) !important; }
+body.light #cc-saldo-reale-val { color: #065f46 !important; }
+
+/* Rata/Finanziamenti card */
+body.light .rata-card, body.light [id^="rataItem"] {
+  background: #f8f8ff !important;
+  border-color: rgba(201,168,76,0.3) !important;
+}
+body.light .rata-info span { color: #2a2a4a !important; }
+body.light .progress-bar-bg { background: rgba(0,0,0,0.08) !important; }
+
+/* Salvadanaio cards */
+body.light #salvadanaiList > div {
+  background: #f8f8ff !important;
+  border-color: rgba(201,168,76,0.2) !important;
+}
+body.light #salvadanaiList [style*="rgba(255,255,255,0.04)"] { background: rgba(0,0,0,0.03) !important; }
+body.light #salvadanaiList [style*="rgba(255,255,255,0.03)"] { background: rgba(0,0,0,0.025) !important; }
+body.light #salvadanaiList [style*="rgba(255,255,255,0.06)"] { background: rgba(0,0,0,0.04) !important; }
+
+/* Modal generico */
+body.light .modal {
+  background: #ffffff !important;
+  border-color: rgba(201,168,76,0.3) !important;
+  color: #111122 !important;
+}
+body.light .modal h3, body.light .modal h2 { color: #8a6500 !important; }
+
+/* Sezione entrate */
+body.light #sec-entrate [style*="rgba(255,255,255,0.04)"],
+body.light #sec-entrate [style*="rgba(255,255,255,0.06)"] { background: rgba(0,0,0,0.03) !important; }
+
+/* Sezione Aggiungi Spesa */
+body.light #sec-aggiungiSpesa { background: var(--dark) !important; }
+body.light #budgetWeekTable > div {
+  background: #f0f0fa !important;
+  border-color: rgba(201,168,76,0.3) !important;
+}
+body.light #budgetWeekTable input {
+  background: #ffffff !important;
+  color: #111122 !important;
+}
+
+/* Promemoria */
+body.light .reminder-item [style*="rgba(255,255,255"] { background: rgba(0,0,0,0.03) !important; }
+
+/* Sezione Spese (vista spese) */
+body.light #sec-vistaSpese [style*="rgba(255,255,255,0.0"] { background: rgba(0,0,0,0.03) !important; }
+body.light .expense-row { background: #f8f8ff !important; }
+body.light .expense-row:hover { background: #f0f0fa !important; }
+
+/* Graph tab buttons */
+body.light #sec-grafici select,
+body.light #sec-grafici input { background: #ffffff !important; color: #111122 !important; }
+body.light #sec-grafici [style*="background:var(--dark3)"] { background: #f0f0fa !important; }
+
+/* Settimana — modal dettaglio giorno */
+body.light #weekDetailModal { background: #ffffff !important; color: #111122 !important; }
+body.light #weekDetailStats > div { background: #f0f0fa !important; }
+body.light #weekDetailStats [style*="color:#4ae87a"] { color: #065f46 !important; }
+body.light #weekDetailStats [style*="color:#4ab8e8"] { color: #1d4ed8 !important; }
+body.light #weekDetailStats [style*="color:#a78bfa"] { color: #5b21b6 !important; }
+body.light #weekDetailStats [style*="color:var(--gold)"] { color: #8a6500 !important; }
+
+/* ══════════════════════════════════════════════════════════════════════════ */
 </style>
 </head><body>
 <div class="ph">
