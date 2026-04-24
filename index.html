@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260418-v133';
+  var BUILD = '20260424-v135';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -1100,10 +1100,18 @@ body.light .stat-mini .s-label { color:#44446a; }
 .topbar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-  gap: 14px;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: nowrap;
+  min-height: 48px;
+}
+
+/* Titolo + occhio: cresce al centro */
+.topbar > div:has(#pageTitle) {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .page-title {
@@ -1112,19 +1120,54 @@ body.light .stat-mini .s-label { color:#44446a; }
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.5px;
+  white-space: nowrap;
+}
+
+/* Spacer flessibile tra titolo e bottoni */
+.topbar > div:has(#pageTitle) + .topbar-actions::before {
+  content: '';
+  flex: 1;
 }
 
 .topbar-desktop-only { display: none !important; }
 .topbar-more-btn { display: flex !important; }
+
 @media (min-width: 768px) {
   .topbar-desktop-only { display: inline-flex !important; }
   .topbar-more-btn { display: none !important; }
   #topbarMobileMenu { display: none !important; }
 }
+
 .topbar-actions {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+  margin-left: auto; /* spinge le actions a destra */
+}
+
+/* Desktop: bottoni compatti con solo emoji + testo corto */
+@media (min-width: 768px) {
+  .topbar-actions .btn,
+  .topbar-actions .theme-toggle {
+    padding: 7px 11px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .topbar-actions .btn-txt { font-size: 12px; }
+  .page-title { font-size: 24px; }
+}
+
+/* Schermi medi (768–1100px): nasconde testo, solo emoji */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .topbar-actions .btn-txt,
+  .topbar-actions .theme-toggle .btn-txt { display: none !important; }
+  .topbar-actions .btn,
+  .topbar-actions .theme-toggle {
+    min-width: 36px;
+    padding: 7px 9px;
+  }
 }
 
 .btn {
@@ -3597,24 +3640,24 @@ function sendRegistrationEmails(userName, userEmail) {
     <!-- TOPBAR -->
     <div class="topbar">
       <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
-      <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
         <h1 class="page-title" id="pageTitle" style="margin:0;">Dashboard</h1>
         <button id="privacyEyeBtn" onclick="togglePrivacyBlur()" title="Nascondi/mostra sezione">👁️</button>
       </div>
-      <div class="topbar-actions">
+      <div class="topbar-actions" style="margin-left:auto;">
         <!-- Bottoni sempre visibili -->
         <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn"><span class="btn-emoji">🌙</span><span class="btn-txt"> Notte</span></button>
         <button class="btn btn-green" onclick="lockScreen()"><span class="btn-emoji">🔒</span><span class="btn-txt"> Blocca</span></button>
-        <button class="btn btn-outline topbar-desktop-only" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sincronizza</span></button>
+        <button class="btn btn-outline topbar-desktop-only" onclick="sincronizzaOra()"><span class="btn-emoji">🔄</span><span class="btn-txt"> Sync</span></button>
         <button class="btn btn-danger topbar-desktop-only" onclick="esci()"><span class="btn-emoji">🚪</span><span class="btn-txt"> Esci</span></button>
         <!-- Bottone ⋯ menu per le azioni extra (visibile solo su mobile) -->
         <button class="btn btn-outline topbar-more-btn" onclick="toggleTopbarMenu()" style="border-color:rgba(201,168,76,0.4);color:var(--gold);font-size:18px;padding:6px 12px;" title="Altre azioni">⋯</button>
         <!-- Bottoni nascosti su mobile, visibili su desktop -->
-        <button id="installAppBtn" class="btn btn-outline topbar-desktop-only" onclick="handleInstallClick()" style="border-color:rgba(201,168,76,0.5);color:var(--gold);"><span class="btn-emoji">📲</span><span class="btn-txt"> Installa App</span></button>
+        <button id="installAppBtn" class="btn btn-outline topbar-desktop-only" onclick="handleInstallClick()" style="border-color:rgba(201,168,76,0.5);color:var(--gold);"><span class="btn-emoji">📲</span><span class="btn-txt"> Installa</span></button>
         <button class="btn btn-outline topbar-desktop-only" onclick="printPage()"><span class="btn-emoji">🖨️</span><span class="btn-txt"> Stampa</span></button>
-        <button class="btn btn-danger topbar-desktop-only" onclick="resetMonth()"><span class="btn-emoji">♻️</span><span class="btn-txt"> Reset Mese</span></button>
-        <button class="btn btn-danger topbar-desktop-only" onclick="resetYear()" style="background:linear-gradient(135deg,#7b2d2d,#5a1a1a);border-color:#8b3a3a;"><span class="btn-emoji">🗑️</span><span class="btn-txt"> Reset Anno</span></button>
-        <button class="btn btn-outline topbar-desktop-only" onclick="cambiaUtente()"><span class="btn-emoji">👤</span><span class="btn-txt"> Cambia Utente</span></button>
+        <button class="btn btn-danger topbar-desktop-only" onclick="resetMonth()"><span class="btn-emoji">♻️</span><span class="btn-txt"> Reset</span></button>
+        <button class="btn btn-danger topbar-desktop-only" onclick="resetYear()" style="background:linear-gradient(135deg,#7b2d2d,#5a1a1a);border-color:#8b3a3a;"><span class="btn-emoji">🗑️</span><span class="btn-txt"> Anno</span></button>
+        <button class="btn btn-outline topbar-desktop-only" onclick="cambiaUtente()"><span class="btn-emoji">👤</span><span class="btn-txt"> Utente</span></button>
       </div>
     </div>
 
@@ -11364,9 +11407,19 @@ function getBudgetKeyForWeek(yr, mo, weekIdx) {
   return `budget_${yr}_${mo}_${weekIdx}`;
 }
 
+function _budgetYrMo() {
+  // Fallback sicuro se i select non sono ancora nel DOM
+  const now = new Date();
+  const yrEl = document.getElementById('globalYear');
+  const moEl = document.getElementById('globalMonth');
+  const yr = yrEl?.value ? parseInt(yrEl.value) : now.getFullYear();
+  const mo = moEl?.value ? parseInt(moEl.value) : (now.getMonth() + 1);
+  return { yr, mo };
+}
+
 function getBudgetForWeek(weekIdx) {
-  const yr = document.getElementById('globalYear').value;
-  const mo = document.getElementById('globalMonth').value;
+  const { yr, mo } = _budgetYrMo();
+  if(!yr || !mo) return null;
   const val = load(getBudgetKeyForWeek(yr, mo, weekIdx), null);
   if(val === null) return null;
   // Supporta sia formato vecchio {amount, ref} che nuovo number
@@ -11375,13 +11428,15 @@ function getBudgetForWeek(weekIdx) {
 }
 
 function saveBudgetForWeek(weekIdx, amount) {
-  const yr = document.getElementById('globalYear').value;
-  const mo = document.getElementById('globalMonth').value;
+  const { yr, mo } = _budgetYrMo();
+  if(!yr || !mo) { showToast('⚠️ Errore: mese/anno non disponibili'); return; }
+  const rawKey = getBudgetKeyForWeek(yr, mo, weekIdx);
   if(!amount || amount <= 0) {
-    localStorage.removeItem(getKey(getBudgetKeyForWeek(yr, mo, weekIdx)));
+    localStorage.removeItem(getKey(rawKey));
   } else {
-    save(getBudgetKeyForWeek(yr, mo, weekIdx), amount);
+    save(rawKey, parseFloat(amount));
   }
+  try { if(typeof fbPushToCloud === 'function') fbPushToCloud(); } catch(e) {}
 }
 
 // Compatibilità con vecchio getBudget (usato in pochi posti)
@@ -11431,6 +11486,8 @@ function saveBudgetForWeekUI(weekIdx) {
   const hasB = !isNaN(val) && val > 0;
   inp.style.borderColor = hasB ? 'rgba(201,168,76,0.5)' : 'var(--border)';
   inp.style.color = hasB ? 'var(--gold)' : 'var(--text)';
+  // Feedback visivo
+  if(hasB) showToast(`✅ Budget Sett.${weekIdx}: €${val.toFixed(2).replace('.',',')} salvato`);
   // Rirenderizza barra e grafico
   renderWeek();
   if(currentGraphTab === 'budget') renderBudgetChart();
@@ -11554,9 +11611,8 @@ function renderBudgetChart() {
   // Aggiorna label mese/anno nella navigazione
   const _bml = document.getElementById('budgetMonthLabel');
   if(_bml) {
-    const _byr = parseInt(document.getElementById('globalYear').value);
-    const _bmo = parseInt(document.getElementById('globalMonth').value) - 1;
-    _bml.textContent = MESI[_bmo] + ' ' + _byr;
+    const { yr: _byr, mo: _bmoRaw } = _budgetYrMo();
+    _bml.textContent = MESI[_bmoRaw - 1] + ' ' + _byr;
   }
 
   const weeks = getMonthWeeks();
