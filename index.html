@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260424-v140';
+  var BUILD = '20260424-v141';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5047,6 +5047,10 @@ function sendRegistrationEmails(userName, userEmail) {
               <div style="font-size:10px;color:#fb923c;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Satispay</div>
               <div id="giriHeroSat" style="font-size:18px;font-weight:800;color:#fdba74;">—</div>
             </div>
+            <div style="background:rgba(74,144,232,0.18);border:1px solid rgba(74,144,232,0.4);border-radius:10px;padding:8px 14px;text-align:center;">
+              <div style="font-size:10px;color:#60a5fa;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Sella</div>
+              <div id="giriHeroSel" style="font-size:18px;font-weight:800;color:#93c5fd;">—</div>
+            </div>
           </div>
         </div>
 
@@ -9841,22 +9845,27 @@ function renderGiriChart() {
   yearSel.innerHTML = allYears.map(y => `<option value="${y}" ${y===curYear?'selected':''}>${y}</option>`).join('');
 
   const giriYear = giri.filter(g => g.date.startsWith(curYear));
-  const revolut  = giriYear.filter(g => g.type === 'revolut');
+  const revolut  = giriYear.filter(g => g.type === 'revolut' || g.type === 'revolut_sella');
   const satispay = giriYear.filter(g => g.type === 'satispay');
+  const sella    = giriYear.filter(g => g.type === 'sella');
 
   // KPI
   const totRev = revolut.reduce((s,g)=>s+g.amount,0);
   const totSat = satispay.reduce((s,g)=>s+g.amount,0);
   const months = [...new Set(giriYear.map(g=>g.date.substring(0,7)))].length || 1;
   // Aggiorna hero badges
+  const totSel = sella.reduce((s,g)=>s+g.amount, 0);
   const heroRev = document.getElementById('giriHeroRev');
   const heroSat = document.getElementById('giriHeroSat');
+  const heroSel = document.getElementById('giriHeroSel');
   if(heroRev) heroRev.textContent = '€'+totRev.toFixed(2).replace('.',',');
   if(heroSat) heroSat.textContent = '€'+totSat.toFixed(2).replace('.',',');
+  if(heroSel) heroSel.textContent = '€'+totSel.toFixed(2).replace('.',',');
 
   const avgRev = totRev / Math.max(revolut.length, 1);
   const avgSat = totSat / Math.max(satispay.length, 1);
-  const totAll = totRev + totSat;
+  const avgSel = totSel / Math.max(sella.length, 1);
+  const totAll = totRev + totSat + totSel;
 
   const kpiCard = (bg, border, accent, icon, label, val, sub1, sub2) =>
     `<div style="background:${bg};border:1.5px solid ${border};border-radius:16px;padding:18px 20px;position:relative;overflow:hidden;">
@@ -9878,6 +9887,11 @@ function renderGiriChart() {
       `€${totSat.toFixed(2).replace('.',',')}`,
       `${satispay.length} giri · media €${avgSat.toFixed(0)}/giro`,
       satispay.length ? `Ultimo: ${satispay[satispay.length-1].date.split('-').reverse().join('/')}` : '') +
+    kpiCard('rgba(74,144,232,0.10)','rgba(74,144,232,0.35)','#60a5fa','🏦',
+      `Sella ${curYear}`,
+      `€${totSel.toFixed(2).replace('.',',')}`,
+      `${sella.length} giri · media €${avgSel.toFixed(0)}/giro`,
+      sella.length ? `Ultimo: ${sella[sella.length-1].date.split('-').reverse().join('/')}` : '') +
     kpiCard('rgba(201,168,76,0.10)','rgba(201,168,76,0.3)','var(--gold)','📊',
       `Totale ${curYear}`,
       `€${totAll.toFixed(2).replace('.',',')}`,
@@ -9887,32 +9901,32 @@ function renderGiriChart() {
   // Build chart labels & datasets
   let labels = [], dataRev = [], dataSat = [];
 
+  let dataSel = [];
   if(currentGiriPeriod === 'week') {
-    // Settimane del mese corrente (o ultimo mese con dati)
     const lastMon = giriYear.length ? giriYear[giriYear.length-1].date.substring(0,7) : `${curYear}-${String(new Date().getMonth()+1).padStart(2,'0')}`;
-    const [y,m] = lastMon.split('-').map(Number);
     for(let w=1; w<=5; w++) {
       labels.push(`Sett. ${w}`);
       const wStart = (w-1)*7+1, wEnd = w*7;
-      const wRev = giri.filter(g => g.date.startsWith(lastMon) && g.type==='revolut' && parseInt(g.date.substring(8))>=wStart && parseInt(g.date.substring(8))<=wEnd);
-      const wSat = giri.filter(g => g.date.startsWith(lastMon) && g.type==='satispay' && parseInt(g.date.substring(8))>=wStart && parseInt(g.date.substring(8))<=wEnd);
-      dataRev.push(wRev.reduce((s,g)=>s+g.amount,0));
-      dataSat.push(wSat.reduce((s,g)=>s+g.amount,0));
+      const inWin = (g, t) => g.date.startsWith(lastMon) && (t==='revolut'?g.type==='revolut'||g.type==='revolut_sella':g.type===t) && parseInt(g.date.substring(8))>=wStart && parseInt(g.date.substring(8))<=wEnd;
+      dataRev.push(giri.filter(g=>inWin(g,'revolut')).reduce((s,g)=>s+g.amount,0));
+      dataSat.push(giri.filter(g=>inWin(g,'satispay')).reduce((s,g)=>s+g.amount,0));
+      dataSel.push(giri.filter(g=>inWin(g,'sella')).reduce((s,g)=>s+g.amount,0));
     }
   } else if(currentGiriPeriod === 'month') {
     const MESI_LABEL = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
     for(let mo=1; mo<=12; mo++) {
       const mStr = `${curYear}-${String(mo).padStart(2,'0')}`;
       labels.push(MESI_LABEL[mo-1]);
-      dataRev.push(giri.filter(g=>g.date.startsWith(mStr)&&g.type==='revolut').reduce((s,g)=>s+g.amount,0));
+      dataRev.push(giri.filter(g=>g.date.startsWith(mStr)&&(g.type==='revolut'||g.type==='revolut_sella')).reduce((s,g)=>s+g.amount,0));
       dataSat.push(giri.filter(g=>g.date.startsWith(mStr)&&g.type==='satispay').reduce((s,g)=>s+g.amount,0));
+      dataSel.push(giri.filter(g=>g.date.startsWith(mStr)&&g.type==='sella').reduce((s,g)=>s+g.amount,0));
     }
   } else {
-    // Annuale: tutti gli anni disponibili
-    const allYears = [...new Set(giri.map(g=>g.date.substring(0,4)))].sort();
+    const allYears = [...new Set([...giri.map(g=>g.date.substring(0,4)), String(new Date().getFullYear())])].sort();
     labels = allYears;
-    dataRev = allYears.map(yr => giri.filter(g=>g.date.startsWith(yr)&&g.type==='revolut').reduce((s,g)=>s+g.amount,0));
+    dataRev = allYears.map(yr => giri.filter(g=>g.date.startsWith(yr)&&(g.type==='revolut'||g.type==='revolut_sella')).reduce((s,g)=>s+g.amount,0));
     dataSat = allYears.map(yr => giri.filter(g=>g.date.startsWith(yr)&&g.type==='satispay').reduce((s,g)=>s+g.amount,0));
+    dataSel = allYears.map(yr => giri.filter(g=>g.date.startsWith(yr)&&g.type==='sella').reduce((s,g)=>s+g.amount,0));
   }
 
   const ctx = document.getElementById('giriChart');
@@ -9944,7 +9958,7 @@ function renderGiriChart() {
         {
           label: '💜 Revolut',
           data: dataRev,
-          backgroundColor: 'rgba(103,65,217,0.7)',
+          backgroundColor: 'rgba(103,65,217,0.75)',
           borderColor: 'rgba(103,65,217,1)',
           borderWidth: 1,
           borderRadius: 6,
@@ -9952,8 +9966,16 @@ function renderGiriChart() {
         {
           label: '🟠 Satispay',
           data: dataSat,
-          backgroundColor: 'rgba(255,120,0,0.7)',
+          backgroundColor: 'rgba(255,120,0,0.75)',
           borderColor: 'rgba(255,120,0,1)',
+          borderWidth: 1,
+          borderRadius: 6,
+        },
+        {
+          label: '🏦 Banca Sella',
+          data: dataSel,
+          backgroundColor: 'rgba(74,144,232,0.75)',
+          borderColor: 'rgba(74,144,232,1)',
           borderWidth: 1,
           borderRadius: 6,
         }
@@ -9988,15 +10010,17 @@ function renderGiriChart() {
   listEl.innerHTML = Object.entries(groupedByMonth).sort((a,b)=>b[0].localeCompare(a[0])).map(([mon, items]) => {
     const [y,m] = mon.split('-');
     const monthLabel = `${MESI_N[parseInt(m)-1]} ${y}`;
-    const mRev = items.filter(g=>g.type==='revolut').reduce((s,g)=>s+g.amount,0);
+    const mRev = items.filter(g=>g.type==='revolut'||g.type==='revolut_sella').reduce((s,g)=>s+g.amount,0);
     const mSat = items.filter(g=>g.type==='satispay').reduce((s,g)=>s+g.amount,0);
+    const mSel = items.filter(g=>g.type==='sella').reduce((s,g)=>s+g.amount,0);
     const rows = items.sort((a,b)=>b.date.localeCompare(a.date)).map(g => {
-      const isRev = g.type==='revolut';
-      const accent = isRev ? '#a78bfa' : '#fb923c';
-      const bg     = isRev ? 'rgba(103,65,217,0.08)' : 'rgba(255,120,0,0.07)';
-      const border = isRev ? 'rgba(103,65,217,0.25)' : 'rgba(255,120,0,0.25)';
-      const icon   = isRev ? '💜' : '🟠';
-      const dest   = isRev ? 'Revolut' : 'Satispay';
+      const isRev = g.type==='revolut'||g.type==='revolut_sella';
+      const isSel = g.type==='sella';
+      const accent = isRev ? '#a78bfa' : isSel ? '#60a5fa' : '#fb923c';
+      const bg     = isRev ? 'rgba(103,65,217,0.08)' : isSel ? 'rgba(74,144,232,0.08)' : 'rgba(255,120,0,0.07)';
+      const border = isRev ? 'rgba(103,65,217,0.25)' : isSel ? 'rgba(74,144,232,0.25)' : 'rgba(255,120,0,0.25)';
+      const icon   = isRev ? '💜' : isSel ? '🏦' : '🟠';
+      const dest   = isRev ? 'Revolut' : isSel ? 'Banca Sella' : 'Satispay';
       const d = g.date.split('-');
       return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${bg};border:1px solid ${border};border-radius:12px;margin-bottom:6px;">
         <div style="font-size:22px;flex-shrink:0;">${icon}</div>
@@ -10010,9 +10034,10 @@ function renderGiriChart() {
     return `<div style="margin-bottom:20px;">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 4px;">
         <div style="font-size:14px;font-weight:700;color:var(--text);">📅 ${monthLabel}</div>
-        <div style="display:flex;gap:10px;font-size:12px;">
+        <div style="display:flex;gap:10px;font-size:12px;flex-wrap:wrap;">
           <span style="color:#a78bfa;font-weight:600;">💜 €${mRev.toFixed(2).replace('.',',')}</span>
           <span style="color:#fb923c;font-weight:600;">🟠 €${mSat.toFixed(2).replace('.',',')}</span>
+          ${mSel>0?`<span style="color:#60a5fa;font-weight:600;">🏦 €${mSel.toFixed(2).replace('.',',')}</span>`:''}
         </div>
       </div>
       ${rows}
@@ -14570,6 +14595,8 @@ function parseSellaText(text) {
     if(SKIP_ALWAYS.some(re => re.test(desc))) {
       if(/satispay europe/i.test(desc)) saveGiro('satispay', dateStr, amount, desc);
       if(/revolut\*+\d+\*/i.test(desc)) saveGiro('revolut_sella', dateStr, amount, desc);
+      // Giro VERSO SELLA (es. bonifico da Revolut a Sella, ricarica conto)
+      if(/giro al[l]?\s/i.test(desc) && !/libretto/i.test(desc)) saveGiro('sella', dateStr, amount, desc);
       // ── Giroconti libretto di risparmio ──
       if(/libretto di risparmio/i.test(desc)) {
         const direction = /giro al[l]?\s|verso|a libretto/i.test(desc) ? 'deposito' : 'prelievo';
@@ -15299,6 +15326,8 @@ function parseRevolutText(text) {
           const rif = full.match(/riferimento:\s*(.+?)(?:id transazione|da:|$)/i);
           if(rif) nota = rif[1].replace(/giro al[l]?\s+conto revolut\s*/i,'').replace(/giro al revolut\s*/i,'').trim();
           saveGiro('revolut', dateStr, amt, nota);
+          // Se la nota contiene "Sella" o "BANCA SELLA" è un giro da Revolut a Sella
+          if(/sella|iban.*IT|tradori/i.test(nota)) saveGiro('sella', dateStr, amt, 'Da Revolut → Sella');
         }
       }
       continue;
