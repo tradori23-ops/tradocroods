@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260424-v138';
+  var BUILD = '20260424-v139';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -9797,14 +9797,25 @@ function saveGiro(type, date, amount, note) {
 let currentGiriPeriod = 'week';
 let giriChartInst = null;
 
-function switchGiriPeriod(p) {
-  currentGiriPeriod = p;
-  const activeStyle = 'background:linear-gradient(135deg,rgba(103,65,217,0.85),rgba(138,92,246,0.85));color:#fff;';
-  const inactiveStyle = 'background:transparent;color:var(--text-muted);';
+function _applyGiriTabStyles(p) {
   ['week','month','year'].forEach(t => {
     const btn = document.getElementById('giri-tab-'+t);
-    if(btn) btn.style.cssText = btn.style.cssText.replace(/background:[^;]+;color:[^;]+;/, '') + (t===p ? activeStyle : inactiveStyle);
+    if(!btn) return;
+    if(t === p) {
+      btn.style.background = 'linear-gradient(135deg,rgba(103,65,217,0.85),rgba(138,92,246,0.85))';
+      btn.style.color = '#fff';
+      btn.style.boxShadow = '0 2px 12px rgba(103,65,217,0.4)';
+    } else {
+      btn.style.background = 'transparent';
+      btn.style.color = 'var(--text-muted)';
+      btn.style.boxShadow = 'none';
+    }
   });
+}
+
+function switchGiriPeriod(p) {
+  currentGiriPeriod = p;
+  _applyGiriTabStyles(p);
   renderGiriChart();
 }
 
@@ -9815,12 +9826,15 @@ function renderGiriChart() {
   const kpiEl   = document.getElementById('giriKpi');
   const listEl  = document.getElementById('giriList');
   if(!kpiEl || !listEl) return;
+  // Assicura stili bottoni periodo corretti
+  _applyGiriTabStyles(currentGiriPeriod);
 
-  // Popola anno select
-  const years = [...new Set(giri.map(g => g.date.substring(0,4)))].sort().reverse();
-  if(!years.length) years.push(String(new Date().getFullYear()));
-  const curYear = yearSel.value && years.includes(yearSel.value) ? yearSel.value : years[0];
-  yearSel.innerHTML = years.map(y => `<option value="${y}" ${y===curYear?'selected':''}>${y}</option>`).join('');
+  // Popola anno select — includi sempre anni dal 2023 ad oggi
+  const now = new Date().getFullYear();
+  const dataYears = [...new Set(giri.map(g => g.date.substring(0,4)))];
+  const allYears = [...new Set([...dataYears, String(now), String(now-1)])].sort().reverse();
+  const curYear  = (yearSel.value && allYears.includes(yearSel.value)) ? yearSel.value : String(now);
+  yearSel.innerHTML = allYears.map(y => `<option value="${y}" ${y===curYear?'selected':''}>${y}</option>`).join('');
 
   const giriYear = giri.filter(g => g.date.startsWith(curYear));
   const revolut  = giriYear.filter(g => g.type === 'revolut');
