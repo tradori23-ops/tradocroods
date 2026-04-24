@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260424-v135';
+  var BUILD = '20260424-v136';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -11353,44 +11353,155 @@ function renderWeekChart() {
   ].map(s=>`<div class="stat-mini"><div class="s-label">${s.label}</div><div class="s-value">${s.value}</div></div>`).join('');
 }
 
-function renderYearChart() {
-  const yr = document.getElementById('yearChartYear').value;
-  const compare = document.getElementById('yearChartCompare')?.checked;
-  const yr2 = document.getElementById('yearChartYear2')?.value;
-  const gridColor = document.body.classList.contains('light') ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.05)';
-  const cats = ['ristorante','bar','viaggi','hotel','svago','musei','extra','supermercato','rata'];
-  const catColors = ['rgba(255,107,107,0.8)','rgba(74,232,122,0.8)','rgba(74,144,232,0.8)','rgba(167,139,250,0.8)','rgba(255,183,77,0.8)','rgba(77,208,225,0.8)','rgba(201,168,76,0.8)','rgba(129,199,132,0.8)','rgba(240,98,146,0.8)'];
-    function catDatasets(y, opacity, suffix) {
-      return cats.map((cat,i) => {
-        const data = Array(12).fill(0);
-        for(let m=1;m<=12;m++){
-          const exp=load('expenses_'+y+'_'+m,[]);
-          exp.filter(e=>e.cat===cat).forEach(e=>{ data[m-1]+=e.amount; });
-        }
-        const col = catColors[i].replace('0.8', String(opacity));
-        return { label:`${CAT_ICONS[cat]||''} ${cat}${suffix}`, data, backgroundColor:col, borderWidth:1, borderRadius:4, stack:'s'+suffix };
-      });
-    }
 
-    let datasets = catDatasets(yr, 0.85, '');
-    if(compare && yr2 && yr2 !== yr) {
-      datasets = [...catDatasets(yr, 0.85, ` ${yr}`), ...catDatasets(yr2, 0.45, ` ${yr2}`)];
+function initYearSelect() {
+  const sel  = document.getElementById('yearChartYear');
+  const sel2 = document.getElementById('yearChartYear2');
+  if(!sel) return;
+  // Trova tutti gli anni con dati
+  const now = new Date().getFullYear();
+  const years = new Set();
+  for(let y = 2023; y <= now + 1; y++) {
+    for(let m = 1; m <= 12; m++) {
+      const exp = load('expenses_'+y+'_'+m, []);
+      if(exp.length) { years.add(y); break; }
     }
-
-    if(yearChartInst) yearChartInst.destroy();
-    yearChartInst = new Chart(document.getElementById('yearChart').getContext('2d'), {
-      type:'bar',
-      data:{ labels: MESI, datasets },
-      options:{ animation:false, responsive:true, maintainAspectRatio:false,
-        plugins:{ legend:{ labels:{ color:chartTextColor(), font:{size:10} }, position:'bottom' } },
-        scales:{
-          x:{ stacked:true, ticks:{ color:chartMutedColor() }, grid:{ color:gridColor } },
-          y:{ stacked:true, ticks:{ color:chartMutedColor() }, grid:{ color:gridColor },
-              title:{ display:true, text:'Importo (€)', color:chartMutedColor() } }
-        }
-      }
+  }
+  if(!years.size) years.add(now);
+  const sorted = [...years].sort((a,b) => b-a);
+  // Popola sel solo se vuoto
+  if(!sel.options.length) {
+    sorted.forEach(y => {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y;
+      sel.appendChild(o);
     });
-  document.getElementById('yearStats').innerHTML = '';
+    sel.value = now; // default: anno corrente
+  }
+  if(sel2 && !sel2.options.length) {
+    sorted.forEach(y => {
+      const o = document.createElement('option');
+      o.value = y; o.textContent = y;
+      sel2.appendChild(o);
+    });
+    // Default confronto = anno precedente
+    sel2.value = now - 1;
+  }
+}
+
+function toggleYearCompare() {
+  const chk  = document.getElementById('yearChartCompare');
+  const sel2 = document.getElementById('yearChartYear2');
+  if(!sel2) return;
+  sel2.disabled = !chk?.checked;
+  sel2.style.opacity = chk?.checked ? '1' : '0.5';
+  sel2.style.color   = chk?.checked ? 'var(--text)' : 'var(--text-muted)';
+  renderYearChart();
+}
+
+function renderYearChart() {
+  // Assicura che il select sia popolato
+  initYearSelect();
+  const yrEl  = document.getElementById('yearChartYear');
+  const yr    = yrEl?.value ? parseInt(yrEl.value) : new Date().getFullYear();
+  const mode  = document.getElementById('yearChartMode')?.value || 'cat';
+  const compare = document.getElementById('yearChartCompare')?.checked;
+  const yr2El = document.getElementById('yearChartYear2');
+  const yr2   = yr2El?.value ? parseInt(yr2El.value) : null;
+
+  const isLight  = document.body.classList.contains('light');
+  const gridColor = isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.05)';
+  const MESI_S = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+
+  // ── Carica tutti i dati di un anno ──
+  function loadYearData(y) {
+    const expByMonth = [], incByMonth = [];
+    for(let m=1;m<=12;m++){
+      expByMonth.push(load('expenses_'+y+'_'+m,[]));
+      incByMonth.push(load('incomes_'+y+'_'+m,[]));
+    }
+    return { expByMonth, incByMonth };
+  }
+
+  const d1 = loadYearData(yr);
+  const d2 = (compare && yr2 && yr2 !== yr) ? loadYearData(yr2) : null;
+
+  let datasets = [];
+
+  if(mode === 'cat') {
+    // ── Stacked per categoria ──
+    const cats = ['ristorante','bar','viaggi','hotel','svago','musei','extra','supermercato','rata'];
+    const catColors = ['rgba(255,107,107,0.82)','rgba(74,232,122,0.82)','rgba(74,144,232,0.82)','rgba(167,139,250,0.82)','rgba(255,183,77,0.82)','rgba(77,208,225,0.82)','rgba(201,168,76,0.82)','rgba(129,199,132,0.82)','rgba(240,98,146,0.82)'];
+    function catDatasets(data, opacity, suffix, stackId) {
+      return cats.map((cat,i) => {
+        const d = data.expByMonth.map(exp => {
+          return exp.filter(e=>e.cat===cat).reduce((s,e)=>s+e.amount,0);
+        });
+        if(d.every(v=>v===0)) return null;
+        const col = catColors[i].replace('0.82', String(opacity));
+        return { label:`${CAT_ICONS[cat]||''} ${cat}${suffix}`, data:d, backgroundColor:col, borderWidth:1, borderRadius:3, stack:stackId };
+      }).filter(Boolean);
+    }
+    datasets = catDatasets(d1, 0.85, '', 'y1');
+    if(d2) datasets = [...datasets, ...catDatasets(d2, 0.45, ` (${yr2})`, 'y2')];
+
+  } else {
+    // ── Entrate vs Spese ──
+    function totByMonth(data) {
+      return {
+        exp: data.expByMonth.map(arr => arr.reduce((s,e)=>s+e.amount,0)),
+        inc: data.incByMonth.map(arr => arr.reduce((s,e)=>s+e.amount,0)),
+      };
+    }
+    const t1 = totByMonth(d1);
+    datasets = [
+      { label:`💰 Entrate ${yr}`,  data:t1.inc, backgroundColor:'rgba(74,232,122,0.75)', borderColor:'#4ae87a', borderWidth:2, borderRadius:5 },
+      { label:`🛒 Spese ${yr}`,    data:t1.exp, backgroundColor:'rgba(255,107,107,0.75)', borderColor:'#e05c5c', borderWidth:2, borderRadius:5 },
+    ];
+    if(d2) {
+      const t2 = totByMonth(d2);
+      datasets.push(
+        { label:`💰 Entrate ${yr2}`, data:t2.inc, backgroundColor:'rgba(74,232,122,0.35)', borderColor:'rgba(74,232,122,0.6)', borderWidth:1, borderRadius:5 },
+        { label:`🛒 Spese ${yr2}`,   data:t2.exp, backgroundColor:'rgba(255,107,107,0.35)', borderColor:'rgba(255,107,107,0.6)', borderWidth:1, borderRadius:5 },
+      );
+    }
+  }
+
+  if(yearChartInst) yearChartInst.destroy();
+  const ctx = document.getElementById('yearChart')?.getContext('2d');
+  if(!ctx) return;
+  const isStacked = mode === 'cat';
+  yearChartInst = new Chart(ctx, {
+    type:'bar',
+    data:{ labels: MESI_S, datasets },
+    options:{ animation:false, responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{ labels:{ color:chartTextColor(), font:{size:11}, boxWidth:12 }, position:'bottom' } },
+      scales:{
+        x:{ stacked:isStacked, ticks:{ color:chartMutedColor() }, grid:{ color:gridColor } },
+        y:{ stacked:isStacked, ticks:{ color:chartMutedColor(), callback: v=>'€'+v.toLocaleString('it-IT') },
+            grid:{ color:gridColor },
+            title:{ display:true, text:'Importo (€)', color:chartMutedColor() } }
+      }
+    }
+  });
+
+  // ── Stats annuali ──
+  const totExp = d1.expByMonth.flatMap(x=>x).reduce((s,e)=>s+e.amount,0);
+  const totInc = d1.incByMonth.flatMap(x=>x).reduce((s,e)=>s+e.amount,0);
+  const saldo  = totInc - totExp;
+  const avgExp = totExp / 12;
+  const maxMo  = d1.expByMonth.map(arr=>arr.reduce((s,e)=>s+e.amount,0));
+  const maxMoIdx = maxMo.indexOf(Math.max(...maxMo));
+  document.getElementById('yearStats').innerHTML = [
+    { label:'Spese totali '+yr,       value:'€'+totExp.toFixed(2).replace('.',','),  color:'#e05c5c' },
+    { label:'Entrate totali '+yr,     value:'€'+totInc.toFixed(2).replace('.',','),  color:'#4ae87a' },
+    { label:'Saldo annuale',          value:(saldo>=0?'+':'')+'€'+saldo.toFixed(2).replace('.',','), color:saldo>=0?'#4ae87a':'#e05c5c' },
+    { label:'Media spesa/mese',       value:'€'+avgExp.toFixed(2).replace('.',','),  color:'var(--gold)' },
+    { label:'Mese più costoso',       value:MESI_S[maxMoIdx]||'—',                  color:'#ffb347' },
+  ].map(s=>`<div style="background:var(--dark3);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px;text-align:center;">
+    <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">${s.label}</div>
+    <div style="font-size:15px;font-weight:700;color:${s.color};">${s.value}</div>
+  </div>`).join('');
 }
 
 // ═══════════════════════════════════════════════
