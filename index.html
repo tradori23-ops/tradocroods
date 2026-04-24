@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260424-v139';
+  var BUILD = '20260424-v140';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -9829,11 +9829,15 @@ function renderGiriChart() {
   // Assicura stili bottoni periodo corretti
   _applyGiriTabStyles(currentGiriPeriod);
 
-  // Popola anno select — includi sempre anni dal 2023 ad oggi
+  // Popola anno select — scansiona tutti gli anni con dati reali + 2023→oggi
   const now = new Date().getFullYear();
   const dataYears = [...new Set(giri.map(g => g.date.substring(0,4)))];
-  const allYears = [...new Set([...dataYears, String(now), String(now-1)])].sort().reverse();
-  const curYear  = (yearSel.value && allYears.includes(yearSel.value)) ? yearSel.value : String(now);
+  // Aggiungi sempre tutti gli anni dal 2023 ad oggi
+  const rangeYears = [];
+  for(let y = 2023; y <= now; y++) rangeYears.push(String(y));
+  const allYears = [...new Set([...dataYears, ...rangeYears])].sort().reverse();
+  // Mantieni selezione corrente se valida, altrimenti default anno corrente
+  const curYear = (yearSel.value && allYears.includes(yearSel.value)) ? yearSel.value : String(now);
   yearSel.innerHTML = allYears.map(y => `<option value="${y}" ${y===curYear?'selected':''}>${y}</option>`).join('');
 
   const giriYear = giri.filter(g => g.date.startsWith(curYear));
