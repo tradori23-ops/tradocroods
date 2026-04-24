@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260424-v136';
+  var BUILD = '20260424-v138';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -5029,30 +5029,48 @@ function sendRegistrationEmails(userName, userEmail) {
 
       <!-- TAB: GIRI CONTI -->
       <div id="gtab-content-giri" style="display:none;">
-        <div class="card mb-20">
-          <div class="card-title">💸 Giri a Revolut &amp; Satispay</div>
-          <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">
-            Traccia automaticamente i bonifici verso Revolut e Satispay importando i PDF bancari.
-          </p>
-          <div style="display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap;align-items:center;">
-            <button class="graph-tab active" id="giri-tab-week" onclick="switchGiriPeriod('week')">📅 Settimane</button>
-            <button class="graph-tab" id="giri-tab-month" onclick="switchGiriPeriod('month')">📆 Mesi</button>
-            <button class="graph-tab" id="giri-tab-year" onclick="switchGiriPeriod('year')">📊 Annuale</button>
-            <select id="giriYearSel" onchange="renderGiriChart()" style="background:var(--dark3);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-left:auto;"></select>
+
+        <!-- Hero header -->
+        <div style="background:linear-gradient(135deg,rgba(103,65,217,0.18) 0%,rgba(255,120,0,0.12) 100%);border:1px solid rgba(103,65,217,0.25);border-radius:20px;padding:22px 24px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+          <div>
+            <div style="font-size:22px;font-weight:800;font-family:'Playfair Display',serif;letter-spacing:-0.5px;margin-bottom:4px;">
+              <span style="background:linear-gradient(90deg,#7b41e8,#ff7800);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">💸 Giri a Revolut & Satispay</span>
+            </div>
+            <div style="font-size:13px;color:var(--text-muted);">Bonifici rilevati automaticamente dai PDF bancari · si accumulano mese per mese</div>
           </div>
-          <div id="giriKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:20px;"></div>
-          <div class="chart-container" style="height:320px;"><canvas id="giriChart"></canvas></div>
-          <div id="giriList" style="margin-top:20px;"></div>
-        </div>
-        <div class="card" style="border:1px solid rgba(212,175,55,0.3);">
-          <div class="card-title">📖 Come funziona</div>
-          <div style="font-size:13px;color:var(--text-muted);line-height:1.7;">
-            I giri vengono rilevati <strong>automaticamente</strong> durante l'importazione PDF:<br>
-            • <strong>💜 Giri a Revolut</strong> → dal PDF Revolut (bonifici "Pagamento da SERGIO TRADORI")<br>
-            • <strong>🟠 Giri a Satispay</strong> → dal PDF Banca Sella (ricariche Satispay Europe)<br>
-            I dati si accumulano mese per mese.
+          <div style="display:flex;gap:8px;align-items:center;">
+            <div style="background:rgba(103,65,217,0.2);border:1px solid rgba(103,65,217,0.4);border-radius:10px;padding:8px 14px;text-align:center;">
+              <div style="font-size:10px;color:#a78bfa;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Revolut</div>
+              <div id="giriHeroRev" style="font-size:18px;font-weight:800;color:#c4b5fd;">—</div>
+            </div>
+            <div style="background:rgba(255,120,0,0.15);border:1px solid rgba(255,120,0,0.4);border-radius:10px;padding:8px 14px;text-align:center;">
+              <div style="font-size:10px;color:#fb923c;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;">Satispay</div>
+              <div id="giriHeroSat" style="font-size:18px;font-weight:800;color:#fdba74;">—</div>
+            </div>
           </div>
         </div>
+
+        <!-- Controlli periodo + anno -->
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:18px;flex-wrap:wrap;">
+          <div style="background:var(--dark3);border:1px solid var(--border);border-radius:12px;padding:4px;display:flex;gap:2px;">
+            <button id="giri-tab-week"  onclick="switchGiriPeriod('week')"  style="padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;background:linear-gradient(135deg,rgba(103,65,217,0.8),rgba(138,92,246,0.8));color:#fff;transition:all 0.2s;">📅 Settimane</button>
+            <button id="giri-tab-month" onclick="switchGiriPeriod('month')" style="padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;background:transparent;color:var(--text-muted);transition:all 0.2s;">📆 Mesi</button>
+            <button id="giri-tab-year"  onclick="switchGiriPeriod('year')"  style="padding:7px 16px;border-radius:9px;border:none;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;background:transparent;color:var(--text-muted);transition:all 0.2s;">📊 Annuale</button>
+          </div>
+          <select id="giriYearSel" onchange="renderGiriChart()" style="background:var(--dark3);border:1px solid var(--border);border-radius:10px;padding:8px 14px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none;margin-left:auto;"></select>
+        </div>
+
+        <!-- KPI cards -->
+        <div id="giriKpi" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px;"></div>
+
+        <!-- Grafico -->
+        <div style="background:var(--dark3);border:1px solid var(--border);border-radius:18px;padding:20px;margin-bottom:20px;">
+          <div class="chart-container" style="height:300px;"><canvas id="giriChart"></canvas></div>
+        </div>
+
+        <!-- Lista transazioni -->
+        <div id="giriList"></div>
+
       </div>
 
       <!-- ===== PDF IMPORTS TAB ===== -->
@@ -8158,6 +8176,7 @@ function refreshAll() {
   renderSalvadanai();
   applyBlurState();
   initBudgetUI();
+  setTimeout(migrateGiriKey, 500); // migra giri salvati con chiave errata
   updateDocBadges();
 
   // Se siamo nella sezione grafici, aggiorna il tab attivo
@@ -9732,14 +9751,35 @@ function buildCatDatasets(dates, exp, cats, suffix, dashed) {
 // ═══════════════════════════════════════════════════════════
 
 function getGiriKey() {
-  const u = currentUser;
-  return u ? `tc_${u}_giri` : null;
+  // Usa email come getKey() — NON l'oggetto currentUser intero
+  const email = currentUser?.email;
+  return email ? `tc_${email}_giri` : null;
 }
 
 function getGiri() {
   const k = getGiriKey();
   if(!k) return [];
   try { return JSON.parse(localStorage.getItem(k) || '[]'); } catch { return []; }
+}
+
+// Migra dati salvati con chiave sbagliata "[object Object]"
+function migrateGiriKey() {
+  const badKey = 'tc_[object Object]_giri';
+  const raw = localStorage.getItem(badKey);
+  if(!raw) return;
+  const goodKey = getGiriKey();
+  if(!goodKey) return;
+  const existing = JSON.parse(localStorage.getItem(goodKey) || '[]');
+  const migrated = JSON.parse(raw);
+  // Merge senza duplicati
+  const merged = [...existing];
+  migrated.forEach(g => {
+    const k = `${g.date}_${g.type}_${Math.round(g.amount*100)}`;
+    if(!merged.some(x => `${x.date}_${x.type}_${Math.round(x.amount*100)}` === k)) merged.push(g);
+  });
+  localStorage.setItem(goodKey, JSON.stringify(merged));
+  localStorage.removeItem(badKey);
+  console.log(`✅ Migrati ${migrated.length} giri dalla chiave errata`);
 }
 
 function saveGiro(type, date, amount, note) {
@@ -9759,14 +9799,17 @@ let giriChartInst = null;
 
 function switchGiriPeriod(p) {
   currentGiriPeriod = p;
+  const activeStyle = 'background:linear-gradient(135deg,rgba(103,65,217,0.85),rgba(138,92,246,0.85));color:#fff;';
+  const inactiveStyle = 'background:transparent;color:var(--text-muted);';
   ['week','month','year'].forEach(t => {
     const btn = document.getElementById('giri-tab-'+t);
-    if(btn) btn.classList.toggle('active', t===p);
+    if(btn) btn.style.cssText = btn.style.cssText.replace(/background:[^;]+;color:[^;]+;/, '') + (t===p ? activeStyle : inactiveStyle);
   });
   renderGiriChart();
 }
 
 function renderGiriChart() {
+  migrateGiriKey(); // migra dati salvati con chiave errata "[object Object]"
   const giri = getGiri();
   const yearSel = document.getElementById('giriYearSel');
   const kpiEl   = document.getElementById('giriKpi');
@@ -9787,23 +9830,41 @@ function renderGiriChart() {
   const totRev = revolut.reduce((s,g)=>s+g.amount,0);
   const totSat = satispay.reduce((s,g)=>s+g.amount,0);
   const months = [...new Set(giriYear.map(g=>g.date.substring(0,7)))].length || 1;
-  kpiEl.innerHTML = `
-    <div class="kpi-card" style="background:rgba(103,65,217,0.15);border:1px solid rgba(103,65,217,0.4);">
-      <div class="kpi-label">💜 Tot. Revolut ${curYear}</div>
-      <div class="kpi-value">€${totRev.toFixed(2)}</div>
-      <div class="kpi-sub">${revolut.length} giri · media €${(totRev/Math.max(revolut.length,1)).toFixed(0)}</div>
-    </div>
-    <div class="kpi-card" style="background:rgba(255,120,0,0.12);border:1px solid rgba(255,120,0,0.4);">
-      <div class="kpi-label">🟠 Tot. Satispay ${curYear}</div>
-      <div class="kpi-value">€${totSat.toFixed(2)}</div>
-      <div class="kpi-sub">${satispay.length} giri · media €${(totSat/Math.max(satispay.length,1)).toFixed(0)}</div>
-    </div>
-    <div class="kpi-card">
-      <div class="kpi-label">📅 Media mensile totale</div>
-      <div class="kpi-value">€${((totRev+totSat)/months).toFixed(0)}</div>
-      <div class="kpi-sub">${months} ${months===1?'mese':'mesi'} · ${giriYear.length} giri totali</div>
-    </div>
-  `;
+  // Aggiorna hero badges
+  const heroRev = document.getElementById('giriHeroRev');
+  const heroSat = document.getElementById('giriHeroSat');
+  if(heroRev) heroRev.textContent = '€'+totRev.toFixed(2).replace('.',',');
+  if(heroSat) heroSat.textContent = '€'+totSat.toFixed(2).replace('.',',');
+
+  const avgRev = totRev / Math.max(revolut.length, 1);
+  const avgSat = totSat / Math.max(satispay.length, 1);
+  const totAll = totRev + totSat;
+
+  const kpiCard = (bg, border, accent, icon, label, val, sub1, sub2) =>
+    `<div style="background:${bg};border:1.5px solid ${border};border-radius:16px;padding:18px 20px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:12px;right:16px;font-size:28px;opacity:0.18;">${icon}</div>
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:${accent};margin-bottom:8px;">${label}</div>
+      <div style="font-size:26px;font-weight:800;font-family:'Playfair Display',serif;color:${accent};margin-bottom:6px;">${val}</div>
+      <div style="font-size:11px;color:var(--text-muted);">${sub1}</div>
+      ${sub2?`<div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${sub2}</div>`:''}
+    </div>`;
+
+  kpiEl.innerHTML =
+    kpiCard('rgba(103,65,217,0.12)','rgba(103,65,217,0.4)','#a78bfa','💜',
+      `Revolut ${curYear}`,
+      `€${totRev.toFixed(2).replace('.',',')}`,
+      `${revolut.length} giri · media €${avgRev.toFixed(0)}/giro`,
+      revolut.length ? `Ultimo: ${revolut[revolut.length-1].date.split('-').reverse().join('/')}` : '') +
+    kpiCard('rgba(255,120,0,0.10)','rgba(255,120,0,0.4)','#fb923c','🟠',
+      `Satispay ${curYear}`,
+      `€${totSat.toFixed(2).replace('.',',')}`,
+      `${satispay.length} giri · media €${avgSat.toFixed(0)}/giro`,
+      satispay.length ? `Ultimo: ${satispay[satispay.length-1].date.split('-').reverse().join('/')}` : '') +
+    kpiCard('rgba(201,168,76,0.10)','rgba(201,168,76,0.3)','var(--gold)','📊',
+      `Totale ${curYear}`,
+      `€${totAll.toFixed(2).replace('.',',')}`,
+      `${months} ${months===1?'mese':'mesi'} · ${giriYear.length} giri`,
+      `Media mensile: €${(totAll/months).toFixed(0)}`);
 
   // Build chart labels & datasets
   let labels = [], dataRev = [], dataSat = [];
@@ -9841,11 +9902,21 @@ function renderGiriChart() {
   if(giriChartInst) { giriChartInst.destroy(); giriChartInst = null; }
 
   if(!giri.length) {
-    ctx.style.display = 'none';
-    listEl.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">📂 Nessun giro trovato.<br>Importa i PDF Revolut o Banca Sella per popolare questa sezione.</div>';
+    const canvas = document.getElementById('giriChart');
+    if(canvas) canvas.closest('[style*="border-radius:18px"]') && (canvas.closest('[style*="border-radius:18px"]').style.display='none');
+    if(canvas) canvas.style.display = 'none';
+    listEl.innerHTML = `<div style="text-align:center;padding:48px 20px;background:var(--dark3);border:1px dashed var(--border);border-radius:18px;">
+      <div style="font-size:48px;margin-bottom:14px;opacity:0.5;">📂</div>
+      <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px;">Nessun giro trovato</div>
+      <div style="font-size:13px;color:var(--text-muted);line-height:1.7;">
+        Importa i PDF <strong style="color:#a78bfa;">Revolut</strong> o <strong style="color:#fb923c;">Banca Sella</strong><br>
+        per tracciare automaticamente i tuoi bonifici.
+      </div>
+    </div>`;
     return;
   }
-  ctx.style.display = '';
+  const canvas2 = document.getElementById('giriChart');
+  if(canvas2) { canvas2.style.display=''; const pw = canvas2.closest('[style*="border-radius:18px"]'); if(pw) pw.style.display=''; }
 
   giriChartInst = new Chart(ctx, {
     type: 'bar',
@@ -9898,19 +9969,36 @@ function renderGiriChart() {
 
   listEl.innerHTML = Object.entries(groupedByMonth).sort((a,b)=>b[0].localeCompare(a[0])).map(([mon, items]) => {
     const [y,m] = mon.split('-');
-    const label = `${MESI_N[parseInt(m)-1]} ${y}`;
-    const mRev  = items.filter(g=>g.type==='revolut').reduce((s,g)=>s+g.amount,0);
-    const mSat  = items.filter(g=>g.type==='satispay').reduce((s,g)=>s+g.amount,0);
-    const rows = items.sort((a,b)=>a.date.localeCompare(b.date)).map(g => {
-      const icon = g.type==='revolut'?'💜':'🟠';
-      const label = g.type==='revolut'?'Revolut':'Satispay';
+    const monthLabel = `${MESI_N[parseInt(m)-1]} ${y}`;
+    const mRev = items.filter(g=>g.type==='revolut').reduce((s,g)=>s+g.amount,0);
+    const mSat = items.filter(g=>g.type==='satispay').reduce((s,g)=>s+g.amount,0);
+    const rows = items.sort((a,b)=>b.date.localeCompare(a.date)).map(g => {
+      const isRev = g.type==='revolut';
+      const accent = isRev ? '#a78bfa' : '#fb923c';
+      const bg     = isRev ? 'rgba(103,65,217,0.08)' : 'rgba(255,120,0,0.07)';
+      const border = isRev ? 'rgba(103,65,217,0.25)' : 'rgba(255,120,0,0.25)';
+      const icon   = isRev ? '💜' : '🟠';
+      const dest   = isRev ? 'Revolut' : 'Satispay';
       const d = g.date.split('-');
-      return `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.05);font-size:13px;">
-        <span>${icon} <strong>${d[2]}/${d[1]}</strong> → <em style="color:var(--text-muted);">${label}${g.note?': '+g.note:''}</em></span>
-        <span style="font-weight:600;">€${g.amount.toFixed(2)}</span>
+      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${bg};border:1px solid ${border};border-radius:12px;margin-bottom:6px;">
+        <div style="font-size:22px;flex-shrink:0;">${icon}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:13px;font-weight:700;color:var(--text);">${dest}${g.note?' · <span style="font-weight:400;color:var(--text-muted);">'+g.note+'</span>':''}</div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">📅 ${d[2]}/${d[1]}/${d[0]}</div>
+        </div>
+        <div style="font-size:16px;font-weight:800;color:${accent};white-space:nowrap;">€${g.amount.toFixed(2).replace('.',',')}</div>
       </div>`;
     }).join('');
-    return `<div style="margin-bottom:16px;"><div style="font-weight:700;font-size:14px;color:var(--gold);margin-bottom:8px;">${label} — 💜 €${mRev.toFixed(2)} · 🟠 €${mSat.toFixed(2)}</div>${rows}</div>`;
+    return `<div style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;padding:0 4px;">
+        <div style="font-size:14px;font-weight:700;color:var(--text);">📅 ${monthLabel}</div>
+        <div style="display:flex;gap:10px;font-size:12px;">
+          <span style="color:#a78bfa;font-weight:600;">💜 €${mRev.toFixed(2).replace('.',',')}</span>
+          <span style="color:#fb923c;font-weight:600;">🟠 €${mSat.toFixed(2).replace('.',',')}</span>
+        </div>
+      </div>
+      ${rows}
+    </div>`;
   }).join('');
 }
 
