@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260424-v146';
+  var BUILD = '20260424-v147';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -21687,23 +21687,7 @@ body.light #gtab-content-giri [style*="font-size:13px;color:var(--text-muted)"] 
   color: #44446a !important;
 }
 
-/* Hero badges */
-body.light #gtab-content-giri [style*="rgba(103,65,217,0.2)"] {
-  background: rgba(103,65,217,0.08) !important;
-  border-color: rgba(103,65,217,0.3) !important;
-}
-body.light #gtab-content-giri [style*="rgba(255,120,0,0.15)"] {
-  background: rgba(255,120,0,0.07) !important;
-  border-color: rgba(255,120,0,0.3) !important;
-}
-body.light #gtab-content-giri [style*="rgba(74,144,232,0.18)"] {
-  background: rgba(74,144,232,0.08) !important;
-  border-color: rgba(74,144,232,0.3) !important;
-}
-body.light #gtab-content-giri [style*="rgba(74,200,160,0.15)"] {
-  background: rgba(74,200,160,0.07) !important;
-  border-color: rgba(74,200,160,0.3) !important;
-}
+/* badge giri gestiti da .giri-badge-* con alta specificità */
 
 /* Hero badge labels e valori */
 body.light #giriHeroRev { color: #5b21b6 !important; }
@@ -21936,72 +21920,63 @@ body.light #weekDetailStats [style*="color:var(--gold)"] { color: #8a6500 !impor
 
 /* ══════════════════════════════════════════════════════════════════════════ */
 
-/* ══ GIRI CONTI — Theme-aware hero & badges ══════════════════════════════ */
+/* ══ GIRI CONTI — Theme-aware hero & badges ══════════════════════════════
+   Specificità alta (#gtab-content-giri .class) per battere
+   body.light div { color: !important } definito globalmente
+═══════════════════════════════════════════════════════════════════════════ */
 
-/* Hero wrapper — dark mode */
-.giri-hero-wrap {
+/* Hero wrapper */
+#gtab-content-giri .giri-hero-wrap {
   background: linear-gradient(135deg, rgba(103,65,217,0.22) 0%, rgba(255,120,0,0.16) 100%);
   border: 1px solid rgba(103,65,217,0.35);
 }
-/* Hero wrapper — light mode */
-body.light .giri-hero-wrap {
-  background: linear-gradient(135deg, rgba(103,65,217,0.07) 0%, rgba(255,120,0,0.05) 100%) !important;
-  border-color: rgba(103,65,217,0.2) !important;
+body.light #gtab-content-giri .giri-hero-wrap {
+  background: linear-gradient(135deg, rgba(103,65,217,0.09) 0%, rgba(255,120,0,0.07) 100%) !important;
+  border-color: rgba(103,65,217,0.25) !important;
 }
 
-/* Badge Revolut */
-.giri-badge-rev {
-  background: rgba(103,65,217,0.28);
-  border: 1px solid rgba(103,65,217,0.55);
-}
-.giri-badge-rev > div:first-child { color: #c4b5fd; }
-.giri-badge-rev #giriHeroRev { color: #e9d5ff; }
-body.light .giri-badge-rev { background: rgba(103,65,217,0.08) !important; border-color: rgba(103,65,217,0.3) !important; }
-body.light .giri-badge-rev > div:first-child { color: #5b21b6 !important; }
-body.light .giri-badge-rev #giriHeroRev { color: #4c1d95 !important; }
+/* Badges — dark mode */
+#gtab-content-giri .giri-badge-rev { background: rgba(103,65,217,0.28) !important; border: 1px solid rgba(103,65,217,0.55) !important; }
+#gtab-content-giri .giri-badge-rev div { color: #c4b5fd !important; }
+#gtab-content-giri .giri-badge-rev #giriHeroRev { color: #e9d5ff !important; font-size:18px !important; font-weight:800 !important; }
 
-/* Badge Satispay */
-.giri-badge-sat {
-  background: rgba(255,120,0,0.25);
-  border: 1px solid rgba(255,120,0,0.5);
-}
-.giri-badge-sat > div:first-child { color: #fdba74; }
-.giri-badge-sat #giriHeroSat { color: #fed7aa; }
-body.light .giri-badge-sat { background: rgba(255,120,0,0.07) !important; border-color: rgba(255,120,0,0.3) !important; }
-body.light .giri-badge-sat > div:first-child { color: #c2410c !important; }
-body.light .giri-badge-sat #giriHeroSat { color: #9a3412 !important; }
+#gtab-content-giri .giri-badge-sat { background: rgba(255,120,0,0.25) !important; border: 1px solid rgba(255,120,0,0.5) !important; }
+#gtab-content-giri .giri-badge-sat div { color: #fdba74 !important; }
+#gtab-content-giri .giri-badge-sat #giriHeroSat { color: #fed7aa !important; font-size:18px !important; font-weight:800 !important; }
 
-/* Badge Sella */
-.giri-badge-sel {
-  background: rgba(74,144,232,0.25);
-  border: 1px solid rgba(74,144,232,0.5);
-}
-.giri-badge-sel > div:first-child { color: #93c5fd; }
-.giri-badge-sel #giriHeroSel { color: #bfdbfe; }
-body.light .giri-badge-sel { background: rgba(74,144,232,0.07) !important; border-color: rgba(74,144,232,0.3) !important; }
-body.light .giri-badge-sel > div:first-child { color: #1d4ed8 !important; }
-body.light .giri-badge-sel #giriHeroSel { color: #1e3a8a !important; }
+#gtab-content-giri .giri-badge-sel { background: rgba(74,144,232,0.25) !important; border: 1px solid rgba(74,144,232,0.5) !important; }
+#gtab-content-giri .giri-badge-sel div { color: #93c5fd !important; }
+#gtab-content-giri .giri-badge-sel #giriHeroSel { color: #bfdbfe !important; font-size:18px !important; font-weight:800 !important; }
 
-/* Badge Libretto */
-.giri-badge-lib {
-  background: rgba(74,200,160,0.22);
-  border: 1px solid rgba(74,200,160,0.45);
-}
-.giri-badge-lib > div:first-child { color: #6ee7b7; }
-.giri-badge-lib #giriHeroLib { color: #a7f3d0; }
-body.light .giri-badge-lib { background: rgba(74,200,160,0.07) !important; border-color: rgba(74,200,160,0.3) !important; }
-body.light .giri-badge-lib > div:first-child { color: #065f46 !important; }
-body.light .giri-badge-lib #giriHeroLib { color: #064e3b !important; }
+#gtab-content-giri .giri-badge-lib { background: rgba(74,200,160,0.22) !important; border: 1px solid rgba(74,200,160,0.45) !important; }
+#gtab-content-giri .giri-badge-lib div { color: #6ee7b7 !important; }
+#gtab-content-giri .giri-badge-lib #giriHeroLib { color: #a7f3d0 !important; font-size:18px !important; font-weight:800 !important; }
 
-/* Pill periodo — dark mode */
-#gtab-content-giri .giri-pill-wrap {
-  background: var(--dark3);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 4px;
-  display: flex;
-  gap: 2px;
-}
+/* Badges — light mode */
+body.light #gtab-content-giri .giri-badge-rev { background: rgba(103,65,217,0.10) !important; border-color: rgba(103,65,217,0.35) !important; }
+body.light #gtab-content-giri .giri-badge-rev div { color: #5b21b6 !important; }
+body.light #gtab-content-giri .giri-badge-rev #giriHeroRev { color: #4c1d95 !important; }
+
+body.light #gtab-content-giri .giri-badge-sat { background: rgba(255,120,0,0.10) !important; border-color: rgba(255,120,0,0.35) !important; }
+body.light #gtab-content-giri .giri-badge-sat div { color: #c2410c !important; }
+body.light #gtab-content-giri .giri-badge-sat #giriHeroSat { color: #9a3412 !important; }
+
+body.light #gtab-content-giri .giri-badge-sel { background: rgba(74,144,232,0.10) !important; border-color: rgba(74,144,232,0.3) !important; }
+body.light #gtab-content-giri .giri-badge-sel div { color: #1d4ed8 !important; }
+body.light #gtab-content-giri .giri-badge-sel #giriHeroSel { color: #1e3a8a !important; }
+
+body.light #gtab-content-giri .giri-badge-lib { background: rgba(74,200,160,0.10) !important; border-color: rgba(74,200,160,0.35) !important; }
+body.light #gtab-content-giri .giri-badge-lib div { color: #065f46 !important; }
+body.light #gtab-content-giri .giri-badge-lib #giriHeroLib { color: #064e3b !important; }
+
+/* Pill periodo */
+#gtab-content-giri .giri-pill-wrap { background: var(--dark3); border: 1px solid var(--border); border-radius:12px; padding:4px; display:flex; gap:2px; }
+body.light #gtab-content-giri .giri-pill-wrap { background: #efeffa !important; border-color: rgba(103,65,217,0.2) !important; }
+#gtab-content-giri .giri-period-btn { background: transparent !important; color: var(--text-muted) !important; }
+#gtab-content-giri .giri-period-btn.giri-period-active { background: linear-gradient(135deg,rgba(103,65,217,0.85),rgba(138,92,246,0.85)) !important; color: #fff !important; box-shadow: 0 2px 12px rgba(103,65,217,0.35); }
+body.light #gtab-content-giri .giri-period-btn { color: #44446a !important; }
+body.light #gtab-content-giri .giri-period-btn.giri-period-active { color: #fff !important; }
+
 /* ══════════════════════════════════════════════════════════════════════ */
 
 /* ── Giri Conti pill selector ─────────────────────────────────── */
