@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260425-v154';
+  var BUILD = '20260504-v158';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3771,6 +3771,48 @@ function sendRegistrationEmails(userName, userEmail) {
         </div>
       </div>
 
+
+      <!-- ══ BUDGET PLANNER SETTIMANALE ══════════════════════════════ -->
+      <div style="background:var(--card);border-radius:18px;padding:20px 22px;margin-bottom:14px;border:1.5px solid rgba(201,168,76,0.25);" id="budgetPlannerCard">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--gold);">🎯 Budget Planner Settimanale</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Inserisci il budget e vedi come distribuirlo</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--text-muted);">€</span>
+            <input type="number" id="plannerBudgetInput" min="1" step="1" placeholder="es. 200"
+              style="width:90px;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:10px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:15px;font-weight:700;outline:none;text-align:center;"
+              oninput="renderBudgetPlanner()">
+            <span style="font-size:12px;color:var(--text-muted);">/sett.</span>
+          </div>
+        </div>
+
+        <!-- Grafico a barre orizzontali interattivo -->
+        <div id="plannerChart" style="display:none;">
+          <div id="plannerBars" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
+
+          <!-- Riepilogo totale -->
+          <div style="background:var(--dark3);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:12px;color:var(--text-muted);">Distribuito</div>
+            <div style="font-size:18px;font-weight:800;color:var(--gold);" id="plannerTotDistrib">€0,00</div>
+            <div style="font-size:12px;color:var(--text-muted);">Avanzato</div>
+            <div style="font-size:18px;font-weight:800;" id="plannerTotAvanzo">€0,00</div>
+          </div>
+
+          <!-- Grafico donut -->
+          <div style="position:relative;height:180px;margin-top:14px;">
+            <canvas id="plannerDonut"></canvas>
+          </div>
+          <div id="plannerLegend" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px;"></div>
+        </div>
+
+        <div id="plannerEmpty" style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">
+          Inserisci un importo per vedere la distribuzione suggerita ↑
+        </div>
+      </div>
+      <!-- ═══════════════════════════════════════════════════════════ -->
+
       <!-- ROW 3: Grafico Trend Mensile -->
       <div style="background:var(--card);border-radius:18px;padding:20px 22px;margin-bottom:14px;">
         <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:14px;">📈 Trend Spese del Mese</div>
@@ -4789,6 +4831,57 @@ function sendRegistrationEmails(userName, userEmail) {
           </div>
         </div>
       </div>
+
+
+      <!-- ══ DIARIO SETTIMANA ══════════════════════════════════════════ -->
+      <div class="card mt-20" id="diarioCard">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+          <div>
+            <div class="card-title" style="margin:0;">📔 Diario della Settimana</div>
+            <div id="diarioWeekLabel" style="font-size:12px;color:var(--text-muted);margin-top:3px;"></div>
+          </div>
+          <button onclick="diarioToggleNew()" id="diarioNewBtn"
+            style="background:var(--gold);color:#1a1a2e;border:none;border-radius:12px;padding:9px 18px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px;">
+            ✏️ Scrivi
+          </button>
+        </div>
+
+        <!-- Form nuova voce diario -->
+        <div id="diarioNewForm" style="display:none;background:var(--dark3);border:1px solid rgba(201,168,76,0.3);border-radius:16px;padding:18px;margin-bottom:18px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+            <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;">📅 Data</div>
+            <input type="date" id="diarioDate" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;">
+            <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-left:8px;">🏷️ Umore</div>
+            <select id="diarioMood" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;">
+              <option value="😊">😊 Buona</option>
+              <option value="😐">😐 Normale</option>
+              <option value="😞">😞 No dai</option>
+              <option value="🎉">🎉 Ottima</option>
+              <option value="😤">😤 Stressante</option>
+              <option value="😴">😴 Stanca</option>
+            </select>
+          </div>
+          <div class="fld" style="margin-bottom:12px;">
+            <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">📝 Cosa hai fatto questa settimana</label>
+            <textarea id="diarioText" rows="5"
+              style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;color:var(--text);font-family:var(--font);font-size:14px;line-height:1.7;resize:vertical;min-height:120px;outline:none;box-sizing:border-box;"
+              placeholder="Scrivi qui il tuo resoconto della settimana... cosa è andato bene, cosa hai comprato, dove sei stato, pensieri sul budget..."></textarea>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button onclick="diarioToggleNew()" class="btn btn-outline" style="flex:1;">Annulla</button>
+            <button onclick="diarioSaveEntry()" class="btn btn-gold" style="flex:2;">💾 Salva nel Diario</button>
+          </div>
+        </div>
+
+        <!-- Lista voci diario -->
+        <div id="diarioList"></div>
+        <div id="diarioEmpty" style="text-align:center;padding:32px 20px;color:var(--text-muted);display:none;">
+          <div style="font-size:40px;margin-bottom:12px;">📔</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:6px;">Nessuna voce per questa settimana</div>
+          <div style="font-size:12px;">Premi <strong>✏️ Scrivi</strong> per iniziare il tuo diario</div>
+        </div>
+      </div>
+      <!-- ═══════════════════════════════════════════════════════════════ -->
 
       <!-- MODAL MODIFICA SPESA INLINE -->
       <div id="editExpModal" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:16px;">
@@ -8192,12 +8285,14 @@ function refreshAll() {
   renderExpenses();
   renderDashboard();
   renderWeek();
+  renderDiario();
   renderCalendar();
   renderGraphButtons();
   renderRate();
   renderSalvadanai();
   applyBlurState();
   initBudgetUI();
+  setTimeout(initBudgetPlanner, 300);
   setTimeout(() => { migrateGiriKey(); migrateLibrettoToGiri(); }, 600); // migra dati
   updateDocBadges();
 
@@ -8463,14 +8558,14 @@ function saveFixedItem() {
 
 function deleteFixedItem(id) {
   const item = getFIXED().find(f => f.id === id);
-  if(!await tcConfirm(`Eliminare "${item?.name || id}" dalle spese fisse?`, '🏠', 'Elimina', '#e05c5c')) return;
+  tcAsk(`Eliminare "${item?.name || id}" dalle spese fisse?`, '🏠', 'Elimina', '#e05c5c', '_doDelFixedItem', id);
+}
+function _doDelFixedItem(id) {
   saveFIXED(getFIXED().filter(f => f.id !== id));
-  // Rimuovi anche il pagamento e il giorno scadenza
   const p = getPagamenti(); delete p[id]; savePagamenti(p);
   const d = getDueDays(); delete d[id]; saveDueDays(d);
-  bumpVersion();
-  renderFixed();
-  renderDashboard(); vsRefreshIfActive();
+  bumpVersion(); fbPushToCloud(true);
+  renderFixed(); renderDashboard(); vsRefreshIfActive();
   showToast('🗑 Spesa fissa eliminata');
 }
 
@@ -9196,7 +9291,7 @@ function addExpense() {
   // Calcola weekOffset relativo al nuovo mese selezionato
   weekOffset = calcWeekOffsetForDate(targetDate);
   fbPushToCloud();
-  renderExpenses(); renderDashboard(); renderWeek(); renderCalendar(); vsRefreshIfActive();
+  renderExpenses(); renderDashboard(); renderWeek(); renderCalendar(); refreshBudgetPlannerIfVisible(); vsRefreshIfActive();
   showSection('settimanale', document.querySelector('.nav-item[onclick*="settimanale"]'));
   startAutoBackup(); // Backup automatico ogni ora
   showConfirmAnim('expense', amount);
@@ -9288,6 +9383,7 @@ function _doDelExpense(id) {
         save(k, arr.filter(e => String(e.id) !== String(id)));
         bumpVersion(); fbPushToCloud(true);
         renderExpenses(); renderDashboard(); renderWeek(); renderCalendar(); vsRefreshIfActive();
+        refreshBudgetPlannerIfVisible();
         showToast('🗑 Spesa eliminata');
         return;
       }
@@ -9788,8 +9884,8 @@ function saveEditExp() {
   showToast('✅ Spesa aggiornata!');
 }
 
-function prevWeek() { weekOffset--; renderWeek(); }
-function nextWeek() { weekOffset++; renderWeek(); }
+function prevWeek() { weekOffset--; renderWeek(); renderDiario(); refreshBudgetPlannerIfVisible(); }
+function nextWeek() { weekOffset++; renderWeek(); renderDiario(); refreshBudgetPlannerIfVisible(); }
 
 // ===== GRAPHS =====
 let weekChartInst = null, yearChartInst = null, trendChartInst = null, catFreqChartInst = null;
@@ -11996,6 +12092,12 @@ function getWeekTotal(dates) {
 }
 
 // Aggiorna barra budget nella sezione Spese Settimanali
+// Auto-aggiorna il planner dashboard quando cambia settimana
+function refreshBudgetPlannerIfVisible() {
+  const inp = document.getElementById('plannerBudgetInput');
+  if(inp && inp.value) setTimeout(renderBudgetPlanner, 100);
+}
+
 function renderWeekBudgetBar(weekTotal) {
   const bar = document.getElementById('weekBudgetBar');
   if(!bar) return;
@@ -13037,6 +13139,400 @@ function confirmPrivacyPwd() {
   applyBlurState();
 }
 // ══════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+//  DIARIO SETTIMANALE
+// ══════════════════════════════════════════════════════════════
+
+function getDiarioKey(weekStart) {
+  // Chiave per settimana: diario_2026_W17
+  const d = weekStart || getWeekStartDate();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const weekNum = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return 'diario_' + d.getFullYear() + '_W' + String(weekNum).padStart(2,'0');
+}
+
+function getWeekStartDate() {
+  // Calcola il lunedì della settimana corrente con weekOffset
+  const base = new Date();
+  const day  = base.getDay() || 7; // 1=lun, 7=dom
+  base.setDate(base.getDate() - day + 1 + (typeof weekOffset !== 'undefined' ? weekOffset * 7 : 0));
+  base.setHours(12,0,0,0);
+  return base;
+}
+
+function getDiarioEntries(weekStart) {
+  return load(getDiarioKey(weekStart), []);
+}
+function saveDiarioEntries(arr, weekStart) {
+  save(getDiarioKey(weekStart), arr);
+}
+
+function diarioToggleNew() {
+  const form = document.getElementById('diarioNewForm');
+  const btn  = document.getElementById('diarioNewBtn');
+  const isOpen = form.style.display !== 'none';
+  form.style.display = isOpen ? 'none' : 'block';
+  btn.textContent = isOpen ? '✏️ Scrivi' : '✕ Chiudi';
+  if(!isOpen) {
+    // Pre-compila data di oggi
+    document.getElementById('diarioDate').value = new Date().toISOString().slice(0,10);
+    document.getElementById('diarioText').value = '';
+    document.getElementById('diarioMood').value = '😊';
+    setTimeout(() => document.getElementById('diarioText').focus(), 100);
+  }
+}
+
+function diarioSaveEntry(editId) {
+  const text = document.getElementById('diarioText').value.trim();
+  const date = document.getElementById('diarioDate').value;
+  const mood = document.getElementById('diarioMood').value;
+  if(!text) { showToast('⚠️ Scrivi qualcosa prima di salvare'); return; }
+  if(!date) { showToast('⚠️ Seleziona una data'); return; }
+
+  const wStart   = getWeekStartDate();
+  const entries  = getDiarioEntries(wStart);
+  if(editId) {
+    const idx = entries.findIndex(e => e.id === editId);
+    if(idx >= 0) entries[idx] = { ...entries[idx], text, date, mood, updatedAt: new Date().toISOString() };
+  } else {
+    entries.unshift({ id: Date.now().toString(), text, date, mood, createdAt: new Date().toISOString() });
+  }
+  saveDiarioEntries(entries, wStart);
+  bumpVersion(); fbPushToCloud(true);
+  diarioToggleNew();
+  renderDiario();
+  showToast('📔 Voce salvata nel diario!');
+}
+
+function diarioDeleteEntry(id) {
+  tcAsk('Eliminare questa voce del diario?', '📔', 'Elimina', '#e05c5c', '_doDiarioDelete', id);
+}
+function _doDiarioDelete(id) {
+  const wStart  = getWeekStartDate();
+  const entries = getDiarioEntries(wStart).filter(e => e.id !== id);
+  saveDiarioEntries(entries, wStart);
+  bumpVersion(); fbPushToCloud(true);
+  renderDiario();
+  showToast('🗑 Voce eliminata');
+}
+
+function diarioEditEntry(id) {
+  const wStart  = getWeekStartDate();
+  const entries = getDiarioEntries(wStart);
+  const entry   = entries.find(e => e.id === id);
+  if(!entry) return;
+  const form = document.getElementById('diarioNewForm');
+  form.style.display = 'block';
+  document.getElementById('diarioNewBtn').textContent = '✕ Chiudi';
+  document.getElementById('diarioDate').value = entry.date;
+  document.getElementById('diarioText').value = entry.text;
+  document.getElementById('diarioMood').value = entry.mood || '😊';
+  // Sovrascrive diarioSaveEntry per questa sessione
+  window._diarioEditId = id;
+  form.querySelector('button[onclick="diarioSaveEntry()"]')?.setAttribute('onclick', `diarioSaveEntry('${id}')`);
+  document.getElementById('diarioText').focus();
+}
+
+function renderDiario() {
+  const wStart  = getWeekStartDate();
+  const entries = getDiarioEntries(wStart);
+  const list    = document.getElementById('diarioList');
+  const empty   = document.getElementById('diarioEmpty');
+  const label   = document.getElementById('diarioWeekLabel');
+  if(!list) return;
+
+  // Aggiorna label settimana
+  if(label) {
+    const wEnd = new Date(wStart); wEnd.setDate(wEnd.getDate() + 6);
+    const fmt = d => d.toLocaleDateString('it-IT',{day:'numeric',month:'long'});
+    label.textContent = fmt(wStart) + ' – ' + fmt(wEnd);
+  }
+
+  if(!entries.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const MESI_D = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const GIORNI_D = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+  list.innerHTML = entries.map(entry => {
+    const d    = new Date(entry.date + 'T12:00:00');
+    const dayLabel = GIORNI_D[d.getDay()] + ' ' + d.getDate() + ' ' + MESI_D[d.getMonth()];
+    const lines = (entry.text || '').split('\n');
+    const preview = lines.slice(0,3).join('\n');
+    const hasMore = lines.length > 3;
+    const timeAgo = (() => {
+      const diffMin = Math.floor((Date.now() - new Date(entry.createdAt||entry.date).getTime()) / 60000);
+      if(diffMin < 2)   return 'adesso';
+      if(diffMin < 60)  return diffMin + ' min fa';
+      if(diffMin < 1440) return Math.floor(diffMin/60) + ' ore fa';
+      return Math.floor(diffMin/1440) + ' giorni fa';
+    })();
+
+    return `<div style="background:var(--dark3);border:1px solid rgba(201,168,76,0.18);border-radius:16px;padding:18px 20px;margin-bottom:14px;position:relative;overflow:hidden;">
+      <!-- Accent bar sinistra -->
+      <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--gold),rgba(201,168,76,0.3));border-radius:4px 0 0 4px;"></div>
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;padding-left:8px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+            <span style="font-size:22px;">${entry.mood||'😊'}</span>
+            <span style="font-size:14px;font-weight:700;color:var(--text);">${dayLabel}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);">${timeAgo}${entry.updatedAt?' · modificato':''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button onclick="diarioEditEntry('${entry.id}')"
+            style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:var(--font);">✏️</button>
+          <button onclick="diarioDeleteEntry('${entry.id}')"
+            style="background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:#e05c5c;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:var(--font);">🗑</button>
+        </div>
+      </div>
+      <!-- Testo -->
+      <div id="diario-text-${entry.id}" style="font-size:14px;line-height:1.75;color:var(--text);white-space:pre-wrap;padding-left:8px;">${preview.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}${hasMore?'\n<span style="color:var(--text-muted);font-size:12px;">...</span>':''}</div>
+      ${hasMore?`<button onclick="diarioExpandEntry('${entry.id}','${entry.text.replace(/'/g,"\'").replace(/\n/g,'\\n')}')"
+        style="margin-top:8px;margin-left:8px;background:none;border:none;color:var(--gold);font-size:12px;cursor:pointer;font-family:var(--font);font-weight:600;padding:0;">Leggi tutto ▼</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function diarioExpandEntry(id, fullText) {
+  const el = document.getElementById('diario-text-' + id);
+  if(el) {
+    el.innerHTML = fullText.replace(/\n/g,'\n').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'\n');
+    const btn = el.nextElementSibling;
+    if(btn) btn.remove();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+//  BUDGET PLANNER SETTIMANALE — Dashboard
+// ══════════════════════════════════════════════════════════════
+let _plannerDonutInst = null;
+
+// Categorie con pesi percentuali (cambiano in base al budget)
+function getPlannerCategorie(budget) {
+  // Pesi base (somma = 100)
+  const BASE = [
+    { cat:'supermercato', label:'🛒 Supermercato', color:'rgba(74,232,122,0.85)',  w: 30 },
+    { cat:'bar',          label:'☕ Bar/Caffè',    color:'rgba(255,183,77,0.85)',  w: 20 },
+    { cat:'ristorante',   label:'🍽️ Ristorante',   color:'rgba(255,107,107,0.85)', w: 20 },
+    { cat:'viaggi',       label:'🚌 Trasporti',     color:'rgba(74,144,232,0.85)', w: 15 },
+    { cat:'hotel',        label:'🏨 Hotel/Svago',   color:'rgba(167,139,250,0.85)',w: 10 },
+    { cat:'extra',        label:'💡 Extra',         color:'rgba(201,168,76,0.85)', w:  5 },
+  ];
+
+  // Con budget basso (<100€) togli hotel, riduci ristorante
+  if(budget < 100) {
+    return [
+      { ...BASE[0], w: 40 }, // supermercato sale
+      { ...BASE[1], w: 25 }, // bar sale
+      { ...BASE[2], w: 15 }, // ristorante scende
+      { ...BASE[3], w: 15 }, // trasporti
+      { ...BASE[5], w:  5 }, // extra
+    ];
+  }
+  // Budget medio (100-300€)
+  if(budget < 300) {
+    return BASE;
+  }
+  // Budget alto (>300€): più hotel/svago e ristorante
+  return [
+    { ...BASE[0], w: 20 },
+    { ...BASE[1], w: 15 },
+    { ...BASE[2], w: 25 },
+    { ...BASE[3], w: 15 },
+    { ...BASE[4], w: 18 },
+    { ...BASE[5], w:  7 },
+  ];
+}
+
+function _getPlannerWeekSpending() {
+  // Legge le spese reali della settimana corrente per categoria
+  const dates = typeof getWeekDates === 'function' ? getWeekDates(weekOffset || 0) : [];
+  if(!dates.length) return {};
+  const monthsToLoad = new Set();
+  dates.forEach(d => monthsToLoad.add(d.getFullYear() + '_' + (d.getMonth()+1)));
+  let exp = [];
+  monthsToLoad.forEach(k => { exp = exp.concat(load('expenses_'+k, [])); });
+  // Mappa cat → speso
+  const spent = {};
+  exp.forEach(e => {
+    const inWeek = dates.some(d => {
+      const ds  = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const ds2 = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+      return e.date===ds || e.date===ds2;
+    });
+    if(!inWeek) return;
+    const isBonRate = e.pay==='bonifico' || e.cat==='rata';
+    if(isBonRate) return;
+    if(typeof vsIsExcluded==='function' && vsIsExcluded(e)) return;
+    const key = e.cat || 'extra';
+    spent[key] = (spent[key]||0) + e.amount;
+  });
+  return spent;
+}
+
+function renderBudgetPlanner() {
+  const input  = document.getElementById('plannerBudgetInput');
+  const chart  = document.getElementById('plannerChart');
+  const empty  = document.getElementById('plannerEmpty');
+  const bars   = document.getElementById('plannerBars');
+  const legend = document.getElementById('plannerLegend');
+  if(!input || !chart) return;
+
+  const budget = parseFloat(input.value);
+  if(!budget || budget <= 0) {
+    chart.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  save('plannerBudget', budget);
+
+  chart.style.display = 'block';
+  empty.style.display = 'none';
+
+  const cats   = getPlannerCategorie(budget);
+  const totW   = cats.reduce((s,c) => s+c.w, 0);
+  const spent  = _getPlannerWeekSpending();
+  const fmt    = v => '€'+v.toFixed(2).replace('.',',');
+  const isLight = document.body.classList.contains('light');
+
+  // Mappa categoria → item planner (supermercato, bar, ristorante, viaggi→trasporti, hotel, extra)
+  const catMap = { supermercato:'supermercato', bar:'bar', ristorante:'ristorante',
+                   viaggi:'viaggi', hotel:'hotel', musei:'hotel', svago:'hotel', extra:'extra' };
+
+  let distribuito = 0;
+  const items = cats.map(c => {
+    const raw = (c.w / totW) * budget;
+    const amt = Math.round(raw * 2) / 2;
+    distribuito += amt;
+    // Somma spese reali per questa categoria (e categorie simili)
+    let speso = 0;
+    Object.entries(spent).forEach(([k,v]) => {
+      if(catMap[k] === c.cat || k === c.cat) speso += v;
+    });
+    return { ...c, amt, speso: Math.round(speso*100)/100 };
+  });
+  const avanzo = Math.max(0, budget - distribuito);
+  const totSpeso = items.reduce((s,i)=>s+i.speso, 0);
+
+  // Riepilogo
+  document.getElementById('plannerTotDistrib').textContent = fmt(distribuito);
+  const av = document.getElementById('plannerTotAvanzo');
+  av.textContent = fmt(avanzo);
+  av.style.color = avanzo > 0 ? '#4ae87a' : 'var(--text-muted)';
+
+  // Header con totale speso questa settimana
+  let hdr = document.getElementById('plannerSpesaHeader');
+  if(!hdr) {
+    hdr = document.createElement('div');
+    hdr.id = 'plannerSpesaHeader';
+    hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;margin-bottom:14px;flex-wrap:wrap;gap:8px;';
+    bars.parentNode.insertBefore(hdr, bars);
+  }
+  const rimasto = budget - totSpeso;
+  const pctSpeso = budget > 0 ? Math.min(100, (totSpeso/budget)*100) : 0;
+  const overBudget = totSpeso > budget;
+  hdr.innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);">📊 Speso questa settimana</div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:16px;font-weight:800;color:${overBudget?'#e05c5c':'var(--text)'};">${fmt(totSpeso)}</span>
+      <span style="font-size:12px;color:var(--text-muted);">su ${fmt(budget)}</span>
+      <span style="font-size:13px;font-weight:700;color:${overBudget?'#e05c5c':'#4ae87a'};">${overBudget?'▲ Sforato':'▼ Rimangono'} ${fmt(Math.abs(rimasto))}</span>
+    </div>
+    <div style="width:100%;background:rgba(255,255,255,0.07);border-radius:6px;height:6px;overflow:hidden;margin-top:4px;">
+      <div style="width:${pctSpeso}%;height:100%;background:${overBudget?'#e05c5c':'#4ae87a'};border-radius:6px;transition:width 0.5s;"></div>
+    </div>`;
+
+  // Barre con doppia traccia: piano vs speso
+  const maxAmt = Math.max(...items.map(i => i.amt));
+  bars.innerHTML = items.map(item => {
+    const pctPlan  = maxAmt > 0 ? (item.amt / maxAmt) * 100 : 0;
+    const pctSpent = item.amt > 0 ? Math.min(100, (item.speso / item.amt) * 100) : 0;
+    const over     = item.speso > item.amt;
+    const pctOf    = ((item.amt / budget) * 100).toFixed(0);
+    const rimaneCat = item.amt - item.speso;
+    const spentColor = over ? '#e05c5c' : '#4ae87a';
+    return `<div style="padding:8px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <span style="font-size:13px;font-weight:600;">${item.label}</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:11px;color:var(--text-muted);">Budget: ${fmt(item.amt)}</span>
+          <span style="font-size:13px;font-weight:800;color:${spentColor};">Speso: ${fmt(item.speso)}</span>
+        </div>
+      </div>
+      <!-- Barra piano (grigio) -->
+      <div style="background:rgba(255,255,255,0.06);border-radius:6px;height:12px;overflow:hidden;position:relative;margin-bottom:3px;">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${pctPlan}%;background:${item.color};border-radius:6px;opacity:0.3;"></div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${pctSpent*pctPlan/100}%;background:${spentColor};border-radius:6px;transition:width 0.5s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);">
+        <span>~${fmt(item.amt/7)}/giorno</span>
+        <span style="color:${over?'#e05c5c':'#4ae87a'};">${over?'⚠️ +'+fmt(item.speso-item.amt):'✅ '+fmt(rimaneCat)+' rimasto'}</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Donut con due dataset: piano e speso
+  if(_plannerDonutInst) { _plannerDonutInst.destroy(); _plannerDonutInst = null; }
+  const ctx = document.getElementById('plannerDonut')?.getContext('2d');
+  if(ctx) {
+    _plannerDonutInst = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: items.map(i => i.label),
+        datasets: [
+          { label:'Budget', data: items.map(i=>i.amt),  backgroundColor: items.map(i=>i.color), borderWidth:2, borderColor: isLight?'#f0f0fa':'#1a1826' },
+          { label:'Speso',  data: items.map(i=>i.speso), backgroundColor: items.map(i=>i.color.replace('0.85','0.4')), borderWidth:2, borderColor: isLight?'#f0f0fa':'#1a1826' }
+        ]
+      },
+      options: {
+        animation:{duration:400}, responsive:true, maintainAspectRatio:false, cutout:'55%',
+        plugins:{
+          legend:{display:false},
+          tooltip:{ callbacks:{ label: c => ` ${c.dataset.label} ${c.label}: ${fmt(c.parsed)}` }}
+        }
+      }
+    });
+    Chart.register({
+      id:'plannerDonutCenter',
+      afterDraw(chart){
+        if(chart.canvas.id!=='plannerDonut') return;
+        const {ctx:c,chartArea:{left,top,right,bottom}}=chart;
+        const cx=(left+right)/2, cy=(top+bottom)/2;
+        c.save(); c.textAlign='center'; c.textBaseline='middle';
+        c.fillStyle=isLight?'#8a6500':'#c9a84c'; c.font='bold 16px DM Sans';
+        c.fillText(fmt(totSpeso), cx, cy-10);
+        c.fillStyle=isLight?'#44446a':'#8888aa'; c.font='10px DM Sans';
+        c.fillText('di '+fmt(budget), cx, cy+6);
+        c.fillText((pctSpeso).toFixed(0)+'% usato', cx, cy+19);
+        c.restore();
+      }
+    });
+  }
+
+  legend.innerHTML = items.map(i=>
+    `<div style="display:flex;align-items:center;gap:4px;font-size:11px;">
+      <div style="width:10px;height:10px;border-radius:2px;background:${i.color};flex-shrink:0;"></div>
+      <span style="color:var(--text-muted);">${i.label.split(' ').slice(1).join(' ')}</span>
+    </div>`
+  ).join('');
+}
+
+// Avvia con il valore salvato
+function initBudgetPlanner() {
+  const saved = load('plannerBudget', null);
+  const inp   = document.getElementById('plannerBudgetInput');
+  if(saved && inp) { inp.value = saved; renderBudgetPlanner(); }
+}
+// ══════════════════════════════════════════════════════════════
 
 function calcRatePreview() {
   const totale = parseFloat(document.getElementById('rataTotale').value);
@@ -22185,6 +22681,22 @@ body.light #tcConfirmModal button:first-child {
   color: #111122 !important;
   border-color: rgba(0,0,0,0.12) !important;
 }
+
+/* ── Diario Settimanale — light mode ────────────────────────── */
+body.light #diarioCard { background: #ffffff; }
+body.light #diarioNewForm { background: #f5f4fc !important; border-color: rgba(201,168,76,0.3) !important; }
+body.light #diarioText { background: #ffffff !important; color: #111122 !important; border-color: rgba(201,168,76,0.4) !important; }
+body.light #diarioDate, body.light #diarioMood { background: #ffffff !important; color: #111122 !important; }
+body.light #diarioList > div { background: #f8f8ff !important; border-color: rgba(201,168,76,0.2) !important; }
+body.light #diarioEmpty { color: #44446a !important; }
+/* ─────────────────────────────────────────────────────────────── */
+
+/* ── Budget Planner light mode ───────────────────────────── */
+body.light #budgetPlannerCard { background: #ffffff; border-color: rgba(201,168,76,0.3); }
+body.light #plannerBudgetInput { background: #fff !important; color: #111122 !important; border-color: rgba(201,168,76,0.5) !important; }
+body.light #plannerBars > div [style*="rgba(255,255,255,0.06)"] { background: rgba(0,0,0,0.05) !important; }
+body.light #plannerTotDistrib { color: #8a6500 !important; }
+/* ─────────────────────────────────────────────────────────── */
 </style>
 </head><body>
 <div class="ph">
