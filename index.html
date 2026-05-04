@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260504-v156';
+  var BUILD = '20260504-v157';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3770,6 +3770,48 @@ function sendRegistrationEmails(userName, userEmail) {
           </div>
         </div>
       </div>
+
+
+      <!-- ══ BUDGET PLANNER SETTIMANALE ══════════════════════════════ -->
+      <div style="background:var(--card);border-radius:18px;padding:20px 22px;margin-bottom:14px;border:1.5px solid rgba(201,168,76,0.25);" id="budgetPlannerCard">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--gold);">🎯 Budget Planner Settimanale</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Inserisci il budget e vedi come distribuirlo</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--text-muted);">€</span>
+            <input type="number" id="plannerBudgetInput" min="1" step="1" placeholder="es. 200"
+              style="width:90px;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:10px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:15px;font-weight:700;outline:none;text-align:center;"
+              oninput="renderBudgetPlanner()">
+            <span style="font-size:12px;color:var(--text-muted);">/sett.</span>
+          </div>
+        </div>
+
+        <!-- Grafico a barre orizzontali interattivo -->
+        <div id="plannerChart" style="display:none;">
+          <div id="plannerBars" style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;"></div>
+
+          <!-- Riepilogo totale -->
+          <div style="background:var(--dark3);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:12px;color:var(--text-muted);">Distribuito</div>
+            <div style="font-size:18px;font-weight:800;color:var(--gold);" id="plannerTotDistrib">€0,00</div>
+            <div style="font-size:12px;color:var(--text-muted);">Avanzato</div>
+            <div style="font-size:18px;font-weight:800;" id="plannerTotAvanzo">€0,00</div>
+          </div>
+
+          <!-- Grafico donut -->
+          <div style="position:relative;height:180px;margin-top:14px;">
+            <canvas id="plannerDonut"></canvas>
+          </div>
+          <div id="plannerLegend" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:10px;"></div>
+        </div>
+
+        <div id="plannerEmpty" style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">
+          Inserisci un importo per vedere la distribuzione suggerita ↑
+        </div>
+      </div>
+      <!-- ═══════════════════════════════════════════════════════════ -->
 
       <!-- ROW 3: Grafico Trend Mensile -->
       <div style="background:var(--card);border-radius:18px;padding:20px 22px;margin-bottom:14px;">
@@ -8250,6 +8292,7 @@ function refreshAll() {
   renderSalvadanai();
   applyBlurState();
   initBudgetUI();
+  setTimeout(initBudgetPlanner, 300);
   setTimeout(() => { migrateGiriKey(); migrateLibrettoToGiri(); }, 600); // migra dati
   updateDocBadges();
 
@@ -13259,6 +13302,176 @@ function diarioExpandEntry(id, fullText) {
   }
 }
 
+// ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+//  BUDGET PLANNER SETTIMANALE — Dashboard
+// ══════════════════════════════════════════════════════════════
+let _plannerDonutInst = null;
+
+// Categorie con pesi percentuali (cambiano in base al budget)
+function getPlannerCategorie(budget) {
+  // Pesi base (somma = 100)
+  const BASE = [
+    { cat:'supermercato', label:'🛒 Supermercato', color:'rgba(74,232,122,0.85)',  w: 30 },
+    { cat:'bar',          label:'☕ Bar/Caffè',    color:'rgba(255,183,77,0.85)',  w: 20 },
+    { cat:'ristorante',   label:'🍽️ Ristorante',   color:'rgba(255,107,107,0.85)', w: 20 },
+    { cat:'viaggi',       label:'🚌 Trasporti',     color:'rgba(74,144,232,0.85)', w: 15 },
+    { cat:'hotel',        label:'🏨 Hotel/Svago',   color:'rgba(167,139,250,0.85)',w: 10 },
+    { cat:'extra',        label:'💡 Extra',         color:'rgba(201,168,76,0.85)', w:  5 },
+  ];
+
+  // Con budget basso (<100€) togli hotel, riduci ristorante
+  if(budget < 100) {
+    return [
+      { ...BASE[0], w: 40 }, // supermercato sale
+      { ...BASE[1], w: 25 }, // bar sale
+      { ...BASE[2], w: 15 }, // ristorante scende
+      { ...BASE[3], w: 15 }, // trasporti
+      { ...BASE[5], w:  5 }, // extra
+    ];
+  }
+  // Budget medio (100-300€)
+  if(budget < 300) {
+    return BASE;
+  }
+  // Budget alto (>300€): più hotel/svago e ristorante
+  return [
+    { ...BASE[0], w: 20 },
+    { ...BASE[1], w: 15 },
+    { ...BASE[2], w: 25 },
+    { ...BASE[3], w: 15 },
+    { ...BASE[4], w: 18 },
+    { ...BASE[5], w:  7 },
+  ];
+}
+
+function renderBudgetPlanner() {
+  const input  = document.getElementById('plannerBudgetInput');
+  const chart  = document.getElementById('plannerChart');
+  const empty  = document.getElementById('plannerEmpty');
+  const bars   = document.getElementById('plannerBars');
+  const legend = document.getElementById('plannerLegend');
+  if(!input || !chart) return;
+
+  const budget = parseFloat(input.value);
+  if(!budget || budget <= 0) {
+    chart.style.display = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+
+  // Salva il valore
+  save('plannerBudget', budget);
+
+  chart.style.display = 'block';
+  empty.style.display = 'none';
+
+  const cats = getPlannerCategorie(budget);
+  const totW  = cats.reduce((s,c) => s+c.w, 0);
+
+  // Calcola importi — arrotonda al 50 cent
+  let distribuito = 0;
+  const items = cats.map(c => {
+    const raw = (c.w / totW) * budget;
+    const amt = Math.round(raw * 2) / 2; // arrotonda a 0,50
+    distribuito += amt;
+    return { ...c, amt };
+  });
+  const avanzo = Math.max(0, budget - distribuito);
+
+  // Aggiorna riepilogo
+  const fmt = v => '€'+v.toFixed(2).replace('.',',');
+  document.getElementById('plannerTotDistrib').textContent = fmt(distribuito);
+  const av = document.getElementById('plannerTotAvanzo');
+  av.textContent = fmt(avanzo);
+  av.style.color = avanzo > 0 ? '#4ae87a' : 'var(--text-muted)';
+
+  // Barre orizzontali
+  const maxAmt = Math.max(...items.map(i => i.amt));
+  bars.innerHTML = items.map(item => {
+    const pct   = maxAmt > 0 ? (item.amt / maxAmt) * 100 : 0;
+    const pctOf = ((item.amt / budget) * 100).toFixed(0);
+    return `<div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <span style="font-size:13px;font-weight:600;">${item.label}</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:10px;color:var(--text-muted);">${pctOf}%</span>
+          <span style="font-size:14px;font-weight:800;color:${item.color.replace('0.85','1')};">${fmt(item.amt)}</span>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border-radius:6px;height:10px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${item.color};border-radius:6px;transition:width 0.5s ease;"></div>
+      </div>
+      <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">~${fmt(item.amt / 7)}/giorno</div>
+    </div>`;
+  }).join('');
+
+  // Donut chart
+  if(_plannerDonutInst) { _plannerDonutInst.destroy(); _plannerDonutInst = null; }
+  const ctx = document.getElementById('plannerDonut')?.getContext('2d');
+  if(ctx) {
+    _plannerDonutInst = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: items.map(i => i.label),
+        datasets: [{
+          data: items.map(i => i.amt),
+          backgroundColor: items.map(i => i.color),
+          borderWidth: 2,
+          borderColor: document.body.classList.contains('light') ? '#f0f0fa' : '#1a1826',
+        }]
+      },
+      options: {
+        animation: { duration: 400 },
+        responsive: true,
+        maintainAspectRatio: false,
+        cutout: '65%',
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              label: ctx => ` ${ctx.label}: €${ctx.parsed.toFixed(2).replace('.',',')} (${((ctx.parsed/budget)*100).toFixed(0)}%)`
+            }
+          }
+        }
+      }
+    });
+    // Centro donut
+    Chart.register({
+      id: 'plannerDonutCenter',
+      afterDraw(chart) {
+        if(chart.canvas.id !== 'plannerDonut') return;
+        const {ctx:c, chartArea:{left,top,right,bottom}} = chart;
+        const cx = (left+right)/2, cy = (top+bottom)/2;
+        c.save();
+        c.textAlign = 'center'; c.textBaseline = 'middle';
+        c.fillStyle = document.body.classList.contains('light') ? '#8a6500' : '#c9a84c';
+        c.font = 'bold 18px DM Sans';
+        c.fillText('€'+budget.toFixed(0), cx, cy-8);
+        c.fillStyle = document.body.classList.contains('light') ? '#44446a' : '#8888aa';
+        c.font = '11px DM Sans';
+        c.fillText('settimana', cx, cy+10);
+        c.restore();
+      }
+    });
+  }
+
+  // Legenda
+  legend.innerHTML = items.map(i =>
+    `<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted);">
+      <div style="width:10px;height:10px;border-radius:2px;background:${i.color};flex-shrink:0;"></div>
+      <span>${i.label.split(' ')[1]}</span>
+    </div>`
+  ).join('');
+}
+
+// Avvia con il valore salvato
+function initBudgetPlanner() {
+  const saved = load('plannerBudget', null);
+  const inp   = document.getElementById('plannerBudgetInput');
+  if(saved && inp) { inp.value = saved; renderBudgetPlanner(); }
+}
 // ══════════════════════════════════════════════════════════════
 
 function calcRatePreview() {
@@ -22417,6 +22630,13 @@ body.light #diarioDate, body.light #diarioMood { background: #ffffff !important;
 body.light #diarioList > div { background: #f8f8ff !important; border-color: rgba(201,168,76,0.2) !important; }
 body.light #diarioEmpty { color: #44446a !important; }
 /* ─────────────────────────────────────────────────────────────── */
+
+/* ── Budget Planner light mode ───────────────────────────── */
+body.light #budgetPlannerCard { background: #ffffff; border-color: rgba(201,168,76,0.3); }
+body.light #plannerBudgetInput { background: #fff !important; color: #111122 !important; border-color: rgba(201,168,76,0.5) !important; }
+body.light #plannerBars > div [style*="rgba(255,255,255,0.06)"] { background: rgba(0,0,0,0.05) !important; }
+body.light #plannerTotDistrib { color: #8a6500 !important; }
+/* ─────────────────────────────────────────────────────────── */
 </style>
 </head><body>
 <div class="ph">
