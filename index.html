@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260504-v157';
+  var BUILD = '20260504-v158';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -9291,7 +9291,7 @@ function addExpense() {
   // Calcola weekOffset relativo al nuovo mese selezionato
   weekOffset = calcWeekOffsetForDate(targetDate);
   fbPushToCloud();
-  renderExpenses(); renderDashboard(); renderWeek(); renderCalendar(); vsRefreshIfActive();
+  renderExpenses(); renderDashboard(); renderWeek(); renderCalendar(); refreshBudgetPlannerIfVisible(); vsRefreshIfActive();
   showSection('settimanale', document.querySelector('.nav-item[onclick*="settimanale"]'));
   startAutoBackup(); // Backup automatico ogni ora
   showConfirmAnim('expense', amount);
@@ -9383,6 +9383,7 @@ function _doDelExpense(id) {
         save(k, arr.filter(e => String(e.id) !== String(id)));
         bumpVersion(); fbPushToCloud(true);
         renderExpenses(); renderDashboard(); renderWeek(); renderCalendar(); vsRefreshIfActive();
+        refreshBudgetPlannerIfVisible();
         showToast('🗑 Spesa eliminata');
         return;
       }
@@ -9883,8 +9884,8 @@ function saveEditExp() {
   showToast('✅ Spesa aggiornata!');
 }
 
-function prevWeek() { weekOffset--; renderWeek(); renderDiario(); }
-function nextWeek() { weekOffset++; renderWeek(); renderDiario(); }
+function prevWeek() { weekOffset--; renderWeek(); renderDiario(); refreshBudgetPlannerIfVisible(); }
+function nextWeek() { weekOffset++; renderWeek(); renderDiario(); refreshBudgetPlannerIfVisible(); }
 
 // ===== GRAPHS =====
 let weekChartInst = null, yearChartInst = null, trendChartInst = null, catFreqChartInst = null;
@@ -12091,6 +12092,12 @@ function getWeekTotal(dates) {
 }
 
 // Aggiorna barra budget nella sezione Spese Settimanali
+// Auto-aggiorna il planner dashboard quando cambia settimana
+function refreshBudgetPlannerIfVisible() {
+  const inp = document.getElementById('plannerBudgetInput');
+  if(inp && inp.value) setTimeout(renderBudgetPlanner, 100);
+}
+
 function renderWeekBudgetBar(weekTotal) {
   const bar = document.getElementById('weekBudgetBar');
   if(!bar) return;
@@ -13346,6 +13353,32 @@ function getPlannerCategorie(budget) {
   ];
 }
 
+function _getPlannerWeekSpending() {
+  // Legge le spese reali della settimana corrente per categoria
+  const dates = typeof getWeekDates === 'function' ? getWeekDates(weekOffset || 0) : [];
+  if(!dates.length) return {};
+  const monthsToLoad = new Set();
+  dates.forEach(d => monthsToLoad.add(d.getFullYear() + '_' + (d.getMonth()+1)));
+  let exp = [];
+  monthsToLoad.forEach(k => { exp = exp.concat(load('expenses_'+k, [])); });
+  // Mappa cat → speso
+  const spent = {};
+  exp.forEach(e => {
+    const inWeek = dates.some(d => {
+      const ds  = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      const ds2 = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+      return e.date===ds || e.date===ds2;
+    });
+    if(!inWeek) return;
+    const isBonRate = e.pay==='bonifico' || e.cat==='rata';
+    if(isBonRate) return;
+    if(typeof vsIsExcluded==='function' && vsIsExcluded(e)) return;
+    const key = e.cat || 'extra';
+    spent[key] = (spent[key]||0) + e.amount;
+  });
+  return spent;
+}
+
 function renderBudgetPlanner() {
   const input  = document.getElementById('plannerBudgetInput');
   const chart  = document.getElementById('plannerChart');
@@ -13360,54 +13393,94 @@ function renderBudgetPlanner() {
     empty.style.display = 'block';
     return;
   }
-
-  // Salva il valore
   save('plannerBudget', budget);
 
   chart.style.display = 'block';
   empty.style.display = 'none';
 
-  const cats = getPlannerCategorie(budget);
-  const totW  = cats.reduce((s,c) => s+c.w, 0);
+  const cats   = getPlannerCategorie(budget);
+  const totW   = cats.reduce((s,c) => s+c.w, 0);
+  const spent  = _getPlannerWeekSpending();
+  const fmt    = v => '€'+v.toFixed(2).replace('.',',');
+  const isLight = document.body.classList.contains('light');
 
-  // Calcola importi — arrotonda al 50 cent
+  // Mappa categoria → item planner (supermercato, bar, ristorante, viaggi→trasporti, hotel, extra)
+  const catMap = { supermercato:'supermercato', bar:'bar', ristorante:'ristorante',
+                   viaggi:'viaggi', hotel:'hotel', musei:'hotel', svago:'hotel', extra:'extra' };
+
   let distribuito = 0;
   const items = cats.map(c => {
     const raw = (c.w / totW) * budget;
-    const amt = Math.round(raw * 2) / 2; // arrotonda a 0,50
+    const amt = Math.round(raw * 2) / 2;
     distribuito += amt;
-    return { ...c, amt };
+    // Somma spese reali per questa categoria (e categorie simili)
+    let speso = 0;
+    Object.entries(spent).forEach(([k,v]) => {
+      if(catMap[k] === c.cat || k === c.cat) speso += v;
+    });
+    return { ...c, amt, speso: Math.round(speso*100)/100 };
   });
   const avanzo = Math.max(0, budget - distribuito);
+  const totSpeso = items.reduce((s,i)=>s+i.speso, 0);
 
-  // Aggiorna riepilogo
-  const fmt = v => '€'+v.toFixed(2).replace('.',',');
+  // Riepilogo
   document.getElementById('plannerTotDistrib').textContent = fmt(distribuito);
   const av = document.getElementById('plannerTotAvanzo');
   av.textContent = fmt(avanzo);
   av.style.color = avanzo > 0 ? '#4ae87a' : 'var(--text-muted)';
 
-  // Barre orizzontali
+  // Header con totale speso questa settimana
+  let hdr = document.getElementById('plannerSpesaHeader');
+  if(!hdr) {
+    hdr = document.createElement('div');
+    hdr.id = 'plannerSpesaHeader';
+    hdr.style.cssText = 'display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.04);border-radius:10px;padding:10px 14px;margin-bottom:14px;flex-wrap:wrap;gap:8px;';
+    bars.parentNode.insertBefore(hdr, bars);
+  }
+  const rimasto = budget - totSpeso;
+  const pctSpeso = budget > 0 ? Math.min(100, (totSpeso/budget)*100) : 0;
+  const overBudget = totSpeso > budget;
+  hdr.innerHTML = `
+    <div style="font-size:12px;color:var(--text-muted);">📊 Speso questa settimana</div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:16px;font-weight:800;color:${overBudget?'#e05c5c':'var(--text)'};">${fmt(totSpeso)}</span>
+      <span style="font-size:12px;color:var(--text-muted);">su ${fmt(budget)}</span>
+      <span style="font-size:13px;font-weight:700;color:${overBudget?'#e05c5c':'#4ae87a'};">${overBudget?'▲ Sforato':'▼ Rimangono'} ${fmt(Math.abs(rimasto))}</span>
+    </div>
+    <div style="width:100%;background:rgba(255,255,255,0.07);border-radius:6px;height:6px;overflow:hidden;margin-top:4px;">
+      <div style="width:${pctSpeso}%;height:100%;background:${overBudget?'#e05c5c':'#4ae87a'};border-radius:6px;transition:width 0.5s;"></div>
+    </div>`;
+
+  // Barre con doppia traccia: piano vs speso
   const maxAmt = Math.max(...items.map(i => i.amt));
   bars.innerHTML = items.map(item => {
-    const pct   = maxAmt > 0 ? (item.amt / maxAmt) * 100 : 0;
-    const pctOf = ((item.amt / budget) * 100).toFixed(0);
-    return `<div>
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+    const pctPlan  = maxAmt > 0 ? (item.amt / maxAmt) * 100 : 0;
+    const pctSpent = item.amt > 0 ? Math.min(100, (item.speso / item.amt) * 100) : 0;
+    const over     = item.speso > item.amt;
+    const pctOf    = ((item.amt / budget) * 100).toFixed(0);
+    const rimaneCat = item.amt - item.speso;
+    const spentColor = over ? '#e05c5c' : '#4ae87a';
+    return `<div style="padding:8px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
         <span style="font-size:13px;font-weight:600;">${item.label}</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <span style="font-size:10px;color:var(--text-muted);">${pctOf}%</span>
-          <span style="font-size:14px;font-weight:800;color:${item.color.replace('0.85','1')};">${fmt(item.amt)}</span>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:11px;color:var(--text-muted);">Budget: ${fmt(item.amt)}</span>
+          <span style="font-size:13px;font-weight:800;color:${spentColor};">Speso: ${fmt(item.speso)}</span>
         </div>
       </div>
-      <div style="background:rgba(255,255,255,0.06);border-radius:6px;height:10px;overflow:hidden;">
-        <div style="width:${pct}%;height:100%;background:${item.color};border-radius:6px;transition:width 0.5s ease;"></div>
+      <!-- Barra piano (grigio) -->
+      <div style="background:rgba(255,255,255,0.06);border-radius:6px;height:12px;overflow:hidden;position:relative;margin-bottom:3px;">
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${pctPlan}%;background:${item.color};border-radius:6px;opacity:0.3;"></div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${pctSpent*pctPlan/100}%;background:${spentColor};border-radius:6px;transition:width 0.5s;"></div>
       </div>
-      <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">~${fmt(item.amt / 7)}/giorno</div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);">
+        <span>~${fmt(item.amt/7)}/giorno</span>
+        <span style="color:${over?'#e05c5c':'#4ae87a'};">${over?'⚠️ +'+fmt(item.speso-item.amt):'✅ '+fmt(rimaneCat)+' rimasto'}</span>
+      </div>
     </div>`;
   }).join('');
 
-  // Donut chart
+  // Donut con due dataset: piano e speso
   if(_plannerDonutInst) { _plannerDonutInst.destroy(); _plannerDonutInst = null; }
   const ctx = document.getElementById('plannerDonut')?.getContext('2d');
   if(ctx) {
@@ -13415,53 +13488,40 @@ function renderBudgetPlanner() {
       type: 'doughnut',
       data: {
         labels: items.map(i => i.label),
-        datasets: [{
-          data: items.map(i => i.amt),
-          backgroundColor: items.map(i => i.color),
-          borderWidth: 2,
-          borderColor: document.body.classList.contains('light') ? '#f0f0fa' : '#1a1826',
-        }]
+        datasets: [
+          { label:'Budget', data: items.map(i=>i.amt),  backgroundColor: items.map(i=>i.color), borderWidth:2, borderColor: isLight?'#f0f0fa':'#1a1826' },
+          { label:'Speso',  data: items.map(i=>i.speso), backgroundColor: items.map(i=>i.color.replace('0.85','0.4')), borderWidth:2, borderColor: isLight?'#f0f0fa':'#1a1826' }
+        ]
       },
       options: {
-        animation: { duration: 400 },
-        responsive: true,
-        maintainAspectRatio: false,
-        cutout: '65%',
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => ` ${ctx.label}: €${ctx.parsed.toFixed(2).replace('.',',')} (${((ctx.parsed/budget)*100).toFixed(0)}%)`
-            }
-          }
+        animation:{duration:400}, responsive:true, maintainAspectRatio:false, cutout:'55%',
+        plugins:{
+          legend:{display:false},
+          tooltip:{ callbacks:{ label: c => ` ${c.dataset.label} ${c.label}: ${fmt(c.parsed)}` }}
         }
       }
     });
-    // Centro donut
     Chart.register({
-      id: 'plannerDonutCenter',
-      afterDraw(chart) {
-        if(chart.canvas.id !== 'plannerDonut') return;
-        const {ctx:c, chartArea:{left,top,right,bottom}} = chart;
-        const cx = (left+right)/2, cy = (top+bottom)/2;
-        c.save();
-        c.textAlign = 'center'; c.textBaseline = 'middle';
-        c.fillStyle = document.body.classList.contains('light') ? '#8a6500' : '#c9a84c';
-        c.font = 'bold 18px DM Sans';
-        c.fillText('€'+budget.toFixed(0), cx, cy-8);
-        c.fillStyle = document.body.classList.contains('light') ? '#44446a' : '#8888aa';
-        c.font = '11px DM Sans';
-        c.fillText('settimana', cx, cy+10);
+      id:'plannerDonutCenter',
+      afterDraw(chart){
+        if(chart.canvas.id!=='plannerDonut') return;
+        const {ctx:c,chartArea:{left,top,right,bottom}}=chart;
+        const cx=(left+right)/2, cy=(top+bottom)/2;
+        c.save(); c.textAlign='center'; c.textBaseline='middle';
+        c.fillStyle=isLight?'#8a6500':'#c9a84c'; c.font='bold 16px DM Sans';
+        c.fillText(fmt(totSpeso), cx, cy-10);
+        c.fillStyle=isLight?'#44446a':'#8888aa'; c.font='10px DM Sans';
+        c.fillText('di '+fmt(budget), cx, cy+6);
+        c.fillText((pctSpeso).toFixed(0)+'% usato', cx, cy+19);
         c.restore();
       }
     });
   }
 
-  // Legenda
-  legend.innerHTML = items.map(i =>
-    `<div style="display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text-muted);">
+  legend.innerHTML = items.map(i=>
+    `<div style="display:flex;align-items:center;gap:4px;font-size:11px;">
       <div style="width:10px;height:10px;border-radius:2px;background:${i.color};flex-shrink:0;"></div>
-      <span>${i.label.split(' ')[1]}</span>
+      <span style="color:var(--text-muted);">${i.label.split(' ').slice(1).join(' ')}</span>
     </div>`
   ).join('');
 }
