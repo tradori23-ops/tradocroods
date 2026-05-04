@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260504-v160';
+  var BUILD = '20260504-v161';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -13436,14 +13436,15 @@ function renderBudgetPlanner() {
     righe.sort((a,b) => b.amount - a.amount);
     return { ...c, amt, speso: Math.round(speso*100)/100, righe };
   });
-  const avanzo = Math.max(0, budget - distribuito);
   const totSpeso = items.reduce((s,i)=>s+i.speso, 0);
+  const avanzo = Math.max(0, budget - totSpeso); // quanto rimane del budget rispetto allo speso reale
 
   // Riepilogo
   document.getElementById('plannerTotDistrib').textContent = fmt(distribuito);
   const av = document.getElementById('plannerTotAvanzo');
-  av.textContent = fmt(avanzo);
-  av.style.color = avanzo > 0 ? '#4ae87a' : 'var(--text-muted)';
+  const sforato = totSpeso > budget;
+  av.textContent = sforato ? '-' + fmt(totSpeso - budget) : fmt(avanzo);
+  av.style.color = sforato ? '#e05c5c' : avanzo > 0 ? '#4ae87a' : 'var(--text-muted)';
 
   // Header con totale speso questa settimana
   let hdr = document.getElementById('plannerSpesaHeader');
