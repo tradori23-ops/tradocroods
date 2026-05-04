@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260424-v150';
+  var BUILD = '20260425-v154';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -6700,6 +6700,28 @@ async function gistPushToCloud() {
   else { gistReady = false; fbReady = false; updateCloudBadge(false); }
 }
 
+
+// ── Push immediato quando app va in background (iOS PWA) ──────────────────
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'hidden') {
+    // App va in background: cancella timer e push SUBITO (non schedulato)
+    clearTimeout(window._gistPushTimer);
+    if(gistReady && currentUser && !_gistSyncing) {
+      gistPushToCloud();
+    }
+  }
+});
+
+// Salva anche prima di chiudere la pagina
+window.addEventListener('pagehide', () => {
+  clearTimeout(window._gistPushTimer);
+  clearTimeout(bumpVersion._timer);
+  if(gistReady && currentUser && !_gistSyncing) {
+    gistPushToCloud();
+  }
+});
+// ─────────────────────────────────────────────────────────────────────────
+
 async function gistSyncFromCloud(email, onDone) {
   if(!gistReady || !_gistToken || !_gistId) { if(onDone) onDone(); return; }
   updateCloudBadge('syncing');
@@ -6758,10 +6780,15 @@ function startAutoBackup() {
 }
 function _backupGetAll() { return []; }
 
-function fbPushToCloud() {
+function fbPushToCloud(immediate) {
   if(_fbImporting) return;
   clearTimeout(window._gistPushTimer);
-  window._gistPushTimer = setTimeout(() => gistPushToCloud(), 1500);
+  if(immediate && gistReady && currentUser) {
+    // Push immediato (es. dopo delete) — non aspetta il debounce
+    gistPushToCloud();
+  } else {
+    window._gistPushTimer = setTimeout(() => gistPushToCloud(), 1200);
+  }
 }
 function fbSavePhoto(email, dataUrl) { fbPushToCloud(); }
 function fbLoadPhoto(email, callback) { callback(localStorage.getItem('tc_photo_'+email)||null); }
@@ -7524,8 +7551,8 @@ function aggiornaApp() {
   }
 }
 
-function esci() {
-  if(!confirm('Sei sicuro di voler uscire?')) return;
+async function esci() {
+  if(!await tcConfirm('Vuoi uscire dall\'account?', '🚪', 'Esci', '#e05c5c')) return;
   window._appAvviato = false;
   const fab = document.getElementById('tc-ai-fab');
   if(fab) fab.style.display = 'none';
@@ -8436,7 +8463,7 @@ function saveFixedItem() {
 
 function deleteFixedItem(id) {
   const item = getFIXED().find(f => f.id === id);
-  if(!confirm(`Eliminare "${item?.name || id}" dalle spese fisse?`)) return;
+  if(!await tcConfirm(`Eliminare "${item?.name || id}" dalle spese fisse?`, '🏠', 'Elimina', '#e05c5c')) return;
   saveFIXED(getFIXED().filter(f => f.id !== id));
   // Rimuovi anche il pagamento e il giorno scadenza
   const p = getPagamenti(); delete p[id]; savePagamenti(p);
@@ -8463,8 +8490,8 @@ function togglePagamento(fid) {
   renderCalendar();
 }
 
-function resetPagamenti() {
-  if(!confirm('Vuoi resettare tutti i pagamenti del mese?')) return;
+async function resetPagamenti() {
+  if(!await tcConfirm('Resettare tutti i pagamenti del mese?', '♻️', 'Reset', '#c9a84c')) return;
   savePagamenti({});
   bumpVersion();
   renderFixed();
@@ -8506,12 +8533,13 @@ function toggleCustomPagamento(id) {
 }
 
 function delCustomFixed(id) {
-  if(!confirm('Eliminare questa spesa fissa?')) return;
+  tcAsk('Eliminare questa spesa fissa?', '🏠', 'Elimina', '#e05c5c', '_doDelCustomFixed', id);
+}
+function _doDelCustomFixed(id) {
   saveCustomFixed(getCustomFixed().filter(f=>f.id!==id));
-  bumpVersion();
-  fbPushToCloud();
-  renderFixed();
-  renderDashboard(); vsRefreshIfActive();
+  bumpVersion(); fbPushToCloud(true);
+  renderFixed(); renderDashboard(); vsRefreshIfActive();
+  showToast('🗑 Spesa fissa eliminata');
 }
 
 function renderCustomFixed() {
@@ -9118,9 +9146,7 @@ async function ricalcolaTuttoLoStorico() {
 }
 
 function delIncome(id) {
-  const inc = getIncome().filter(i=>i.id!==id);
-  saveIncome(inc);
-  renderIncome(); renderDashboard(); vsRefreshIfActive();
+  tcAsk('Eliminare questa entrata?', '🗑️', 'Elimina', '#e05c5c', '_doDelIncome', id);
 }
 
 // ===== EXPENSES =====
@@ -9203,10 +9229,103 @@ function renderExpenses() {
   updateRimanenza();
 }
 
+// ── Conferma custom — sostituisce confirm() bloccato su iOS PWA ──────────
+let _tcConfirmCallback = null;
+
+function tcConfirm(msg, icon, okLabel, okColor, callback) {
+  // Supporta sia callback che Promise
+  const modal  = document.getElementById('tcConfirmModal');
+  if(!modal) { if(callback) callback(true); return Promise.resolve(true); }
+  document.getElementById('tcConfirmMsg').textContent  = msg;
+  document.getElementById('tcConfirmIcon').textContent = icon || '⚠️';
+  const okBtn = document.getElementById('tcConfirmOkBtn');
+  okBtn.textContent    = okLabel || 'Elimina';
+  okBtn.style.background = okColor || '#e05c5c';
+  modal.style.display  = 'flex';
+  if(callback) {
+    // Modalità callback (iOS safe)
+    _tcConfirmCallback = callback;
+    return;
+  }
+  // Modalità Promise (fallback desktop)
+  return new Promise(resolve => { _tcConfirmCallback = resolve; });
+}
+
+function tcConfirmResolve(result) {
+  const modal = document.getElementById('tcConfirmModal');
+  if(modal) modal.style.display = 'none';
+  if(_tcConfirmCallback) {
+    const cb = _tcConfirmCallback;
+    _tcConfirmCallback = null;
+    cb(result);
+  }
+}
+
+// Versione callback-based per onclick inline (iOS safe)
+function tcAsk(msg, icon, okLabel, okColor, fnName, ...args) {
+  const modal  = document.getElementById('tcConfirmModal');
+  if(!modal) { window[fnName](...args); return; }
+  document.getElementById('tcConfirmMsg').textContent  = msg;
+  document.getElementById('tcConfirmIcon').textContent = icon || '⚠️';
+  const okBtn = document.getElementById('tcConfirmOkBtn');
+  okBtn.textContent    = okLabel || 'Elimina';
+  okBtn.style.background = okColor || '#e05c5c';
+  modal.style.display  = 'flex';
+  _tcConfirmCallback = (ok) => { if(ok) window[fnName](...args); };
+}
+// ─────────────────────────────────────────────────────────────────────────
+
+// ── Funzioni di delete eseguite DOPO conferma tcAsk ──────────────────────
+function _doDelExpense(id) {
+  const key  = 'expenses_';
+  // Cerca in tutti i mesi/anni possibili
+  for(let y = 2023; y <= new Date().getFullYear()+1; y++) {
+    for(let m = 1; m <= 12; m++) {
+      const k = 'expenses_'+y+'_'+m;
+      const arr = load(k, []);
+      const found = arr.some(e => String(e.id) === String(id));
+      if(found) {
+        save(k, arr.filter(e => String(e.id) !== String(id)));
+        bumpVersion(); fbPushToCloud(true);
+        renderExpenses(); renderDashboard(); renderWeek(); renderCalendar(); vsRefreshIfActive();
+        showToast('🗑 Spesa eliminata');
+        return;
+      }
+    }
+  }
+  showToast('⚠️ Spesa non trovata');
+}
+
+function _doDelIncome(id) {
+  for(let y = 2023; y <= new Date().getFullYear()+1; y++) {
+    for(let m = 1; m <= 12; m++) {
+      const k = 'income_'+y+'_'+m;
+      const arr = load(k, []);
+      if(arr.some(i => String(i.id) === String(id))) {
+        save(k, arr.filter(i => String(i.id) !== String(id)));
+        bumpVersion(); fbPushToCloud(true);
+        renderIncome(); renderDashboard(); vsRefreshIfActive();
+        showToast('🗑 Entrata eliminata');
+        return;
+      }
+    }
+  }
+}
+
+function _doDelWeekExp(expId, expDate, currentFilter) {
+  const d   = new Date(expDate + 'T12:00:00');
+  const key = 'expenses_' + d.getFullYear() + '_' + (d.getMonth()+1);
+  const arr = (load(key, []) || []).filter(e => String(e.id) !== String(expId));
+  save(key, arr);
+  bumpVersion(); fbPushToCloud(true);
+  renderWeek(); renderDashboard();
+  if(typeof openWeekSummaryModal === 'function') openWeekSummaryModal(currentFilter);
+  showToast('🗑 Spesa eliminata');
+}
+// ─────────────────────────────────────────────────────────────────────────
+
 function delExpense(id) {
-  const exp = getExpenses().filter(e=>e.id!==id);
-  saveExpenses(exp);
-  renderExpenses(); renderDashboard(); renderWeek(); vsRefreshIfActive();
+  tcAsk('Eliminare questa spesa?', '🗑️', 'Elimina', '#e05c5c', '_doDelExpense', id);
 }
 
 function getTotalExpenses() { return getExpenses().reduce((s,e)=>s+e.amount,0); }
@@ -12665,17 +12784,22 @@ function saveSalvItem() {
     items.push({ id: Date.now().toString(), name, target, start, end, day, numRate, saved, created: new Date().toISOString() });
   }
   saveSalvItems(items);
+  bumpVersion();
+  fbPushToCloud();
   closeSalvModal();
   renderSalvadanai();
   showToast('🐷 Salvadanaio salvato!');
 }
 
 function deleteSalvItem(id) {
-  if(!confirm('Eliminare questo salvadanaio?')) return;
+  tcAsk('Eliminare questo salvadanaio?', '🐷', 'Elimina', '#e05c5c', '_doDelSalv', id);
+}
+function _doDelSalv(id) {
   const items = getSalvItems().filter(x => x.id !== id);
   saveSalvItems(items);
+  bumpVersion(); fbPushToCloud(true);
   renderSalvadanai();
-  showToast('🗑 Eliminato');
+  showToast('🗑 Salvadanaio eliminato');
 }
 
 function addSalvDeposit(id) {
@@ -12688,8 +12812,10 @@ function addSalvDeposit(id) {
   if(idx < 0) return;
   items[idx].saved = (items[idx].saved || 0) + amt;
   saveSalvItems(items);
+  bumpVersion();
+  fbPushToCloud(true);
   renderSalvadanai();
-  showToast('✅ +€' + amt.toFixed(2).replace('.',',') + ' aggiunto!');
+  showToast('✅ +€' + amt.toFixed(2).replace('.',',') + ' aggiunto al salvadanaio!');
 }
 
 function renderSalvadanai() {
@@ -12956,8 +13082,8 @@ function addRata() {
   renderRate();
 }
 
-function delRata(id) {
-  if(!confirm('Vuoi eliminare questa rata?')) return;
+async function delRata(id) {
+  if(!await tcConfirm('Vuoi eliminare questa rata?', '📦', 'Elimina', '#e05c5c')) return;
   // Search in current year first, then others
   let rate = getRata();
   let foundYear = rataYear;
@@ -17390,8 +17516,8 @@ function saveCurrentFixedAsSnapshot(yr) {
   setTimeout(()=>t.remove(), 3000);
 }
 
-function deleteFixedSnapshot(yr) {
-  if(!confirm(`Eliminare la snapshot spese fisse del ${yr}?`)) return;
+async function deleteFixedSnapshot(yr) {
+  if(!await tcConfirm(`Eliminare la snapshot spese fisse del ${yr}?`, '🗑️', 'Elimina', '#e05c5c')) return;
   const key = getKey(getFixedSnapshotKey(yr));
   localStorage.removeItem(key);
   renderFixedSnapshotGrid();
@@ -21516,18 +21642,7 @@ function openWeekSummaryModal(filter) {
 
 // Elimina spesa dal modal riepilogo e ricarica
 function weekSummaryDeleteExp(expId, expDate, currentFilter) {
-  if(!confirm('Eliminare questa spesa?')) return;
-  const d = new Date(expDate + 'T12:00:00');
-  const key = 'expenses_' + d.getFullYear() + '_' + (d.getMonth()+1);
-  let exps = load(key, []) || [];
-  exps = exps.filter(e => String(e.id) !== String(expId));
-  save(key, exps);
-  bumpVersion();
-  fbPushToCloud();
-  renderWeek();
-  renderDashboard();
-  // Riapri il modal con lo stesso filtro
-  openWeekSummaryModal(currentFilter);
+  tcAsk('Eliminare questa spesa?', '🗑️', 'Elimina', '#e05c5c', '_doDelWeekExp', expId, expDate, currentFilter);
 }
 
 // ── STAMPA DETTAGLIO MODALE ──
@@ -22058,6 +22173,18 @@ body.light #giriLegend span { color: #111122 !important; }
   flex-shrink: 0 !important;
 }
 /* ─────────────────────────────────────────────────────────────── */
+
+/* Modal conferma custom — light mode */
+body.light #tcConfirmModal > div {
+  background: #ffffff !important;
+  border-color: rgba(201,168,76,0.3) !important;
+}
+body.light #tcConfirmMsg { color: #111122 !important; }
+body.light #tcConfirmModal button:first-child {
+  background: #f0f0fa !important;
+  color: #111122 !important;
+  border-color: rgba(0,0,0,0.12) !important;
+}
 </style>
 </head><body>
 <div class="ph">
@@ -22412,5 +22539,17 @@ window.addEventListener('beforeprint', function() {
   </div>
 </div>
 
+
+<!-- Modal Conferma Custom (sostituisce confirm() non funzionante su iOS PWA) -->
+<div id="tcConfirmModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99000;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:26px 22px;width:340px;max-width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+    <div style="font-size:36px;margin-bottom:12px;" id="tcConfirmIcon">⚠️</div>
+    <div style="font-size:15px;font-weight:700;margin-bottom:8px;color:var(--text);" id="tcConfirmMsg">Sei sicuro?</div>
+    <div style="display:flex;gap:10px;margin-top:18px;">
+      <button onclick="tcConfirmResolve(false)" style="flex:1;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--dark3);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);">Annulla</button>
+      <button id="tcConfirmOkBtn" onclick="tcConfirmResolve(true)" style="flex:2;padding:12px;border-radius:12px;border:none;background:#e05c5c;color:#fff;font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);">Elimina</button>
+    </div>
+  </div>
+</div>
 </body>
 </html>
