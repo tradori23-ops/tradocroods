@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260504-v158';
+  var BUILD = '20260504-v160';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3777,7 +3777,12 @@ function sendRegistrationEmails(userName, userEmail) {
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
           <div>
             <div style="font-size:13px;font-weight:700;color:var(--gold);">🎯 Budget Planner Settimanale</div>
-            <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Inserisci il budget e vedi come distribuirlo</div>
+            <!-- Label settimana con navigazione -->
+            <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+              <button onclick="plannerPrevWeek()" class="calendar-nav" style="width:24px;height:24px;font-size:12px;">◀</button>
+              <span id="plannerWeekLabel" style="font-size:12px;font-weight:600;color:var(--text-muted);"></span>
+              <button onclick="plannerNextWeek()" class="calendar-nav" style="width:24px;height:24px;font-size:12px;">▶</button>
+            </div>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:12px;color:var(--text-muted);">€</span>
@@ -9884,8 +9889,8 @@ function saveEditExp() {
   showToast('✅ Spesa aggiornata!');
 }
 
-function prevWeek() { weekOffset--; renderWeek(); renderDiario(); refreshBudgetPlannerIfVisible(); }
-function nextWeek() { weekOffset++; renderWeek(); renderDiario(); refreshBudgetPlannerIfVisible(); }
+function prevWeek() { weekOffset--; renderWeek(); renderDiario(); refreshBudgetPlannerIfVisible(); _updatePlannerWeekLabel(); }
+function nextWeek() { weekOffset++; renderWeek(); renderDiario(); refreshBudgetPlannerIfVisible(); _updatePlannerWeekLabel(); }
 
 // ===== GRAPHS =====
 let weekChartInst = null, yearChartInst = null, trendChartInst = null, catFreqChartInst = null;
@@ -13354,29 +13359,37 @@ function getPlannerCategorie(budget) {
 }
 
 function _getPlannerWeekSpending() {
-  // Legge le spese reali della settimana corrente per categoria
   const dates = typeof getWeekDates === 'function' ? getWeekDates(weekOffset || 0) : [];
-  if(!dates.length) return {};
+  if(!dates.length) return { totals:{}, detail:{} };
   const monthsToLoad = new Set();
   dates.forEach(d => monthsToLoad.add(d.getFullYear() + '_' + (d.getMonth()+1)));
   let exp = [];
   monthsToLoad.forEach(k => { exp = exp.concat(load('expenses_'+k, [])); });
-  // Mappa cat → speso
-  const spent = {};
+  const totals = {}, detail = {};
+  const GIORNI_S = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
   exp.forEach(e => {
-    const inWeek = dates.some(d => {
-      const ds  = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-      const ds2 = `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+    const d = new Date(e.date + 'T12:00:00');
+    const inWeek = dates.some(dt => {
+      const ds  = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+      const ds2 = `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
       return e.date===ds || e.date===ds2;
     });
     if(!inWeek) return;
-    const isBonRate = e.pay==='bonifico' || e.cat==='rata';
-    if(isBonRate) return;
+    if(e.pay==='bonifico' || e.cat==='rata') return;
     if(typeof vsIsExcluded==='function' && vsIsExcluded(e)) return;
     const key = e.cat || 'extra';
-    spent[key] = (spent[key]||0) + e.amount;
+    totals[key] = (totals[key]||0) + e.amount;
+    if(!detail[key]) detail[key] = [];
+    detail[key].push({
+      desc: e.desc==='—' ? (CAT_ICONS[e.cat]||'') + ' ' + e.cat : e.desc,
+      amount: e.amount,
+      date: e.date,
+      pay: e.pay,
+      dayLabel: isNaN(d) ? '' : GIORNI_S[d.getDay()] + ' ' + d.getDate(),
+      id: e.id
+    });
   });
-  return spent;
+  return { totals, detail };
 }
 
 function renderBudgetPlanner() {
@@ -13394,17 +13407,17 @@ function renderBudgetPlanner() {
     return;
   }
   save('plannerBudget', budget);
+  _updatePlannerWeekLabel();
 
   chart.style.display = 'block';
   empty.style.display = 'none';
 
   const cats   = getPlannerCategorie(budget);
   const totW   = cats.reduce((s,c) => s+c.w, 0);
-  const spent  = _getPlannerWeekSpending();
+  const {totals: spent, detail: spentDetail} = _getPlannerWeekSpending();
   const fmt    = v => '€'+v.toFixed(2).replace('.',',');
   const isLight = document.body.classList.contains('light');
 
-  // Mappa categoria → item planner (supermercato, bar, ristorante, viaggi→trasporti, hotel, extra)
   const catMap = { supermercato:'supermercato', bar:'bar', ristorante:'ristorante',
                    viaggi:'viaggi', hotel:'hotel', musei:'hotel', svago:'hotel', extra:'extra' };
 
@@ -13413,12 +13426,15 @@ function renderBudgetPlanner() {
     const raw = (c.w / totW) * budget;
     const amt = Math.round(raw * 2) / 2;
     distribuito += amt;
-    // Somma spese reali per questa categoria (e categorie simili)
-    let speso = 0;
+    let speso = 0, righe = [];
     Object.entries(spent).forEach(([k,v]) => {
-      if(catMap[k] === c.cat || k === c.cat) speso += v;
+      if(catMap[k] === c.cat || k === c.cat) {
+        speso += v;
+        if(spentDetail[k]) righe = righe.concat(spentDetail[k]);
+      }
     });
-    return { ...c, amt, speso: Math.round(speso*100)/100 };
+    righe.sort((a,b) => b.amount - a.amount);
+    return { ...c, amt, speso: Math.round(speso*100)/100, righe };
   });
   const avanzo = Math.max(0, budget - distribuito);
   const totSpeso = items.reduce((s,i)=>s+i.speso, 0);
@@ -13451,32 +13467,49 @@ function renderBudgetPlanner() {
       <div style="width:${pctSpeso}%;height:100%;background:${overBudget?'#e05c5c':'#4ae87a'};border-radius:6px;transition:width 0.5s;"></div>
     </div>`;
 
-  // Barre con doppia traccia: piano vs speso
+  // Barre con doppia traccia + drill-down
   const maxAmt = Math.max(...items.map(i => i.amt));
   bars.innerHTML = items.map(item => {
     const pctPlan  = maxAmt > 0 ? (item.amt / maxAmt) * 100 : 0;
     const pctSpent = item.amt > 0 ? Math.min(100, (item.speso / item.amt) * 100) : 0;
-    const over     = item.speso > item.amt;
-    const pctOf    = ((item.amt / budget) * 100).toFixed(0);
+    const over      = item.speso > item.amt;
     const rimaneCat = item.amt - item.speso;
     const spentColor = over ? '#e05c5c' : '#4ae87a';
-    return `<div style="padding:8px 0;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
-        <span style="font-size:13px;font-weight:600;">${item.label}</span>
+    const hasDetail  = item.righe && item.righe.length > 0;
+
+    // Righe dettaglio (nascoste di default)
+    const detailRows = hasDetail ? item.righe.map(r => {
+      const payIcon = r.pay==='sella'?'🏦':r.pay==='satispay'?'📱':r.pay==='revolut'?'💜':r.pay==='tickets'?'🎫':'💵';
+      return `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:rgba(255,255,255,0.03);border-radius:7px;margin-bottom:3px;">
+        <span style="font-size:11px;color:var(--text-muted);flex-shrink:0;width:32px;">${r.dayLabel}</span>
+        <span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 8px;">${r.desc}</span>
+        <span style="font-size:11px;color:var(--text-muted);margin-right:6px;">${payIcon}</span>
+        <span style="font-size:13px;font-weight:700;color:var(--red);flex-shrink:0;">${fmt(r.amount)}</span>
+      </div>`;
+    }).join('') : '';
+
+    return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;cursor:${hasDetail?'pointer':'default'};"
+           onclick="${hasDetail?`plannerToggleDetail('planner-detail-${item.cat}')`:''}">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:13px;font-weight:700;">${item.label}</span>
+          ${hasDetail ? `<span style="font-size:10px;background:rgba(255,255,255,0.08);border-radius:10px;padding:1px 7px;color:var(--text-muted);">${item.righe.length} spese</span>` : ''}
+        </div>
         <div style="display:flex;align-items:center;gap:10px;">
           <span style="font-size:11px;color:var(--text-muted);">Budget: ${fmt(item.amt)}</span>
-          <span style="font-size:13px;font-weight:800;color:${spentColor};">Speso: ${fmt(item.speso)}</span>
+          <span style="font-size:13px;font-weight:800;color:${spentColor};">${fmt(item.speso)}</span>
+          ${hasDetail ? `<span style="font-size:14px;color:var(--text-muted);transition:transform 0.2s;" id="planner-arrow-${item.cat}">▼</span>` : ''}
         </div>
       </div>
-      <!-- Barra piano (grigio) -->
       <div style="background:rgba(255,255,255,0.06);border-radius:6px;height:12px;overflow:hidden;position:relative;margin-bottom:3px;">
         <div style="position:absolute;left:0;top:0;bottom:0;width:${pctPlan}%;background:${item.color};border-radius:6px;opacity:0.3;"></div>
-        <div style="position:absolute;left:0;top:0;bottom:0;width:${pctSpent*pctPlan/100}%;background:${spentColor};border-radius:6px;transition:width 0.5s;"></div>
+        <div style="position:absolute;left:0;top:0;bottom:0;width:${Math.min(pctSpent*pctPlan/100, pctPlan)}%;background:${spentColor};border-radius:6px;transition:width 0.5s;"></div>
       </div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);">
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-bottom:6px;">
         <span>~${fmt(item.amt/7)}/giorno</span>
         <span style="color:${over?'#e05c5c':'#4ae87a'};">${over?'⚠️ +'+fmt(item.speso-item.amt):'✅ '+fmt(rimaneCat)+' rimasto'}</span>
       </div>
+      ${hasDetail ? `<div id="planner-detail-${item.cat}" style="display:none;padding:4px 0 2px;">${detailRows}</div>` : ''}
     </div>`;
   }).join('');
 
@@ -13526,11 +13559,49 @@ function renderBudgetPlanner() {
   ).join('');
 }
 
+function plannerToggleDetail(id) {
+  const el  = document.getElementById(id);
+  if(!el) return;
+  const cat = id.replace('planner-detail-', '');
+  const arrow = document.getElementById('planner-arrow-' + cat);
+  const open  = el.style.display === 'none';
+  el.style.display = open ? 'block' : 'none';
+  if(arrow) arrow.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function plannerPrevWeek() {
+  weekOffset--;
+  renderWeek();
+  renderDiario();
+  renderBudgetPlanner();
+}
+function plannerNextWeek() {
+  weekOffset++;
+  renderWeek();
+  renderDiario();
+  renderBudgetPlanner();
+}
+
+function _updatePlannerWeekLabel() {
+  const el = document.getElementById('plannerWeekLabel');
+  if(!el) return;
+  const dates = typeof getWeekDates === 'function' ? getWeekDates(weekOffset || 0) : [];
+  if(!dates.length) return;
+  const start = dates[0], end = dates[dates.length-1];
+  const MESI_P = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  // Calcola numero settimana
+  const jan1 = new Date(start.getFullYear(), 0, 1);
+  const wNum = Math.ceil(((start - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  const startStr = start.getDate() + ' ' + MESI_P[start.getMonth()];
+  const endStr   = end.getDate()   + ' ' + MESI_P[end.getMonth()]   + ' ' + end.getFullYear();
+  el.textContent = `Sett. ${wNum} · ${startStr} – ${endStr}`;
+}
+
 // Avvia con il valore salvato
 function initBudgetPlanner() {
   const saved = load('plannerBudget', null);
   const inp   = document.getElementById('plannerBudgetInput');
-  if(saved && inp) { inp.value = saved; renderBudgetPlanner(); }
+  if(saved && inp) { inp.value = saved; renderBudgetPlanner(); } else { _updatePlannerWeekLabel(); }
 }
 // ══════════════════════════════════════════════════════════════
 
