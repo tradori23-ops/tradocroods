@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260425-v154';
+  var BUILD = '20260504-v155';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -8463,14 +8463,14 @@ function saveFixedItem() {
 
 function deleteFixedItem(id) {
   const item = getFIXED().find(f => f.id === id);
-  if(!await tcConfirm(`Eliminare "${item?.name || id}" dalle spese fisse?`, '🏠', 'Elimina', '#e05c5c')) return;
+  tcAsk(`Eliminare "${item?.name || id}" dalle spese fisse?`, '🏠', 'Elimina', '#e05c5c', '_doDelFixedItem', id);
+}
+function _doDelFixedItem(id) {
   saveFIXED(getFIXED().filter(f => f.id !== id));
-  // Rimuovi anche il pagamento e il giorno scadenza
   const p = getPagamenti(); delete p[id]; savePagamenti(p);
   const d = getDueDays(); delete d[id]; saveDueDays(d);
-  bumpVersion();
-  renderFixed();
-  renderDashboard(); vsRefreshIfActive();
+  bumpVersion(); fbPushToCloud(true);
+  renderFixed(); renderDashboard(); vsRefreshIfActive();
   showToast('🗑 Spesa fissa eliminata');
 }
 
