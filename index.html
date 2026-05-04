@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260504-v155';
+  var BUILD = '20260504-v156';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -4790,6 +4790,57 @@ function sendRegistrationEmails(userName, userEmail) {
         </div>
       </div>
 
+
+      <!-- ══ DIARIO SETTIMANA ══════════════════════════════════════════ -->
+      <div class="card mt-20" id="diarioCard">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px;">
+          <div>
+            <div class="card-title" style="margin:0;">📔 Diario della Settimana</div>
+            <div id="diarioWeekLabel" style="font-size:12px;color:var(--text-muted);margin-top:3px;"></div>
+          </div>
+          <button onclick="diarioToggleNew()" id="diarioNewBtn"
+            style="background:var(--gold);color:#1a1a2e;border:none;border-radius:12px;padding:9px 18px;font-size:13px;font-weight:800;cursor:pointer;font-family:var(--font);display:flex;align-items:center;gap:6px;">
+            ✏️ Scrivi
+          </button>
+        </div>
+
+        <!-- Form nuova voce diario -->
+        <div id="diarioNewForm" style="display:none;background:var(--dark3);border:1px solid rgba(201,168,76,0.3);border-radius:16px;padding:18px;margin-bottom:18px;">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap;">
+            <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;">📅 Data</div>
+            <input type="date" id="diarioDate" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;">
+            <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-left:8px;">🏷️ Umore</div>
+            <select id="diarioMood" style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 10px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;">
+              <option value="😊">😊 Buona</option>
+              <option value="😐">😐 Normale</option>
+              <option value="😞">😞 No dai</option>
+              <option value="🎉">🎉 Ottima</option>
+              <option value="😤">😤 Stressante</option>
+              <option value="😴">😴 Stanca</option>
+            </select>
+          </div>
+          <div class="fld" style="margin-bottom:12px;">
+            <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:6px;">📝 Cosa hai fatto questa settimana</label>
+            <textarea id="diarioText" rows="5"
+              style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;color:var(--text);font-family:var(--font);font-size:14px;line-height:1.7;resize:vertical;min-height:120px;outline:none;box-sizing:border-box;"
+              placeholder="Scrivi qui il tuo resoconto della settimana... cosa è andato bene, cosa hai comprato, dove sei stato, pensieri sul budget..."></textarea>
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button onclick="diarioToggleNew()" class="btn btn-outline" style="flex:1;">Annulla</button>
+            <button onclick="diarioSaveEntry()" class="btn btn-gold" style="flex:2;">💾 Salva nel Diario</button>
+          </div>
+        </div>
+
+        <!-- Lista voci diario -->
+        <div id="diarioList"></div>
+        <div id="diarioEmpty" style="text-align:center;padding:32px 20px;color:var(--text-muted);display:none;">
+          <div style="font-size:40px;margin-bottom:12px;">📔</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:6px;">Nessuna voce per questa settimana</div>
+          <div style="font-size:12px;">Premi <strong>✏️ Scrivi</strong> per iniziare il tuo diario</div>
+        </div>
+      </div>
+      <!-- ═══════════════════════════════════════════════════════════════ -->
+
       <!-- MODAL MODIFICA SPESA INLINE -->
       <div id="editExpModal" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:20px;margin-top:16px;">
         <div style="font-size:16px;font-weight:700;color:var(--gold);margin-bottom:16px;">✏️ Modifica Spesa</div>
@@ -8192,6 +8243,7 @@ function refreshAll() {
   renderExpenses();
   renderDashboard();
   renderWeek();
+  renderDiario();
   renderCalendar();
   renderGraphButtons();
   renderRate();
@@ -9788,8 +9840,8 @@ function saveEditExp() {
   showToast('✅ Spesa aggiornata!');
 }
 
-function prevWeek() { weekOffset--; renderWeek(); }
-function nextWeek() { weekOffset++; renderWeek(); }
+function prevWeek() { weekOffset--; renderWeek(); renderDiario(); }
+function nextWeek() { weekOffset++; renderWeek(); renderDiario(); }
 
 // ===== GRAPHS =====
 let weekChartInst = null, yearChartInst = null, trendChartInst = null, catFreqChartInst = null;
@@ -13037,6 +13089,177 @@ function confirmPrivacyPwd() {
   applyBlurState();
 }
 // ══════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+//  DIARIO SETTIMANALE
+// ══════════════════════════════════════════════════════════════
+
+function getDiarioKey(weekStart) {
+  // Chiave per settimana: diario_2026_W17
+  const d = weekStart || getWeekStartDate();
+  const jan1 = new Date(d.getFullYear(), 0, 1);
+  const weekNum = Math.ceil(((d - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  return 'diario_' + d.getFullYear() + '_W' + String(weekNum).padStart(2,'0');
+}
+
+function getWeekStartDate() {
+  // Calcola il lunedì della settimana corrente con weekOffset
+  const base = new Date();
+  const day  = base.getDay() || 7; // 1=lun, 7=dom
+  base.setDate(base.getDate() - day + 1 + (typeof weekOffset !== 'undefined' ? weekOffset * 7 : 0));
+  base.setHours(12,0,0,0);
+  return base;
+}
+
+function getDiarioEntries(weekStart) {
+  return load(getDiarioKey(weekStart), []);
+}
+function saveDiarioEntries(arr, weekStart) {
+  save(getDiarioKey(weekStart), arr);
+}
+
+function diarioToggleNew() {
+  const form = document.getElementById('diarioNewForm');
+  const btn  = document.getElementById('diarioNewBtn');
+  const isOpen = form.style.display !== 'none';
+  form.style.display = isOpen ? 'none' : 'block';
+  btn.textContent = isOpen ? '✏️ Scrivi' : '✕ Chiudi';
+  if(!isOpen) {
+    // Pre-compila data di oggi
+    document.getElementById('diarioDate').value = new Date().toISOString().slice(0,10);
+    document.getElementById('diarioText').value = '';
+    document.getElementById('diarioMood').value = '😊';
+    setTimeout(() => document.getElementById('diarioText').focus(), 100);
+  }
+}
+
+function diarioSaveEntry(editId) {
+  const text = document.getElementById('diarioText').value.trim();
+  const date = document.getElementById('diarioDate').value;
+  const mood = document.getElementById('diarioMood').value;
+  if(!text) { showToast('⚠️ Scrivi qualcosa prima di salvare'); return; }
+  if(!date) { showToast('⚠️ Seleziona una data'); return; }
+
+  const wStart   = getWeekStartDate();
+  const entries  = getDiarioEntries(wStart);
+  if(editId) {
+    const idx = entries.findIndex(e => e.id === editId);
+    if(idx >= 0) entries[idx] = { ...entries[idx], text, date, mood, updatedAt: new Date().toISOString() };
+  } else {
+    entries.unshift({ id: Date.now().toString(), text, date, mood, createdAt: new Date().toISOString() });
+  }
+  saveDiarioEntries(entries, wStart);
+  bumpVersion(); fbPushToCloud(true);
+  diarioToggleNew();
+  renderDiario();
+  showToast('📔 Voce salvata nel diario!');
+}
+
+function diarioDeleteEntry(id) {
+  tcAsk('Eliminare questa voce del diario?', '📔', 'Elimina', '#e05c5c', '_doDiarioDelete', id);
+}
+function _doDiarioDelete(id) {
+  const wStart  = getWeekStartDate();
+  const entries = getDiarioEntries(wStart).filter(e => e.id !== id);
+  saveDiarioEntries(entries, wStart);
+  bumpVersion(); fbPushToCloud(true);
+  renderDiario();
+  showToast('🗑 Voce eliminata');
+}
+
+function diarioEditEntry(id) {
+  const wStart  = getWeekStartDate();
+  const entries = getDiarioEntries(wStart);
+  const entry   = entries.find(e => e.id === id);
+  if(!entry) return;
+  const form = document.getElementById('diarioNewForm');
+  form.style.display = 'block';
+  document.getElementById('diarioNewBtn').textContent = '✕ Chiudi';
+  document.getElementById('diarioDate').value = entry.date;
+  document.getElementById('diarioText').value = entry.text;
+  document.getElementById('diarioMood').value = entry.mood || '😊';
+  // Sovrascrive diarioSaveEntry per questa sessione
+  window._diarioEditId = id;
+  form.querySelector('button[onclick="diarioSaveEntry()"]')?.setAttribute('onclick', `diarioSaveEntry('${id}')`);
+  document.getElementById('diarioText').focus();
+}
+
+function renderDiario() {
+  const wStart  = getWeekStartDate();
+  const entries = getDiarioEntries(wStart);
+  const list    = document.getElementById('diarioList');
+  const empty   = document.getElementById('diarioEmpty');
+  const label   = document.getElementById('diarioWeekLabel');
+  if(!list) return;
+
+  // Aggiorna label settimana
+  if(label) {
+    const wEnd = new Date(wStart); wEnd.setDate(wEnd.getDate() + 6);
+    const fmt = d => d.toLocaleDateString('it-IT',{day:'numeric',month:'long'});
+    label.textContent = fmt(wStart) + ' – ' + fmt(wEnd);
+  }
+
+  if(!entries.length) {
+    list.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  const MESI_D = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const GIORNI_D = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+  list.innerHTML = entries.map(entry => {
+    const d    = new Date(entry.date + 'T12:00:00');
+    const dayLabel = GIORNI_D[d.getDay()] + ' ' + d.getDate() + ' ' + MESI_D[d.getMonth()];
+    const lines = (entry.text || '').split('\n');
+    const preview = lines.slice(0,3).join('\n');
+    const hasMore = lines.length > 3;
+    const timeAgo = (() => {
+      const diffMin = Math.floor((Date.now() - new Date(entry.createdAt||entry.date).getTime()) / 60000);
+      if(diffMin < 2)   return 'adesso';
+      if(diffMin < 60)  return diffMin + ' min fa';
+      if(diffMin < 1440) return Math.floor(diffMin/60) + ' ore fa';
+      return Math.floor(diffMin/1440) + ' giorni fa';
+    })();
+
+    return `<div style="background:var(--dark3);border:1px solid rgba(201,168,76,0.18);border-radius:16px;padding:18px 20px;margin-bottom:14px;position:relative;overflow:hidden;">
+      <!-- Accent bar sinistra -->
+      <div style="position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--gold),rgba(201,168,76,0.3));border-radius:4px 0 0 4px;"></div>
+      <!-- Header -->
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:12px;padding-left:8px;">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;">
+            <span style="font-size:22px;">${entry.mood||'😊'}</span>
+            <span style="font-size:14px;font-weight:700;color:var(--text);">${dayLabel}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);">${timeAgo}${entry.updatedAt?' · modificato':''}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button onclick="diarioEditEntry('${entry.id}')"
+            style="background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold);border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:var(--font);">✏️</button>
+          <button onclick="diarioDeleteEntry('${entry.id}')"
+            style="background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:#e05c5c;border-radius:8px;padding:5px 10px;font-size:12px;cursor:pointer;font-family:var(--font);">🗑</button>
+        </div>
+      </div>
+      <!-- Testo -->
+      <div id="diario-text-${entry.id}" style="font-size:14px;line-height:1.75;color:var(--text);white-space:pre-wrap;padding-left:8px;">${preview.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}${hasMore?'\n<span style="color:var(--text-muted);font-size:12px;">...</span>':''}</div>
+      ${hasMore?`<button onclick="diarioExpandEntry('${entry.id}','${entry.text.replace(/'/g,"\'").replace(/\n/g,'\\n')}')"
+        style="margin-top:8px;margin-left:8px;background:none;border:none;color:var(--gold);font-size:12px;cursor:pointer;font-family:var(--font);font-weight:600;padding:0;">Leggi tutto ▼</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+function diarioExpandEntry(id, fullText) {
+  const el = document.getElementById('diario-text-' + id);
+  if(el) {
+    el.innerHTML = fullText.replace(/\n/g,'\n').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\\n/g,'\n');
+    const btn = el.nextElementSibling;
+    if(btn) btn.remove();
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
 
 function calcRatePreview() {
   const totale = parseFloat(document.getElementById('rataTotale').value);
@@ -22185,6 +22408,15 @@ body.light #tcConfirmModal button:first-child {
   color: #111122 !important;
   border-color: rgba(0,0,0,0.12) !important;
 }
+
+/* ── Diario Settimanale — light mode ────────────────────────── */
+body.light #diarioCard { background: #ffffff; }
+body.light #diarioNewForm { background: #f5f4fc !important; border-color: rgba(201,168,76,0.3) !important; }
+body.light #diarioText { background: #ffffff !important; color: #111122 !important; border-color: rgba(201,168,76,0.4) !important; }
+body.light #diarioDate, body.light #diarioMood { background: #ffffff !important; color: #111122 !important; }
+body.light #diarioList > div { background: #f8f8ff !important; border-color: rgba(201,168,76,0.2) !important; }
+body.light #diarioEmpty { color: #44446a !important; }
+/* ─────────────────────────────────────────────────────────────── */
 </style>
 </head><body>
 <div class="ph">
