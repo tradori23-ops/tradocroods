@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260504-v164';
+  var BUILD = '20260505-v167';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3380,7 +3380,7 @@ function _updateOfflineBanner() {
     const txt = document.getElementById('offlineBannerText');
     if(txt) txt.textContent = age !== null
       ? 'Offline — cache ' + (age < 60 ? age+'min' : Math.floor(age/60)+'h') + ' fa · i tuoi dati sono al sicuro'
-      : 'Offline — dati locali disponibili · riconnettiti per sincronizzare';
+      : 'Offline — app disponibile · riconnettiti per sincronizzare i dati';
   }
 }
 window.addEventListener('online',  () => { _updateOfflineBanner(); });
@@ -8375,6 +8375,7 @@ function refreshAll() {
   initBudgetUI();
   setTimeout(initBudgetPlanner, 300);
   setTimeout(initSatispayPlanner, 400);
+  setTimeout(preloadPDFLibs, 5000); // pre-carica librerie PDF per uso offline
   setTimeout(() => { migrateGiriKey(); migrateLibrettoToGiri(); }, 600); // migra dati
   updateDocBadges();
 
@@ -13873,6 +13874,35 @@ function initSatispayPlanner() {
 }
 // ══════════════════════════════════════════════════════════════
 
+
+// ── Pre-carica librerie PDF in cache per uso offline ─────────
+function preloadPDFLibs() {
+  if(!navigator.onLine) return;
+  const libs = [
+    'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'
+  ];
+  libs.forEach(url => {
+    // Carica in background senza bloccare
+    const s = document.createElement('script');
+    s.src = url;
+    s.async = true;
+    s.onload = () => {
+      // Salva anche nella Cache API per offline
+      if('caches' in window) {
+        caches.open('tradocroods-ios-v163').then(c => {
+          fetch(url, {cache:'force-cache'}).then(r => { if(r.ok) c.put(url, r); }).catch(()=>{});
+        });
+      }
+    };
+    document.head.appendChild(s);
+  });
+}
+// Pre-carica dopo 5 secondi dall'avvio (senza bloccare)
+setTimeout(preloadPDFLibs, 5000);
+window.addEventListener('online', () => setTimeout(preloadPDFLibs, 3000));
+// ─────────────────────────────────────────────────────────────
+
 function calcRatePreview() {
   const totale = parseFloat(document.getElementById('rataTotale').value);
   const mensile = parseFloat(document.getElementById('rataMensile').value);
@@ -19197,24 +19227,190 @@ function togglePwd(inputId, btnId) {
 
 
 // ===== PRINT =====
+
+// ══════════════════════════════════════════════════════════════
+//  STAMPA / ESPORTA PDF — compatibile con qualsiasi stampante
+// ══════════════════════════════════════════════════════════════
+
 function printPage() {
+  // Prepara metadati
   const months = ['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno',
                   'Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
-  const m = parseInt(document.getElementById('globalMonth').value);
-  const y = document.getElementById('globalYear').value;
+  const m    = parseInt(document.getElementById('globalMonth').value);
+  const y    = document.getElementById('globalYear').value;
   const user = currentUser ? currentUser.name : '';
   const section = document.getElementById('pageTitle').textContent;
   const _now = new Date();
   const _dateStr = _now.toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
   const _timeStr = _now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
-  document.getElementById('printSubtitle').textContent =
-    `${section}  ·  ${months[m-1]} ${y}  ·  Utente: ${user}`;
+  const sub = `${section}  ·  ${months[m-1]} ${y}  ·  ${user}`;
+
+  document.getElementById('printSubtitle').textContent = sub;
   const _fl = document.getElementById('printFooterLeft');
   const _fr = document.getElementById('printFooterRight');
-  if(_fl) _fl.textContent = `TradoCroods by Family  —  ${user || 'Famiglia'}`;
+  if(_fl) _fl.textContent = `TradoCroods by Family — ${user||'Famiglia'}`;
   if(_fr) _fr.textContent = `Stampato il ${_dateStr} alle ${_timeStr}`;
-  window.print();
+
+  // Mostra modal selezione
+  const modal = document.getElementById('printModal');
+  const subEl = document.getElementById('printModalSub');
+  if(subEl) subEl.textContent = sub;
+  if(modal) {
+    modal.style.display = 'flex';
+    // Nascondi "Condividi" su desktop (non ha share sheet)
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+    const shareBtn = document.getElementById('printShareBtn');
+    if(shareBtn) shareBtn.style.display = isIOS ? 'flex' : 'none';
+  }
 }
+
+function closePrintModal() {
+  const modal = document.getElementById('printModal');
+  if(modal) modal.style.display = 'none';
+}
+
+async function printModalAction(action) {
+  closePrintModal();
+  if(action === 'system') {
+    window.print();
+    return;
+  }
+  if(action === 'pdf' || action === 'share') {
+    await exportToPDF(action === 'share');
+  }
+}
+
+async function exportToPDF(forShare) {
+  showToast('📄 Generazione PDF in corso...');
+  try {
+    // Carica jsPDF se non presente (usa cache se offline)
+    const loadScript = (url) => new Promise((res, rej) => {
+      if(url.includes('jspdf') && window.jspdf) { res(); return; }
+      if(url.includes('html2canvas') && window.html2canvas) { res(); return; }
+      // Prova prima dalla Cache API (offline)
+      const tryLoad = (src) => {
+        const s = document.createElement('script');
+        s.src = src;
+        s.onload = res;
+        s.onerror = rej;
+        document.head.appendChild(s);
+      };
+      if(!navigator.onLine && 'caches' in window) {
+        caches.open('tradocroods-ios-v163').then(c => c.match(url)).then(cached => {
+          if(cached) {
+            cached.text().then(code => {
+              const s = document.createElement('script');
+              s.textContent = code;
+              document.head.appendChild(s);
+              res();
+            }).catch(() => rej(new Error('Cache read error')));
+          } else {
+            rej(new Error('Libreria PDF non disponibile offline — connettiti almeno una volta per scaricarla'));
+          }
+        });
+      } else {
+        tryLoad(url);
+      }
+    });
+
+    if(!window.jspdf) {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    }
+    if(!window.html2canvas) {
+      await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+    }
+
+    const { jsPDF } = window.jspdf;
+
+    // Cattura la sezione visibile
+    const section = document.querySelector('.section.active') || document.getElementById('app');
+    const canvas  = await html2canvas(section, {
+      scale: 1.5,
+      useCORS: true,
+      backgroundColor: document.body.classList.contains('light') ? '#f5f4fc' : '#1a1826',
+      logging: false,
+      windowWidth: section.scrollWidth,
+      windowHeight: section.scrollHeight,
+    });
+
+    const imgData  = canvas.toDataURL('image/jpeg', 0.88);
+    const pdf      = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const pageW    = pdf.internal.pageSize.getWidth();
+    const pageH    = pdf.internal.pageSize.getHeight();
+    const imgW     = pageW - 20;
+    const imgH     = (canvas.height * imgW) / canvas.width;
+    const margin   = 10;
+
+    // Header PDF
+    pdf.setFontSize(14);
+    pdf.setTextColor(201, 168, 76);
+    pdf.text('TradoCroods by Family', margin, margin + 6);
+    pdf.setFontSize(9);
+    pdf.setTextColor(120, 120, 150);
+    pdf.text(document.getElementById('printSubtitle').textContent, margin, margin + 12);
+
+    // Contenuto — suddividi in pagine se necessario
+    let yPos    = margin + 18;
+    let imgLeft = imgH;
+    let srcY    = 0;
+
+    while(imgLeft > 0) {
+      const avail   = pageH - yPos - margin;
+      const sliceH  = Math.min(avail, imgLeft);
+      const srcH    = (sliceH / imgW) * canvas.width;
+
+      const sliceCanvas = document.createElement('canvas');
+      sliceCanvas.width  = canvas.width;
+      sliceCanvas.height = Math.ceil(srcH);
+      const ctx = sliceCanvas.getContext('2d');
+      ctx.drawImage(canvas, 0, srcY, canvas.width, Math.ceil(srcH), 0, 0, canvas.width, Math.ceil(srcH));
+      const sliceData = sliceCanvas.toDataURL('image/jpeg', 0.88);
+
+      pdf.addImage(sliceData, 'JPEG', margin, yPos, imgW, sliceH);
+      imgLeft -= sliceH;
+      srcY    += Math.ceil(srcH);
+
+      if(imgLeft > 0) {
+        pdf.addPage();
+        yPos = margin;
+        // Header sulle pagine successive
+        pdf.setFontSize(8);
+        pdf.setTextColor(120,120,150);
+        pdf.text('TradoCroods — continua', margin, margin + 5);
+        yPos = margin + 10;
+      }
+    }
+
+    // Footer ultima pagina
+    pdf.setFontSize(8);
+    pdf.setTextColor(120,120,150);
+    const footer = document.getElementById('printFooterRight')?.textContent || '';
+    pdf.text(footer, pageW - margin, pageH - 5, { align:'right' });
+
+    const fileName = 'TradoCroods_' + (document.getElementById('pageTitle')?.textContent||'export').replace(/\s+/g,'_') + '_' + new Date().toISOString().slice(0,10) + '.pdf';
+
+    if(forShare && navigator.share && navigator.canShare) {
+      // iOS Share Sheet
+      const blob = pdf.output('blob');
+      const file = new File([blob], fileName, { type:'application/pdf' });
+      if(navigator.canShare({ files:[file] })) {
+        await navigator.share({ files:[file], title:'TradoCroods', text: document.getElementById('printSubtitle').textContent });
+        showToast('✅ PDF condiviso!');
+        return;
+      }
+    }
+    // Download diretto
+    pdf.save(fileName);
+    showToast('✅ PDF scaricato: ' + fileName);
+
+  } catch(err) {
+    console.error('PDF export error:', err);
+    showToast('⚠️ Errore PDF — uso stampa sistema');
+    window.print();
+  }
+}
+// ══════════════════════════════════════════════════════════════
+
 
 
 function chartTextColor() {
@@ -23052,6 +23248,12 @@ body.light #satispaySpentDisplay { color: #111122 !important; }
   #offlineBanner { font-size:12px !important; padding:max(8px,env(safe-area-inset-top,8px)) 12px 8px !important; }
 }
 /* ─────────────────────────────────────────────────────────── */
+
+/* ── Modal Stampa light mode ────────────────────────────────── */
+body.light #printModal > div { background: #ffffff !important; border-color: rgba(201,168,76,0.3) !important; }
+body.light #printModal button:last-child { background: #f0f0fa !important; color: #44446a !important; border-color: rgba(0,0,0,0.1) !important; }
+body.light #printModalSub { color: #44446a !important; }
+/* ─────────────────────────────────────────────────────────────── */
 </style>
 </head><body>
 <div class="ph">
@@ -23407,6 +23609,46 @@ window.addEventListener('beforeprint', function() {
 </div>
 
 
+
+<!-- Modal Stampa / Esporta PDF -->
+<div id="printModal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:26px 22px;width:360px;max-width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+    <div style="font-size:22px;text-align:center;margin-bottom:8px;">🖨️</div>
+    <div style="font-size:16px;font-weight:700;text-align:center;margin-bottom:4px;color:var(--text);">Stampa / Esporta</div>
+    <div style="font-size:12px;color:var(--text-muted);text-align:center;margin-bottom:20px;" id="printModalSub"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <!-- Stampa sistema (AirPrint su iOS, dialogo sistema su desktop) -->
+      <button onclick="printModalAction('system')"
+        style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:rgba(201,168,76,0.12);border:1.5px solid rgba(201,168,76,0.4);border-radius:14px;cursor:pointer;font-family:var(--font);text-align:left;width:100%;">
+        <span style="font-size:24px;">🖨️</span>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--gold);">Stampa</div>
+          <div style="font-size:11px;color:var(--text-muted);">Dialogo di stampa del sistema</div>
+        </div>
+      </button>
+      <!-- PDF scaricabile — funziona con qualsiasi stampante -->
+      <button onclick="printModalAction('pdf')"
+        style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:rgba(74,144,232,0.12);border:1.5px solid rgba(74,144,232,0.35);border-radius:14px;cursor:pointer;font-family:var(--font);text-align:left;width:100%;">
+        <span style="font-size:24px;">📄</span>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#4ab8e8;">Scarica PDF</div>
+          <div style="font-size:11px;color:var(--text-muted);">Apri con qualsiasi app · stampa da Files, Mail, ecc.</div>
+        </div>
+      </button>
+      <!-- Condividi (iOS Share Sheet) -->
+      <button onclick="printModalAction('share')" id="printShareBtn"
+        style="display:flex;align-items:center;gap:14px;padding:14px 16px;background:rgba(74,200,160,0.10);border:1.5px solid rgba(74,200,160,0.3);border-radius:14px;cursor:pointer;font-family:var(--font);text-align:left;width:100%;">
+        <span style="font-size:24px;">📤</span>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:#34d399;">Condividi</div>
+          <div style="font-size:11px;color:var(--text-muted);">iOS Share Sheet · AirDrop · WhatsApp · email</div>
+        </div>
+      </button>
+    </div>
+    <button onclick="closePrintModal()" style="width:100%;margin-top:14px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--dark3);color:var(--text-muted);font-size:14px;cursor:pointer;font-family:var(--font);">Annulla</button>
+  </div>
+</div>
+
 <!-- Modal Conferma Custom (sostituisce confirm() non funzionante su iOS PWA) -->
 <div id="tcConfirmModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:99000;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:26px 22px;width:340px;max-width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
@@ -23433,7 +23675,6 @@ window.addEventListener('beforeprint', function() {
 
   const swCode = `
 const CACHE = '${SW_VERSION}';
-const TTL   = ${3 * 60 * 60 * 1000};
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -23457,6 +23698,8 @@ self.addEventListener('fetch', e => {
   if(!url.startsWith(self.location.origin) && !url.includes('tradori23-ops.github.io')) return;
   // Non cachare API esterne (Gist, EmailJS, ecc.)
   if(url.includes('api.github.com') || url.includes('emailjs') || url.includes('cdn.jsdelivr')) return;
+  // Cachera jsPDF e html2canvas per uso offline
+  // (cdnjs.cloudflare.com è permesso)
 
   e.respondWith(
     fetch(e.request.clone(), { cache: 'no-store' })
@@ -23476,10 +23719,7 @@ self.addEventListener('fetch', e => {
         return caches.open(CACHE).then(c => c.match(e.request)).then(cached => {
           if(!cached) return new Response('<h2 style="font-family:sans-serif;padding:20px">TradoCroods offline<br><small>Nessuna cache disponibile. Connettiti per la prima visita.</small></h2>', {status:503, headers:{'Content-Type':'text/html'}});
           const cachedAt = parseInt(cached.headers.get('sw-cached-at') || '0');
-          if(cachedAt && Date.now() - cachedAt > TTL * 8) {
-            // Cache molto vecchia (>24h): avvisa ma usa comunque
-            console.warn('[SW] Cache molto vecchia, ma uso offline:', new Date(cachedAt));
-          }
+          // Cache permanente offline — si aggiorna solo quando online
           return cached;
         });
       })
@@ -23549,19 +23789,12 @@ self.addEventListener('fetch', e => {
   // Aggiorna la cache subito e ogni 2 ore (mentre sei online)
   if(navigator.onLine) {
     setTimeout(cacheAppNow, 2000); // 2s dopo il caricamento
-    setInterval(() => { if(navigator.onLine) cacheAppNow(); }, 2 * 60 * 60 * 1000);
+    setInterval(() => { if(navigator.onLine) cacheAppNow(); }, 6 * 60 * 60 * 1000); // aggiorna ogni 6h
   }
 
-  // Quando torni online: aggiorna cache e ricarica se scaduta
+  // Quando torni online: aggiorna cache in background (senza ricaricare)
   window.addEventListener('online', () => {
-    cacheAppNow();
-    setTimeout(() => {
-      const ts = parseInt(localStorage.getItem('tc_ios_cache_ts') || '0');
-      if(Date.now() - ts > CACHE_TTL) {
-        console.log('[TradoCroods iOS] Cache scaduta, ricarico...');
-        window.location.reload();
-      }
-    }, 3000);
+    setTimeout(cacheAppNow, 2000);
   });
 
   // Quando vai offline: mostra messaggio con info cache
