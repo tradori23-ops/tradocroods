@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260504-v161';
+  var BUILD = '20260504-v162';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3814,6 +3814,54 @@ function sendRegistrationEmails(userName, userEmail) {
 
         <div id="plannerEmpty" style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">
           Inserisci un importo per vedere la distribuzione suggerita ↑
+        </div>
+      </div>
+      <!-- ═══════════════════════════════════════════════════════════ -->
+
+
+      <!-- ══ SATISPAY BUDGET PLANNER ══════════════════════════════════ -->
+      <div style="background:var(--card);border-radius:18px;padding:20px 22px;margin-bottom:14px;border:1.5px solid rgba(255,92,92,0.2);" id="satispayPlannerCard">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;">
+          <div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:18px;">📱</span>
+              <span style="font-size:13px;font-weight:700;color:#fb923c;">Budget Satispay Settimanale</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:5px;">
+              <button onclick="satispayPlannerPrevWeek()" class="calendar-nav" style="width:24px;height:24px;font-size:12px;">◀</button>
+              <span id="satispayPlannerWeekLabel" style="font-size:12px;font-weight:600;color:var(--text-muted);"></span>
+              <button onclick="satispayPlannerNextWeek()" class="calendar-nav" style="width:24px;height:24px;font-size:12px;">▶</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--text-muted);">€</span>
+            <input type="number" id="satispayBudgetInput" min="1" step="1" placeholder="es. 50"
+              style="width:90px;background:var(--dark3);border:1.5px solid rgba(255,92,92,0.4);border-radius:10px;padding:8px 12px;color:var(--text);font-family:var(--font);font-size:15px;font-weight:700;outline:none;text-align:center;"
+              oninput="renderSatispayPlanner()">
+            <span style="font-size:12px;color:var(--text-muted);">/sett.</span>
+          </div>
+        </div>
+
+        <div id="satispayPlannerChart" style="display:none;">
+          <!-- Riepilogo globale -->
+          <div id="satispayPlannerHeader"></div>
+
+          <!-- Barre per categoria -->
+          <div id="satispayPlannerBars" style="display:flex;flex-direction:column;gap:4px;margin-bottom:14px;"></div>
+
+          <!-- Totali -->
+          <div style="background:rgba(255,92,92,0.08);border:1px solid rgba(255,92,92,0.2);border-radius:12px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+            <div style="font-size:12px;color:var(--text-muted);">Budget Satispay</div>
+            <div id="satispayBudgetDisplay" style="font-size:18px;font-weight:800;color:#fb923c;"></div>
+            <div style="font-size:12px;color:var(--text-muted);">Speso</div>
+            <div id="satispaySpentDisplay" style="font-size:18px;font-weight:800;"></div>
+            <div style="font-size:12px;color:var(--text-muted);">Avanzato</div>
+            <div id="satispayAvanzoDisplay" style="font-size:18px;font-weight:800;"></div>
+          </div>
+        </div>
+
+        <div id="satispayPlannerEmpty" style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">
+          Inserisci il tuo budget Satispay settimanale ↑
         </div>
       </div>
       <!-- ═══════════════════════════════════════════════════════════ -->
@@ -8298,6 +8346,7 @@ function refreshAll() {
   applyBlurState();
   initBudgetUI();
   setTimeout(initBudgetPlanner, 300);
+  setTimeout(initSatispayPlanner, 400);
   setTimeout(() => { migrateGiriKey(); migrateLibrettoToGiri(); }, 600); // migra dati
   updateDocBadges();
 
@@ -12101,6 +12150,8 @@ function getWeekTotal(dates) {
 function refreshBudgetPlannerIfVisible() {
   const inp = document.getElementById('plannerBudgetInput');
   if(inp && inp.value) setTimeout(renderBudgetPlanner, 100);
+  const inp2 = document.getElementById('satispayBudgetInput');
+  if(inp2 && inp2.value) setTimeout(renderSatispayPlanner, 150);
 }
 
 function renderWeekBudgetBar(weekTotal) {
@@ -13603,6 +13654,194 @@ function initBudgetPlanner() {
   const saved = load('plannerBudget', null);
   const inp   = document.getElementById('plannerBudgetInput');
   if(saved && inp) { inp.value = saved; renderBudgetPlanner(); } else { _updatePlannerWeekLabel(); }
+}
+// ══════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════
+//  SATISPAY BUDGET PLANNER
+// ══════════════════════════════════════════════════════════════
+
+function _getSatispayWeekSpending() {
+  const dates = typeof getWeekDates === 'function' ? getWeekDates(weekOffset || 0) : [];
+  if(!dates.length) return { total: 0, byCat: {}, detail: {} };
+  const monthsToLoad = new Set();
+  dates.forEach(d => monthsToLoad.add(d.getFullYear() + '_' + (d.getMonth()+1)));
+  let exp = [];
+  monthsToLoad.forEach(k => { exp = exp.concat(load('expenses_'+k, [])); });
+
+  const GIORNI_S = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  let total = 0;
+  const byCat = {}, detail = {};
+
+  exp.forEach(e => {
+    // Solo Satispay
+    if((e.source || e.pay) !== 'satispay' && e.source !== 'satispay' && e.pay !== 'satispay') return;
+    const inWeek = dates.some(dt => {
+      const ds  = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+      const ds2 = `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+      return e.date===ds || e.date===ds2;
+    });
+    if(!inWeek) return;
+    if(e.pay==='bonifico' || e.cat==='rata') return;
+    if(typeof vsIsExcluded==='function' && vsIsExcluded(e)) return;
+
+    const cat = e.cat || 'extra';
+    const d   = new Date(e.date + 'T12:00:00');
+    total += e.amount;
+    byCat[cat] = (byCat[cat]||0) + e.amount;
+    if(!detail[cat]) detail[cat] = [];
+    detail[cat].push({
+      desc: e.desc==='—' ? cat : e.desc,
+      amount: e.amount,
+      date: e.date,
+      dayLabel: isNaN(d) ? '' : GIORNI_S[d.getDay()] + ' ' + d.getDate(),
+    });
+  });
+  return { total: Math.round(total*100)/100, byCat, detail };
+}
+
+function renderSatispayPlanner() {
+  const input = document.getElementById('satispayBudgetInput');
+  const chart = document.getElementById('satispayPlannerChart');
+  const empty = document.getElementById('satispayPlannerEmpty');
+  const bars  = document.getElementById('satispayPlannerBars');
+  if(!input || !chart) return;
+
+  const budget = parseFloat(input.value);
+  if(!budget || budget <= 0) {
+    chart.style.display = 'none';
+    empty.style.display = 'block';
+    _updateSatispayWeekLabel();
+    return;
+  }
+  save('satispayBudget', budget);
+  chart.style.display = 'block';
+  empty.style.display = 'none';
+  _updateSatispayWeekLabel();
+
+  const {total: speso, byCat, detail} = _getSatispayWeekSpending();
+  const fmt = v => '€'+v.toFixed(2).replace('.',',');
+  const avanzo   = budget - speso;
+  const sforato  = speso > budget;
+  const pctSpeso = budget > 0 ? Math.min(100,(speso/budget)*100) : 0;
+
+  // Header riepilogo
+  const hdr = document.getElementById('satispayPlannerHeader');
+  if(hdr) hdr.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,92,92,0.06);border-radius:10px;padding:10px 14px;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+      <div style="font-size:12px;color:var(--text-muted);">📱 Speso con Satispay</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <span style="font-size:16px;font-weight:800;color:${sforato?'#e05c5c':'var(--text)'};">${fmt(speso)}</span>
+        <span style="font-size:12px;color:var(--text-muted);">su ${fmt(budget)}</span>
+        <span style="font-size:13px;font-weight:700;color:${sforato?'#e05c5c':'#4ae87a'};">${sforato?'▲ Sforato':'▼ Rimangono'} ${fmt(Math.abs(avanzo))}</span>
+      </div>
+      <div style="width:100%;background:rgba(255,255,255,0.07);border-radius:6px;height:6px;overflow:hidden;margin-top:4px;">
+        <div style="width:${pctSpeso}%;height:100%;background:${sforato?'#e05c5c':'#4ae87a'};border-radius:6px;transition:width 0.5s;"></div>
+      </div>
+    </div>`;
+
+  // Totali footer
+  document.getElementById('satispayBudgetDisplay').textContent = fmt(budget);
+  const spEl = document.getElementById('satispaySpentDisplay');
+  spEl.textContent = fmt(speso);
+  spEl.style.color = sforato ? '#e05c5c' : 'var(--text)';
+  const avEl = document.getElementById('satispayAvanzoDisplay');
+  avEl.textContent = sforato ? '-'+fmt(Math.abs(avanzo)) : fmt(avanzo);
+  avEl.style.color = sforato ? '#e05c5c' : '#4ae87a';
+
+  // Barre per categoria con drill-down
+  const CAT_LABELS = {
+    supermercato:'🛒 Supermercato', bar:'☕ Bar/Caffè', ristorante:'🍽️ Ristorante',
+    viaggi:'🚌 Trasporti', hotel:'🏨 Hotel/Svago', musei:'🏛️ Musei', svago:'🎭 Svago',
+    extra:'💡 Extra', cibo:'🍔 Cibo'
+  };
+  const CAT_COLORS = {
+    supermercato:'rgba(74,232,122,0.8)', bar:'rgba(255,183,77,0.8)',
+    ristorante:'rgba(255,107,107,0.8)', viaggi:'rgba(74,144,232,0.8)',
+    hotel:'rgba(167,139,250,0.8)', musei:'rgba(77,208,225,0.8)',
+    svago:'rgba(167,139,250,0.8)', extra:'rgba(201,168,76,0.8)', cibo:'rgba(255,140,0,0.8)'
+  };
+
+  const sortedCats = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+  if(!sortedCats.length) {
+    bars.innerHTML = `<div style="text-align:center;padding:16px;color:var(--text-muted);font-size:13px;">Nessuna spesa Satispay questa settimana</div>`;
+    return;
+  }
+
+  const maxCatAmt = sortedCats[0][1];
+  bars.innerHTML = sortedCats.map(([cat, amt]) => {
+    const label     = CAT_LABELS[cat] || ('📦 '+cat);
+    const color     = CAT_COLORS[cat] || 'rgba(201,168,76,0.8)';
+    const pct       = maxCatAmt > 0 ? (amt/maxCatAmt)*100 : 0;
+    const pctBudget = budget > 0 ? ((amt/budget)*100).toFixed(0) : 0;
+    const righe     = detail[cat] || [];
+    const detailRows = righe.map(r =>
+      `<div style="display:flex;align-items:center;justify-content:space-between;padding:5px 8px;background:rgba(255,255,255,0.03);border-radius:7px;margin-bottom:3px;">
+        <span style="font-size:11px;color:var(--text-muted);flex-shrink:0;width:32px;">${r.dayLabel}</span>
+        <span style="font-size:12px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0 8px;">${r.desc}</span>
+        <span style="font-size:13px;font-weight:700;color:#fb923c;flex-shrink:0;">${fmt(r.amount)}</span>
+      </div>`
+    ).join('');
+
+    return `<div style="padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;cursor:pointer;"
+           onclick="satispayToggleDetail('sati-detail-${cat}')">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span style="font-size:13px;font-weight:700;">${label}</span>
+          <span style="font-size:10px;background:rgba(255,255,255,0.08);border-radius:10px;padding:1px 7px;color:var(--text-muted);">${righe.length} spese</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:11px;color:var(--text-muted);">${pctBudget}% del budget</span>
+          <span style="font-size:13px;font-weight:800;color:#fb923c;">${fmt(amt)}</span>
+          <span style="font-size:14px;color:var(--text-muted);transition:transform 0.2s;" id="sati-arrow-${cat}">▼</span>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.06);border-radius:6px;height:10px;overflow:hidden;margin-bottom:3px;">
+        <div style="width:${pct}%;height:100%;background:${color};border-radius:6px;transition:width 0.5s;"></div>
+      </div>
+      <div id="sati-detail-${cat}" style="display:none;padding:4px 0 2px;">${detailRows}</div>
+    </div>`;
+  }).join('');
+}
+
+function satispayToggleDetail(id) {
+  const el    = document.getElementById(id);
+  if(!el) return;
+  const cat   = id.replace('sati-detail-', '');
+  const arrow = document.getElementById('sati-arrow-' + cat);
+  const open  = el.style.display === 'none';
+  el.style.display = open ? 'block' : 'none';
+  if(arrow) arrow.style.transform = open ? 'rotate(180deg)' : 'rotate(0deg)';
+}
+
+function _updateSatispayWeekLabel() {
+  const el = document.getElementById('satispayPlannerWeekLabel');
+  if(!el) return;
+  const dates = typeof getWeekDates === 'function' ? getWeekDates(weekOffset || 0) : [];
+  if(!dates.length) return;
+  const start = dates[0], end = dates[dates.length-1];
+  const MESI_P = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+  const jan1 = new Date(start.getFullYear(), 0, 1);
+  const wNum = Math.ceil(((start - jan1) / 86400000 + jan1.getDay() + 1) / 7);
+  el.textContent = `Sett. ${wNum} · ${start.getDate()} ${MESI_P[start.getMonth()]} – ${end.getDate()} ${MESI_P[end.getMonth()]} ${end.getFullYear()}`;
+}
+
+function satispayPlannerPrevWeek() {
+  weekOffset--;
+  renderWeek(); renderDiario(); refreshBudgetPlannerIfVisible();
+  renderSatispayPlanner();
+}
+function satispayPlannerNextWeek() {
+  weekOffset++;
+  renderWeek(); renderDiario(); refreshBudgetPlannerIfVisible();
+  renderSatispayPlanner();
+}
+
+function initSatispayPlanner() {
+  const saved = load('satispayBudget', null);
+  const inp   = document.getElementById('satispayBudgetInput');
+  if(saved && inp) { inp.value = saved; renderSatispayPlanner(); }
+  else { _updateSatispayWeekLabel(); }
 }
 // ══════════════════════════════════════════════════════════════
 
@@ -22769,6 +23008,13 @@ body.light #plannerBudgetInput { background: #fff !important; color: #111122 !im
 body.light #plannerBars > div [style*="rgba(255,255,255,0.06)"] { background: rgba(0,0,0,0.05) !important; }
 body.light #plannerTotDistrib { color: #8a6500 !important; }
 /* ─────────────────────────────────────────────────────────── */
+
+/* ── Satispay Planner light mode ────────────────────────────── */
+body.light #satispayPlannerCard { background: #ffffff; border-color: rgba(255,92,92,0.2); }
+body.light #satispayBudgetInput { background: #fff !important; color: #111122 !important; border-color: rgba(255,92,92,0.4) !important; }
+body.light #satispayPlannerBars > div [style*="rgba(255,255,255,0.06)"] { background: rgba(0,0,0,0.05) !important; }
+body.light #satispaySpentDisplay { color: #111122 !important; }
+/* ─────────────────────────────────────────────────────────────── */
 </style>
 </head><body>
 <div class="ph">
