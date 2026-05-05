@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260505-v167';
+  var BUILD = '20260505-v168';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -3363,9 +3363,18 @@ function sendRegistrationEmails(userName, userEmail) {
 <body>
 
 <!-- Banner offline -->
-<div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(135deg,#c0392b,#e05c5c);color:#fff;text-align:center;padding:9px 16px;font-size:13px;font-weight:700;font-family:'DM Sans',sans-serif;letter-spacing:0.2px;box-shadow:0 2px 8px rgba(0,0,0,0.3);">
-  📡 <span id="offlineBannerText">Sei offline — stai usando la versione salvata</span>
+<div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:rgba(20,20,35,0.92);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,0.08);text-align:center;padding:10px 16px;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;letter-spacing:0.3px;box-shadow:0 2px 12px rgba(0,0,0,0.3);">
+  <span style="display:inline-flex;align-items:center;gap:6px;">
+    <span style="width:7px;height:7px;border-radius:50%;background:#ff6b6b;display:inline-block;animation:offlinePulse 1.5s ease-in-out infinite;flex-shrink:0;"></span>
+    <span id="offlineBannerText" style="color:rgba(255,255,255,0.88);">Offline — versione salvata disponibile</span>
+  </span>
 </div>
+<style>
+@keyframes offlinePulse {
+  0%,100% { opacity:1; transform:scale(1); }
+  50%      { opacity:0.4; transform:scale(0.8); }
+}
+</style>
 <script>
 function _updateOfflineBanner() {
   const b = document.getElementById('offlineBanner');
