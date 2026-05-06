@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260505-v168';
+  var BUILD = '20260505-v169';
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
   if(stored !== BUILD) {
@@ -9368,7 +9368,8 @@ function addExpense() {
   }
   const exp = getExpenses();
   exp.push({ id: Date.now(), cat, amount, desc, pay, date,
-    source: pay==='satispay'?'satispay':pay==='tickets'?'tickets':pay==='bancomat'||pay==='bonifico'?'sella':'manuale'
+    source: pay==='satispay'?'satispay':pay==='tickets'?'tickets':pay==='bancomat'||pay==='bonifico'?'sella':'manuale',
+    createdAt: new Date().toISOString()
   });
   saveExpenses(exp);
   bumpVersion();
@@ -9400,13 +9401,22 @@ function renderExpenses() {
   } else {
     exp.forEach(e => {
       total += e.amount;
+      // Data leggibile con giorno della settimana + ora registrazione
+      const _GISX = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+      const _MESI_SX = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+      const _dx = new Date((e.date||'').includes('/') ? e.date.split('/').reverse().join('-')+'T12:00:00' : e.date+'T12:00:00');
+      const _dayLabel = isNaN(_dx) ? e.date : `${_GISX[_dx.getDay()]} ${_dx.getDate()} ${_MESI_SX[_dx.getMonth()]}`;
+      const _timeLabel = e.createdAt ? (' <span style="font-size:10px;color:var(--text-muted);display:block;">'+new Date(e.createdAt).toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})+'</span>') : '';
       tbody.innerHTML += `<tr>
-        <td>${e.date}</td>
+        <td style="white-space:nowrap;font-size:12px;">${_dayLabel}${_timeLabel}</td>
         <td><span class="badge badge-cat">${catIconHtml(e.cat)} ${e.cat}</span></td>
         <td>${e.desc}</td>
         <td><span class="badge badge-pay">${PAY_ICONS[e.pay]||''} ${e.pay}</span></td>
         <td class="negative">€${e.amount.toFixed(2).replace('.',',')}</td>
-        <td><button class="btn-del" onclick="delExpense(${e.id})">🗑</button></td>
+        <td style="display:flex;gap:4px;">
+          <button class="btn-del" onclick="openEditExpense(${e.id},'${e.date}')" title="Modifica" style="color:#4ab8e8;font-size:14px;">✏️</button>
+          <button class="btn-del" onclick="delExpense(${e.id})">🗑</button>
+        </td>
       </tr>`;
     });
   }
@@ -9511,6 +9521,89 @@ function _doDelWeekExp(expId, expDate, currentFilter) {
   showToast('🗑 Spesa eliminata');
 }
 // ─────────────────────────────────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════
+//  MODIFICA SPESA
+// ══════════════════════════════════════════════════════════════
+let _editExpId = null, _editExpOrigDate = null;
+
+function openEditExpense(id, dateHint) {
+  // Cerca la spesa in tutti i mesi
+  let found = null, foundKey = null;
+  for(let y = 2023; y <= new Date().getFullYear()+1; y++) {
+    for(let m = 1; m <= 12; m++) {
+      const k   = 'expenses_'+y+'_'+m;
+      const arr = load(k, []);
+      const e   = arr.find(x => String(x.id) === String(id));
+      if(e) { found = e; foundKey = k; break; }
+    }
+    if(found) break;
+  }
+  if(!found) { showToast('⚠️ Spesa non trovata'); return; }
+
+  _editExpId       = id;
+  _editExpOrigDate = foundKey;
+
+  // Popola modal
+  document.getElementById('editExpAmount').value = found.amount.toFixed(2);
+  document.getElementById('editExpDesc').value   = found.desc === '—' ? '' : found.desc;
+  document.getElementById('editExpDate').value   = found.date.includes('/') ? found.date.split('/').reverse().join('-') : found.date;
+  document.getElementById('editExpPay').value    = found.pay || 'sella';
+
+  // Popola categorie
+  const catSel = document.getElementById('editExpCat');
+  const CATS   = ['supermercato','bar','ristorante','viaggi','hotel','svago','musei','abbigliamento','salute','tecnologia','extra','altro'];
+  catSel.innerHTML = CATS.map(c => `<option value="${c}" ${c===found.cat?'selected':''}>${(CAT_ICONS[c]||'📦')+' '+c}</option>`).join('');
+
+  const modal = document.getElementById('editExpenseModal');
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('editExpAmount').focus(), 200);
+}
+
+function closeEditExpense() {
+  document.getElementById('editExpenseModal').style.display = 'none';
+  _editExpId = null; _editExpOrigDate = null;
+}
+
+function saveEditExpense() {
+  if(!_editExpId) return;
+  const amount = parseFloat(document.getElementById('editExpAmount').value);
+  const desc   = document.getElementById('editExpDesc').value.trim() || '—';
+  const cat    = document.getElementById('editExpCat').value;
+  const pay    = document.getElementById('editExpPay').value;
+  const date   = document.getElementById('editExpDate').value;
+
+  if(!amount || amount <= 0) { showToast('⚠️ Importo non valido'); return; }
+  if(!date)                   { showToast('⚠️ Seleziona una data'); return; }
+
+  // Calcola la nuova chiave (la data potrebbe essere cambiata)
+  const d      = new Date(date + 'T12:00:00');
+  const newKey = 'expenses_' + d.getFullYear() + '_' + (d.getMonth()+1);
+
+  // Rimuovi dalla chiave originale
+  const origArr = load(_editExpOrigDate, []);
+  const updated = origArr.map(e => String(e.id) === String(_editExpId)
+    ? { ...e, amount, desc, cat, pay, date, updatedAt: new Date().toISOString() }
+    : e
+  );
+
+  if(newKey !== _editExpOrigDate) {
+    // Data cambiata: sposta in nuovo mese
+    save(_editExpOrigDate, origArr.filter(e => String(e.id) !== String(_editExpId)));
+    const newArr = load(newKey, []);
+    const movedExp = updated.find(e => String(e.id) === String(_editExpId));
+    if(movedExp) newArr.push(movedExp);
+    save(newKey, newArr);
+  } else {
+    save(_editExpOrigDate, updated);
+  }
+
+  bumpVersion(); fbPushToCloud(true);
+  closeEditExpense();
+  renderExpenses(); renderDashboard(); renderWeek(); refreshBudgetPlannerIfVisible();
+  showToast('✅ Spesa aggiornata');
+}
+// ══════════════════════════════════════════════════════════════
 
 function delExpense(id) {
   tcAsk('Eliminare questa spesa?', '🗑️', 'Elimina', '#e05c5c', '_doDelExpense', id);
@@ -22666,6 +22759,7 @@ function openWeekSummaryModal(filter) {
           </div>
           <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
             <span style="font-weight:700;color:var(--red);">${fmt(e.amount)}</span>
+            <button onclick="openEditExpense(${e.id},'${e.date}')" style="background:none;border:none;cursor:pointer;font-size:15px;opacity:0.6;padding:2px 4px;" title="Modifica">✏️</button>
             <button onclick="weekSummaryDeleteExp('${e.id}','${e.date}','${filter}')" style="background:none;border:none;cursor:pointer;font-size:16px;opacity:0.5;padding:2px 6px;" title="Elimina">🗑️</button>
           </div>
         </div>`;
@@ -23263,6 +23357,13 @@ body.light #printModal > div { background: #ffffff !important; border-color: rgb
 body.light #printModal button:last-child { background: #f0f0fa !important; color: #44446a !important; border-color: rgba(0,0,0,0.1) !important; }
 body.light #printModalSub { color: #44446a !important; }
 /* ─────────────────────────────────────────────────────────────── */
+
+/* ── Modal Modifica Spesa light mode ─────────────────────────── */
+body.light #editExpenseModal > div { background: #ffffff !important; }
+body.light #editExpAmount, body.light #editExpDesc,
+body.light #editExpDate,   body.light #editExpCat,
+body.light #editExpPay { background: #fff !important; color: #111122 !important; border-color: rgba(201,168,76,0.4) !important; }
+/* ────────────────────────────────────────────────────────────── */
 </style>
 </head><body>
 <div class="ph">
@@ -23655,6 +23756,50 @@ window.addEventListener('beforeprint', function() {
       </button>
     </div>
     <button onclick="closePrintModal()" style="width:100%;margin-top:14px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--dark3);color:var(--text-muted);font-size:14px;cursor:pointer;font-family:var(--font);">Annulla</button>
+  </div>
+</div>
+
+
+<!-- Modal Modifica Spesa -->
+<div id="editExpenseModal" style="display:none;position:fixed;inset:0;z-index:9600;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;padding:0;">
+  <div style="background:var(--surface);border-radius:24px 24px 0 0;padding:26px 20px 40px;width:100%;max-width:480px;box-shadow:0 -8px 40px rgba(0,0,0,0.4);">
+    <div style="width:36px;height:4px;background:var(--border);border-radius:2px;margin:0 auto 20px;"></div>
+    <div style="font-size:16px;font-weight:700;color:var(--gold);margin-bottom:18px;">✏️ Modifica Spesa</div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <div class="fld">
+        <label>Importo €</label>
+        <input type="number" id="editExpAmount" step="0.01" min="0.01"
+          style="background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:12px 16px;color:var(--text);font-size:16px;font-family:var(--font);width:100%;box-sizing:border-box;outline:none;">
+      </div>
+      <div class="fld">
+        <label>Descrizione</label>
+        <input type="text" id="editExpDesc"
+          style="background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:12px 16px;color:var(--text);font-size:15px;font-family:var(--font);width:100%;box-sizing:border-box;outline:none;">
+      </div>
+      <div class="fld">
+        <label>Categoria</label>
+        <select id="editExpCat" style="background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:12px 16px;color:var(--text);font-size:14px;font-family:var(--font);width:100%;outline:none;"></select>
+      </div>
+      <div class="fld">
+        <label>Metodo pagamento</label>
+        <select id="editExpPay" style="background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:12px 16px;color:var(--text);font-size:14px;font-family:var(--font);width:100%;outline:none;">
+          <option value="sella">🏦 Banca Sella</option>
+          <option value="satispay">📱 Satispay</option>
+          <option value="revolut">💜 Revolut</option>
+          <option value="contanti">💵 Contanti</option>
+          <option value="tickets">🎫 Ticket/Buoni</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label>Data</label>
+        <input type="date" id="editExpDate"
+          style="background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:12px 16px;color:var(--text);font-size:15px;font-family:var(--font);width:100%;box-sizing:border-box;outline:none;">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;">
+      <button onclick="closeEditExpense()" class="btn btn-outline" style="flex:1;">Annulla</button>
+      <button onclick="saveEditExpense()" class="btn btn-gold" style="flex:2;">💾 Salva Modifiche</button>
+    </div>
   </div>
 </div>
 
