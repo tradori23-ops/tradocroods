@@ -6556,6 +6556,27 @@ setTimeout(_updateOfflineBanner, 500);
         </div>
       </div>
 
+      <!-- Intervallo date -->
+      <div style="margin-top:14px;">
+        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:8px;">📆 Periodo validità <span style="font-weight:400;opacity:0.6;">(opzionale — lascia vuoto per sempre)</span></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="fld" style="margin:0;">
+            <label>Dal</label>
+            <input type="date" id="ricDateFrom">
+          </div>
+          <div class="fld" style="margin:0;">
+            <label>Al</label>
+            <input type="date" id="ricDateTo">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button type="button" onclick="setRicPeriod('month')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Questo mese</button>
+          <button type="button" onclick="setRicPeriod('3months')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Prossimi 3 mesi</button>
+          <button type="button" onclick="setRicPeriod('year')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Quest'anno</button>
+          <button type="button" onclick="setRicPeriod('clear')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">✕ Nessun limite</button>
+        </div>
+      </div>
+
       <button class="btn btn-gold" onclick="saveRicorrente()" style="width:100%;margin-top:16px;">💾 Salva Ricorrente</button>
     </div>
 
@@ -20305,24 +20326,47 @@ function getSelectedRicDays() {
   return [...document.querySelectorAll('.ric-day-btn.active')].map(b => parseInt(b.dataset.day));
 }
 
+function setRicPeriod(type) {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const fromEl = document.getElementById('ricDateFrom');
+  const toEl   = document.getElementById('ricDateTo');
+  if(type === 'clear') { fromEl.value=''; toEl.value=''; return; }
+  fromEl.value = fmt(now);
+  if(type === 'month') {
+    toEl.value = fmt(new Date(now.getFullYear(), now.getMonth()+1, 0));
+  } else if(type === '3months') {
+    const t = new Date(now); t.setMonth(t.getMonth()+3);
+    toEl.value = fmt(t);
+  } else if(type === 'year') {
+    toEl.value = now.getFullYear()+'-12-31';
+  }
+}
+
 function saveRicorrente() {
-  const desc   = document.getElementById('ricDesc')?.value?.trim();
-  const amount = parseFloat(document.getElementById('ricAmount')?.value);
-  const cat    = document.getElementById('ricCat')?.value;
-  const pay    = document.getElementById('ricPay')?.value;
-  const days   = getSelectedRicDays();
+  const desc     = document.getElementById('ricDesc')?.value?.trim();
+  const amount   = parseFloat(document.getElementById('ricAmount')?.value);
+  const cat      = document.getElementById('ricCat')?.value;
+  const pay      = document.getElementById('ricPay')?.value;
+  const days     = getSelectedRicDays();
+  const dateFrom = document.getElementById('ricDateFrom')?.value || '';
+  const dateTo   = document.getElementById('ricDateTo')?.value || '';
 
   if(!desc)           { showToast('⚠️ Inserisci una descrizione'); return; }
   if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido'); return; }
   if(!days.length)    { showToast('⚠️ Seleziona almeno un giorno'); return; }
+  if(dateFrom && dateTo && dateFrom > dateTo) { showToast('⚠️ La data "Dal" deve essere prima della data "Al"'); return; }
 
   const ric = getRicorrenti();
-  ric.push({ id: Date.now(), desc, amount, cat, pay, days });
+  ric.push({ id: Date.now(), desc, amount, cat, pay, days, dateFrom, dateTo });
   saveRicorrentiData(ric);
 
   // Reset form
   document.getElementById('ricDesc').value = '';
   document.getElementById('ricAmount').value = '';
+  document.getElementById('ricDateFrom').value = '';
+  document.getElementById('ricDateTo').value = '';
   document.querySelectorAll('.ric-day-btn').forEach(b => b.classList.remove('active'));
 
   renderRicorrentiList();
@@ -20345,24 +20389,29 @@ function applyAllRicorrenti() {
   const ric = getRicorrenti();
   if(!ric.length) { showToast('⚠️ Nessuna spesa ricorrente salvata'); return; }
 
-  // Trova la settimana corrente (lunedì - domenica)
   const now = new Date();
-  const dayOfWeek = now.getDay(); // 0=dom, 1=lun...
+  const nowStr = now.toISOString().split('T')[0];
+  const dayOfWeek = now.getDay();
   const monday = new Date(now);
   monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
 
   let added = 0;
   ric.forEach(r => {
+    // Controlla validità periodo
+    if(r.dateFrom && nowStr < r.dateFrom) return; // non ancora iniziata
+    if(r.dateTo   && nowStr > r.dateTo)   return; // già scaduta
+
     r.days.forEach(day => {
-      // Calcola la data del giorno nella settimana corrente
       const target = new Date(monday);
-      const offset = day === 0 ? 6 : day - 1; // Lun=0 offset, Dom=6 offset
+      const offset = day === 0 ? 6 : day - 1;
       target.setDate(monday.getDate() + offset);
 
-      // Non aggiungere date future
       if(target > now) return;
 
       const dateStr = target.toISOString().split('T')[0];
+      // Controlla anche che la data sia nel periodo
+      if(r.dateFrom && dateStr < r.dateFrom) return;
+      if(r.dateTo   && dateStr > r.dateTo)   return;
       const yr = target.getFullYear();
       const mo = target.getMonth() + 1;
       const key = yr + '_' + mo;
@@ -20436,6 +20485,9 @@ function renderRicorrentiList() {
     const daysLabel = r.days.length === 7 ? 'Tutti i giorni' :
                       r.days.length === 0 ? 'Nessun giorno' :
                       r.days.map(d => GIORNI_LABELS[d]).join(', ');
+    const periodLabel = r.dateFrom || r.dateTo
+      ? (r.dateFrom ? r.dateFrom.split('-').reverse().join('/') : '∞') + ' → ' + (r.dateTo ? r.dateTo.split('-').reverse().join('/') : '∞')
+      : 'Sempre attiva';
     return `<div class="ric-card">
       <div style="flex:1;min-width:0;">
         <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
@@ -20444,6 +20496,7 @@ function renderRicorrentiList() {
         <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
           ${PAY_ICONS_MAP[r.pay]||'💳'} ${r.pay} · 📅 ${daysLabel}
         </div>
+        <div style="font-size:10px;color:rgba(201,168,76,0.7);margin-top:2px;">📆 ${periodLabel}</div>
       </div>
       <div style="font-size:16px;font-weight:800;color:var(--gold);flex-shrink:0;">€${r.amount.toFixed(2).replace('.',',')}</div>
       <div style="display:flex;gap:6px;flex-shrink:0;">
