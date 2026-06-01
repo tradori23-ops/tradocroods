@@ -275,9 +275,9 @@ body.light .reminder-item .day { color: #44446a; }
 
 /* Login page */
 body.light .login-card { background: rgba(255,255,255,0.95); }
-body.light .login-logo h1 { background: linear-gradient(135deg,#8a6500,#c9a84c,#c0446a); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-body.light .login-logo p { color: #44446a; }
-body.light .login-tab { color: #44446a; }
+body.light .login-logo h1 { background: linear-gradient(135deg,#e8b44a,#f5cb72,#e8b44a); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+body.light .login-logo p { color: rgba(255,255,255,0.7); }
+body.light .login-tab { color: rgba(255,255,255,0.7); }
 body.light .login-tab.active { background: #c9a84c; color: #111; }
 body.light .last-user-card .lu-name { color: #111122; }
 body.light .last-user-card .lu-email { color: #44446a; }
@@ -2884,10 +2884,17 @@ body.light textarea {
   box-shadow: 0 1px 0 rgba(255,255,255,0.90) inset !important;
 }
 body.light .login-card {
-  background: rgba(255,255,255,0.52) !important;
-  border-color: rgba(255,255,255,0.80) !important;
-  border-top-color: rgba(255,255,255,0.95) !important;
+  background: rgba(10,10,20,0.75) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+  border-top-color: rgba(255,255,255,0.25) !important;
+  color: #f5f5f7 !important;
 }
+/* body.light .profile-card su loginPage mantiene dark */
+#loginPage .profile-card {
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+#loginPage .profile-name { color: #f5f5f7 !important; }
 body.light .profile-card {
   background: var(--lg-fill) !important;
   border-color: var(--lg-border) !important;
@@ -3675,7 +3682,7 @@ setTimeout(_updateOfflineBanner, 500);
     <div class="sidebar-logo">
       <div class="tradclab-neon-wrap">
         <span class="tradclab-neon">TRAD<span class="tradclab-dot">.</span>CLAB</span>
-        <span class="tradclab-sub">by Family</span>
+        <span class="tradclab-sub" id="brandGreeting">by Family</span>
       </div>
     </div>
     <div class="sidebar-user">
@@ -8573,6 +8580,7 @@ function initApp() {
   checkForUpdates();
   loadTheme();
   renderVersion();
+  updateBrandGreeting();
   const now = new Date();
   // fill years
   const yr = document.getElementById('globalYear');
@@ -20144,6 +20152,24 @@ function toggleTheme() {
   if(catChartInst || payChartInst) { if(selectedCat) renderCatChart(selectedCat); }
 }
 
+function updateBrandGreeting() {
+  const el = document.getElementById('brandGreeting');
+  if(!el) return;
+  const name = currentUser?.name || '';
+  const firstName = name.split(' ')[0] || '';
+  const hour = new Date().getHours();
+  let greeting = '';
+  if(hour >= 5  && hour < 12) greeting = '🌅 Buongiorno';
+  else if(hour >= 12 && hour < 17) greeting = '☀️ Buon pomeriggio';
+  else if(hour >= 17 && hour < 21) greeting = '🌆 Buona sera';
+  else greeting = '🌙 Buonanotte';
+  el.textContent = firstName ? greeting + ', ' + firstName + '!' : 'by Family';
+  // reset animazione
+  el.style.animation = 'none';
+  el.offsetHeight; // reflow
+  el.style.animation = '';
+}
+
 function _updateThemeBtn() {
   const btn = document.getElementById('themeBtn');
   if(!btn) return;
@@ -24226,8 +24252,16 @@ input:focus, select:focus, textarea:focus {
   font-weight: 500;
   letter-spacing: 3px;
   text-transform: uppercase;
-  color: var(--text-muted);
-  opacity: 0.7;
+  color: var(--gold);
+  opacity: 0.85;
+  transition: opacity 0.5s ease;
+}
+#brandGreeting {
+  animation: greetingFade 0.6s ease both;
+}
+@keyframes greetingFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 0.85; transform: translateY(0); }
 }
 @keyframes neonPulse {
   0%   { text-shadow: 0 0 6px #00f5ff, 0 0 14px #00f5ff, 0 0 28px rgba(0,245,255,0.7), 0 0 52px rgba(0,245,255,0.35); }
