@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260601-v182';
+  var BUILD = '20260601-v183';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -20307,7 +20307,14 @@ const GIORNI_LABELS = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
 
 function getRicorrenti() {
   if(!currentUser) return [];
-  try { return JSON.parse(localStorage.getItem('tc_ricorrenti_' + currentUser.email) || '[]'); } catch(e) { return []; }
+  try {
+    const data = JSON.parse(localStorage.getItem('tc_ricorrenti_' + currentUser.email) || '[]');
+    // Normalizza: se days manca o è vuoto (dati vecchi/corrotti), default = tutti i giorni
+    return data.map(r => ({
+      ...r,
+      days: (r.days && r.days.length > 0) ? r.days : [0,1,2,3,4,5,6]
+    }));
+  } catch(e) { return []; }
 }
 function saveRicorrentiData(data) {
   if(!currentUser) return;
