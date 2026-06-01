@@ -869,6 +869,9 @@ body.light .stat-mini .s-label { color:#44446a; }
   justify-content: center;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 60%, #533483 100%);
   overflow: hidden;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
 }
 
 .login-bg-art {
@@ -3589,6 +3592,50 @@ setTimeout(_updateOfflineBanner, 500);
   </div>
 
   <!-- FOOTER con copyright + storage bar inline -->
+  <!-- BOTTONE SFONDO LOGIN -->
+  <button onclick="openBgPicker()" style="position:absolute;bottom:18px;right:18px;z-index:10;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;backdrop-filter:blur(8px);transition:all 0.2s;" title="Personalizza sfondo">🎨</button>
+
+  <!-- MODAL SFONDO PERSONALIZZATO -->
+  <div id="bgPickerModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+    <div style="background:#1c1c2e;border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:28px;width:min(380px,90vw);max-height:80vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="font-size:17px;font-weight:700;color:#f5f5f7;">🎨 Sfondo Login</div>
+        <button onclick="closeBgPicker()" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:22px;cursor:pointer;line-height:1;">✕</button>
+      </div>
+
+      <!-- Upload immagine -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">📷 Immagine personale</div>
+        <label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.06);border:1.5px dashed rgba(255,255,255,0.2);border-radius:14px;padding:14px 16px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(201,168,76,0.6)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'">
+          <span style="font-size:24px;">🖼️</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#f5f5f7;">Carica immagine</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.4);">JPG, PNG, WEBP — max 5MB</div>
+          </div>
+          <input type="file" accept="image/*" onchange="handleBgImage(this)" style="display:none;">
+        </label>
+      </div>
+
+      <!-- Gradienti predefiniti -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">🌈 Gradienti</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="bgGradientGrid"></div>
+      </div>
+
+      <!-- Colore solido -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">🎨 Colore solido</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="color" id="bgColorPicker" value="#1a1a2e" onchange="applyBgColor(this.value)" style="width:48px;height:48px;border:none;border-radius:12px;cursor:pointer;padding:2px;background:none;">
+          <div style="font-size:12px;color:rgba(255,255,255,0.5);">Scegli un colore personalizzato</div>
+        </div>
+      </div>
+
+      <!-- Reset -->
+      <button onclick="resetBg()" style="width:100%;padding:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:rgba(255,255,255,0.5);font-size:13px;cursor:pointer;font-family:inherit;">↩️ Ripristina sfondo originale</button>
+    </div>
+  </div>
+
   <div class="footer-copy" id="loginFooter">
     <div class="copy-line">© 2026/2027 TRAD.CLAB</div>
     <!-- Riga versione + barra storage affiancate -->
@@ -7238,6 +7285,8 @@ function createHexagons() {
 try {
   createHexagons();
   renderVersion();
+  loadTheme(true);
+  loadSavedBg();
   loadLastUser();
   renderUsersGrid();
   initFirebase();
@@ -20083,7 +20132,7 @@ function chartMutedColor() {
   return document.body.classList.contains('light') ? '#44446a' : '#8888aa';
 }
 // ===== THEME TOGGLE =====
-let isDark = true;
+var isDark = true;
 
 function toggleTheme() {
   isDark = !isDark;
@@ -20108,7 +20157,9 @@ function _updateThemeBtn() {
   if(txtEl) txtEl.textContent = label;
 }
 
-function loadTheme() {
+function loadTheme(forceLogin) {
+  if(typeof isDark === 'undefined') window.isDark = true;
+  if(forceLogin) { window.isDark = true; isDark = true; document.body.classList.remove('light'); if(typeof _updateThemeBtn==='function') _updateThemeBtn(); return; }
   const saved = localStorage.getItem('tc_theme');
   if(saved === 'light') {
     isDark = false;
@@ -20118,6 +20169,85 @@ function loadTheme() {
     document.body.classList.remove('light');
   }
   _updateThemeBtn();
+}
+
+// ===== SFONDO LOGIN PERSONALIZZATO =====
+const BG_GRADIENTS = [
+  { label:'Originale', value:'linear-gradient(135deg,#1a1a2e 0%,#16213e 30%,#0f3460 60%,#533483 100%)' },
+  { label:'Tramonto', value:'linear-gradient(135deg,#ff6b35 0%,#f7c59f 50%,#efefd0 100%)' },
+  { label:'Oceano', value:'linear-gradient(135deg,#0077b6 0%,#00b4d8 50%,#90e0ef 100%)' },
+  { label:'Foresta', value:'linear-gradient(135deg,#1b4332 0%,#40916c 50%,#95d5b2 100%)' },
+  { label:'Aurora', value:'linear-gradient(135deg,#7400b8 0%,#6930c3 25%,#5e60ce 50%,#48cae4 75%,#00f5d4 100%)' },
+  { label:'Fuoco', value:'linear-gradient(135deg,#03071e 0%,#370617 25%,#6a040f 50%,#d00000 75%,#e85d04 100%)' },
+  { label:'Oro', value:'linear-gradient(135deg,#212529 0%,#343a40 30%,#8a6522 60%,#e8b44a 100%)' },
+  { label:'Rosa', value:'linear-gradient(135deg,#2d1b69 0%,#8b2fc9 40%,#e040fb 70%,#ff80ab 100%)' },
+];
+
+function openBgPicker() {
+  const modal = document.getElementById('bgPickerModal');
+  modal.style.display = 'flex';
+  // Render gradient grid
+  const grid = document.getElementById('bgGradientGrid');
+  if(grid) {
+    grid.innerHTML = BG_GRADIENTS.map((g,i) => 
+      `<div onclick="applyBgGradient('${g.value}')" title="${g.label}" style="height:52px;border-radius:12px;background:${g.value};cursor:pointer;border:2px solid rgba(255,255,255,0.1);transition:all 0.2s;position:relative;" onmouseover="this.style.transform='scale(1.05)';this.style.borderColor='rgba(201,168,76,0.8)'" onmouseout="this.style.transform='scale(1)';this.style.borderColor='rgba(255,255,255,0.1)'"></div>`
+    ).join('');
+  }
+}
+
+function closeBgPicker() {
+  document.getElementById('bgPickerModal').style.display = 'none';
+}
+
+function applyBgGradient(gradient) {
+  const lp = document.getElementById('loginPage');
+  if(lp) lp.style.background = gradient;
+  try { localStorage.setItem('tc_login_bg', JSON.stringify({type:'gradient', value:gradient})); } catch(e){}
+  closeBgPicker();
+}
+
+function applyBgColor(color) {
+  const lp = document.getElementById('loginPage');
+  if(lp) lp.style.background = color;
+  try { localStorage.setItem('tc_login_bg', JSON.stringify({type:'color', value:color})); } catch(e){}
+}
+
+function handleBgImage(input) {
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 5 * 1024 * 1024) { showMsg('Immagine troppo grande (max 5MB)','error'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const lp = document.getElementById('loginPage');
+    if(lp) {
+      lp.style.background = `url('${dataUrl}') center/cover no-repeat`;
+    }
+    try { localStorage.setItem('tc_login_bg', JSON.stringify({type:'image', value:dataUrl})); } catch(e) {
+      showMsg('Immagine troppo grande per il salvataggio locale','error');
+    }
+    closeBgPicker();
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetBg() {
+  const lp = document.getElementById('loginPage');
+  if(lp) lp.style.background = 'linear-gradient(135deg,#1a1a2e 0%,#16213e 30%,#0f3460 60%,#533483 100%)';
+  try { localStorage.removeItem('tc_login_bg'); } catch(e){}
+  closeBgPicker();
+}
+
+function loadSavedBg() {
+  try {
+    const saved = localStorage.getItem('tc_login_bg');
+    if(!saved) return;
+    const bg = JSON.parse(saved);
+    const lp = document.getElementById('loginPage');
+    if(!lp) return;
+    if(bg.type === 'gradient' || bg.type === 'color') lp.style.background = bg.value;
+    else if(bg.type === 'image') lp.style.background = `url('${bg.value}') center/cover no-repeat`;
+  } catch(e){}
 }
 
 // ===== SYNC =====
