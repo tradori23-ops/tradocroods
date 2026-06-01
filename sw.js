@@ -1,4 +1,4 @@
-const CACHE = 'tradocroods-v20260312';
+const CACHE = 'tradocroods-v20260601';
 self.addEventListener('install', e => { self.skipWaiting(); });
 self.addEventListener('activate', e => {
   e.waitUntil(
