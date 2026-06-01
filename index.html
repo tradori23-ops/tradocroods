@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260601-v182';
+  var BUILD = '20260601-v183';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -275,9 +275,9 @@ body.light .reminder-item .day { color: #44446a; }
 
 /* Login page */
 body.light .login-card { background: rgba(255,255,255,0.95); }
-body.light .login-logo h1 { background: linear-gradient(135deg,#8a6500,#c9a84c,#c0446a); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-body.light .login-logo p { color: #44446a; }
-body.light .login-tab { color: #44446a; }
+body.light .login-logo h1 { background: linear-gradient(135deg,#e8b44a,#f5cb72,#e8b44a); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+body.light .login-logo p { color: rgba(255,255,255,0.7); }
+body.light .login-tab { color: rgba(255,255,255,0.7); }
 body.light .login-tab.active { background: #c9a84c; color: #111; }
 body.light .last-user-card .lu-name { color: #111122; }
 body.light .last-user-card .lu-email { color: #44446a; }
@@ -869,6 +869,9 @@ body.light .stat-mini .s-label { color:#44446a; }
   justify-content: center;
   background: linear-gradient(135deg, #1a1a2e 0%, #16213e 30%, #0f3460 60%, #533483 100%);
   overflow: hidden;
+  background-size: cover !important;
+  background-position: center !important;
+  background-repeat: no-repeat !important;
 }
 
 .login-bg-art {
@@ -2881,10 +2884,17 @@ body.light textarea {
   box-shadow: 0 1px 0 rgba(255,255,255,0.90) inset !important;
 }
 body.light .login-card {
-  background: rgba(255,255,255,0.52) !important;
-  border-color: rgba(255,255,255,0.80) !important;
-  border-top-color: rgba(255,255,255,0.95) !important;
+  background: rgba(10,10,20,0.75) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+  border-top-color: rgba(255,255,255,0.25) !important;
+  color: #f5f5f7 !important;
 }
+/* body.light .profile-card su loginPage mantiene dark */
+#loginPage .profile-card {
+  background: rgba(255,255,255,0.08) !important;
+  border-color: rgba(255,255,255,0.15) !important;
+}
+#loginPage .profile-name { color: #f5f5f7 !important; }
 body.light .profile-card {
   background: var(--lg-fill) !important;
   border-color: var(--lg-border) !important;
@@ -3589,6 +3599,50 @@ setTimeout(_updateOfflineBanner, 500);
   </div>
 
   <!-- FOOTER con copyright + storage bar inline -->
+  <!-- BOTTONE SFONDO LOGIN -->
+  <button onclick="openBgPicker()" style="position:absolute;bottom:18px;right:18px;z-index:10;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:50%;width:36px;height:36px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;backdrop-filter:blur(8px);transition:all 0.2s;" title="Personalizza sfondo">🎨</button>
+
+  <!-- MODAL SFONDO PERSONALIZZATO -->
+  <div id="bgPickerModal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.7);backdrop-filter:blur(8px);align-items:center;justify-content:center;">
+    <div style="background:#1c1c2e;border:1px solid rgba(255,255,255,0.12);border-radius:24px;padding:28px;width:min(380px,90vw);max-height:80vh;overflow-y:auto;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div style="font-size:17px;font-weight:700;color:#f5f5f7;">🎨 Sfondo Login</div>
+        <button onclick="closeBgPicker()" style="background:none;border:none;color:rgba(255,255,255,0.5);font-size:22px;cursor:pointer;line-height:1;">✕</button>
+      </div>
+
+      <!-- Upload immagine -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">📷 Immagine personale</div>
+        <label style="display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.06);border:1.5px dashed rgba(255,255,255,0.2);border-radius:14px;padding:14px 16px;cursor:pointer;transition:all 0.2s;" onmouseover="this.style.borderColor='rgba(201,168,76,0.6)'" onmouseout="this.style.borderColor='rgba(255,255,255,0.2)'">
+          <span style="font-size:24px;">🖼️</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#f5f5f7;">Carica immagine</div>
+            <div style="font-size:11px;color:rgba(255,255,255,0.4);">JPG, PNG, WEBP — max 5MB</div>
+          </div>
+          <input type="file" accept="image/*" onchange="handleBgImage(this)" style="display:none;">
+        </label>
+      </div>
+
+      <!-- Gradienti predefiniti -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">🌈 Gradienti</div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="bgGradientGrid"></div>
+      </div>
+
+      <!-- Colore solido -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px;">🎨 Colore solido</div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <input type="color" id="bgColorPicker" value="#1a1a2e" onchange="applyBgColor(this.value)" style="width:48px;height:48px;border:none;border-radius:12px;cursor:pointer;padding:2px;background:none;">
+          <div style="font-size:12px;color:rgba(255,255,255,0.5);">Scegli un colore personalizzato</div>
+        </div>
+      </div>
+
+      <!-- Reset -->
+      <button onclick="resetBg()" style="width:100%;padding:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:12px;color:rgba(255,255,255,0.5);font-size:13px;cursor:pointer;font-family:inherit;">↩️ Ripristina sfondo originale</button>
+    </div>
+  </div>
+
   <div class="footer-copy" id="loginFooter">
     <div class="copy-line">© 2026/2027 TRAD.CLAB</div>
     <!-- Riga versione + barra storage affiancate -->
@@ -3628,7 +3682,7 @@ setTimeout(_updateOfflineBanner, 500);
     <div class="sidebar-logo">
       <div class="tradclab-neon-wrap">
         <span class="tradclab-neon">TRAD<span class="tradclab-dot">.</span>CLAB</span>
-        <span class="tradclab-sub">by Family</span>
+        <span class="tradclab-sub" id="brandGreeting">by Family</span>
       </div>
     </div>
     <div class="sidebar-user">
@@ -3691,6 +3745,9 @@ setTimeout(_updateOfflineBanner, 500);
       <div class="nav-item" onclick="showSection('promemoria', this); closeSidebar()" style="position:relative;">
         <span class="icon">🔔</span> Promemoria
         <span id="reminderNavBadge" style="display:none;position:absolute;top:8px;right:12px;background:var(--red);color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;min-width:14px;text-align:center;"></span>
+      </div>
+      <div class="nav-item" onclick="showSection('ricorrenti', this); closeSidebar()" style="background:linear-gradient(90deg,rgba(201,168,76,0.12),transparent);border-left:3px solid rgba(201,168,76,0.5);">
+        <span class="icon">🔁</span> <span style="font-weight:700;">Spese Ricorrenti</span>
       </div>
       <div class="nav-item" onclick="showSection('emergenza', this); closeSidebar()" style="color:var(--red) !important;">
         <span class="icon">🚨</span> Emergenza
@@ -6438,6 +6495,106 @@ setTimeout(_updateOfflineBanner, 500);
       </div>
     </div>
 
+  <!-- SEZIONE SPESE RICORRENTI -->
+  <section id="sec-ricorrenti" class="section" style="padding:20px;">
+    <div class="card-title" style="margin-bottom:16px;">🔁 Spese Ricorrenti</div>
+
+    <!-- Form nuova ricorrente -->
+    <div class="card mb-20" id="ricorrentiFormCard">
+      <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:14px;">➕ Nuova Spesa Ricorrente</div>
+      <div class="form-grid">
+        <div class="fld">
+          <label>Descrizione</label>
+          <input type="text" id="ricDesc" placeholder="Es: TassoBar, Colazione...">
+        </div>
+        <div class="fld">
+          <label>Importo (€)</label>
+          <input type="number" id="ricAmount" placeholder="0,00" step="0.01">
+        </div>
+        <div class="fld">
+          <label>Categoria</label>
+          <select id="ricCat">
+            <option value="bar">☕ Bar</option>
+            <option value="ristorante">🍽️ Ristorante</option>
+            <option value="supermercato">🛒 Supermercato</option>
+            <option value="svago">🎭 Svago</option>
+            <option value="viaggi">✈️ Viaggi</option>
+            <option value="extra">💡 Extra</option>
+            <option value="rata">📦 Rata</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>Metodo Pagamento</label>
+          <select id="ricPay">
+            <option value="tickets">🎫 Ticket/Buoni</option>
+            <option value="satispay">📱 Satispay</option>
+            <option value="contanti">💵 Contanti</option>
+            <option value="sella">🏦 Banca Sella</option>
+            <option value="bancomat">💳 Bancomat</option>
+            <option value="klarna">🅺 Klarna</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Selezione giorni -->
+      <div style="margin-top:14px;">
+        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:8px;">📅 Giorni della settimana</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="ricDaysGrid">
+          <button type="button" class="ric-day-btn" data-day="1" onclick="toggleRicDay(this)">Lun</button>
+          <button type="button" class="ric-day-btn" data-day="2" onclick="toggleRicDay(this)">Mar</button>
+          <button type="button" class="ric-day-btn" data-day="3" onclick="toggleRicDay(this)">Mer</button>
+          <button type="button" class="ric-day-btn" data-day="4" onclick="toggleRicDay(this)">Gio</button>
+          <button type="button" class="ric-day-btn" data-day="5" onclick="toggleRicDay(this)">Ven</button>
+          <button type="button" class="ric-day-btn" data-day="6" onclick="toggleRicDay(this)">Sab</button>
+          <button type="button" class="ric-day-btn" data-day="0" onclick="toggleRicDay(this)">Dom</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button type="button" onclick="selectRicDays([1,2,3,4,5])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Lun-Ven</button>
+          <button type="button" onclick="selectRicDays([6,0])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Weekend</button>
+          <button type="button" onclick="selectRicDays([0,1,2,3,4,5,6])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Tutti</button>
+          <button type="button" onclick="selectRicDays([])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Nessuno</button>
+        </div>
+      </div>
+
+      <!-- Intervallo date -->
+      <div style="margin-top:14px;">
+        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:8px;">📆 Periodo validità <span style="font-weight:400;opacity:0.6;">(opzionale — lascia vuoto per sempre)</span></label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="fld" style="margin:0;">
+            <label>Dal</label>
+            <input type="date" id="ricDateFrom">
+          </div>
+          <div class="fld" style="margin:0;">
+            <label>Al</label>
+            <input type="date" id="ricDateTo">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button type="button" onclick="setRicPeriod('month')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Questo mese</button>
+          <button type="button" onclick="setRicPeriod('3months')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Prossimi 3 mesi</button>
+          <button type="button" onclick="setRicPeriod('year')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Quest'anno</button>
+          <button type="button" onclick="setRicPeriod('clear')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">✕ Nessun limite</button>
+        </div>
+      </div>
+
+      <button class="btn btn-gold" onclick="saveRicorrente()" style="width:100%;margin-top:16px;">💾 Salva Ricorrente</button>
+    </div>
+
+    <!-- Lista ricorrenti salvate -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;color:var(--gold);">📋 Ricorrenti Salvate</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="applyAllRicorrenti('week')" style="font-size:12px;padding:6px 14px;border-radius:10px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);cursor:pointer;font-weight:600;">▶️ Questa Settimana</button>
+          <button onclick="applyAllRicorrenti('period')" style="font-size:12px;padding:6px 14px;border-radius:10px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;cursor:pointer;font-weight:600;">🗓️ Tutto il Periodo</button>
+        </div>
+      </div>
+      <div id="ricorrentiList" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Nessuna spesa ricorrente salvata</div>
+      </div>
+    </div>
+  </section>
+
   </main>
 </div>
 
@@ -7238,6 +7395,8 @@ function createHexagons() {
 try {
   createHexagons();
   renderVersion();
+  loadTheme(true);
+  loadSavedBg();
   loadLastUser();
   renderUsersGrid();
   initFirebase();
@@ -8524,6 +8683,7 @@ function initApp() {
   checkForUpdates();
   loadTheme();
   renderVersion();
+  updateBrandGreeting();
   const now = new Date();
   // fill years
   const yr = document.getElementById('globalYear');
@@ -8626,6 +8786,7 @@ function showSection(id, el) {
     settimanale:'📅 Questa Settimana',
     grafici:'📈 Grafici & Budget',
     calendario:'🗓️ Calendario & Note',
+    ricorrenti:'🔁 Spese Ricorrenti',
     emergenza:'🚨 Emergenza',
     documenti:'📁 Importa PDF & Documenti',
     vistaSpese:'🗓️ Spese Settimanali — Sella/Satispay/Revolut', /* legacy */
@@ -8660,6 +8821,7 @@ function showSection(id, el) {
   if(id==='entrate') updateRimanenza();
   if(id==='librietto') { setTimeout(() => renderLibrietto(), 50); }
   if(id==='contocorrente') { setTimeout(() => renderCC(), 50); }
+  if(id==='ricorrenti') { renderRicorrentiList(); }
   if(id==='ai') {
     aiLoadLocationAndWeather();
     aiUpdateWelcome();
@@ -9479,6 +9641,7 @@ function azzeraRimanenzaMese(yr, mo) {
 
 function _doRicalcolaEffettivo() {
   // Esegui il ricalcolo
+}
 
 function salvaRimanenzeModificate() {
   const container = document.getElementById('rimanenze-list');
@@ -9499,7 +9662,7 @@ function salvaRimanenzeModificate() {
 async function ricalcolaTuttoLoStorico() {
   if(!currentUser) return;
   tcAsk('Ricalcolare le rimanenze storiche? I valori salvati verranno sovrascritti.','📊','Ricalcola','#c9a84c','_doRicalcolaEffettivo'); return;
-  if(false) { // rimpiazzato da tcAsk
+  if(false) { // rimpiazzato da tcAsk - DISABLED
 
   const btn = document.getElementById('btn-ricalcola');
   const progressDiv = document.getElementById('ricalcola-progress');
@@ -9596,6 +9759,7 @@ async function ricalcolaTuttoLoStorico() {
   renderRimanenzeList();
   caricaRimanenzaPrecedente();
   showToast(`✅ Storico ricalcolato: ${months.length} mesi aggiornati`);
+  } // end if(false)
 }
 
 function delIncome(id) {
@@ -20081,7 +20245,7 @@ function chartMutedColor() {
   return document.body.classList.contains('light') ? '#44446a' : '#8888aa';
 }
 // ===== THEME TOGGLE =====
-let isDark = true;
+var isDark = true;
 
 function toggleTheme() {
   isDark = !isDark;
@@ -20091,6 +20255,24 @@ function toggleTheme() {
   // redraw charts with new colors
   if(dashChartInst) renderDashboard();
   if(catChartInst || payChartInst) { if(selectedCat) renderCatChart(selectedCat); }
+}
+
+function updateBrandGreeting() {
+  const el = document.getElementById('brandGreeting');
+  if(!el) return;
+  const name = currentUser?.name || '';
+  const firstName = name.split(' ')[0] || '';
+  const hour = new Date().getHours();
+  let greeting = '';
+  if(hour >= 5  && hour < 12) greeting = '🌅 Buongiorno';
+  else if(hour >= 12 && hour < 17) greeting = '☀️ Buon pomeriggio';
+  else if(hour >= 17 && hour < 21) greeting = '🌆 Buona sera';
+  else greeting = '🌙 Buonanotte';
+  el.textContent = firstName ? greeting + ', ' + firstName + '!' : 'by Family';
+  // reset animazione
+  el.style.animation = 'none';
+  el.offsetHeight; // reflow
+  el.style.animation = '';
 }
 
 function _updateThemeBtn() {
@@ -20106,7 +20288,9 @@ function _updateThemeBtn() {
   if(txtEl) txtEl.textContent = label;
 }
 
-function loadTheme() {
+function loadTheme(forceLogin) {
+  if(typeof isDark === 'undefined') window.isDark = true;
+  if(forceLogin) { window.isDark = true; isDark = true; document.body.classList.remove('light'); if(typeof _updateThemeBtn==='function') _updateThemeBtn(); return; }
   const saved = localStorage.getItem('tc_theme');
   if(saved === 'light') {
     isDark = false;
@@ -20116,6 +20300,318 @@ function loadTheme() {
     document.body.classList.remove('light');
   }
   _updateThemeBtn();
+}
+
+// ===== SPESE RICORRENTI =====
+const GIORNI_LABELS = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+function getRicorrenti() {
+  if(!currentUser) return [];
+  try {
+    const data = JSON.parse(localStorage.getItem('tc_ricorrenti_' + currentUser.email) || '[]');
+    // Normalizza: se days manca o è vuoto (dati vecchi/corrotti), default = tutti i giorni
+    return data.map(r => ({
+      ...r,
+      days: (r.days && r.days.length > 0) ? r.days : [0,1,2,3,4,5,6]
+    }));
+  } catch(e) { return []; }
+}
+function saveRicorrentiData(data) {
+  if(!currentUser) return;
+  try { localStorage.setItem('tc_ricorrenti_' + currentUser.email, JSON.stringify(data)); } catch(e) {}
+}
+
+function toggleRicDay(btn) {
+  btn.classList.toggle('active');
+}
+
+function selectRicDays(days) {
+  document.querySelectorAll('.ric-day-btn').forEach(btn => {
+    const d = parseInt(btn.dataset.day);
+    btn.classList.toggle('active', days.includes(d));
+  });
+}
+
+function getSelectedRicDays() {
+  return [...document.querySelectorAll('.ric-day-btn.active')].map(b => parseInt(b.dataset.day));
+}
+
+function setRicPeriod(type) {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const fromEl = document.getElementById('ricDateFrom');
+  const toEl   = document.getElementById('ricDateTo');
+  if(type === 'clear') { fromEl.value=''; toEl.value=''; return; }
+  fromEl.value = fmt(now);
+  if(type === 'month') {
+    toEl.value = fmt(new Date(now.getFullYear(), now.getMonth()+1, 0));
+  } else if(type === '3months') {
+    const t = new Date(now); t.setMonth(t.getMonth()+3);
+    toEl.value = fmt(t);
+  } else if(type === 'year') {
+    toEl.value = now.getFullYear()+'-12-31';
+  }
+}
+
+function saveRicorrente() {
+  const desc     = document.getElementById('ricDesc')?.value?.trim();
+  const amount   = parseFloat(document.getElementById('ricAmount')?.value);
+  const cat      = document.getElementById('ricCat')?.value;
+  const pay      = document.getElementById('ricPay')?.value;
+  const days     = getSelectedRicDays();
+  const dateFrom = document.getElementById('ricDateFrom')?.value || '';
+  const dateTo   = document.getElementById('ricDateTo')?.value || '';
+
+  if(!desc)           { showToast('⚠️ Inserisci una descrizione'); return; }
+  if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido'); return; }
+  if(!days.length)    { showToast('⚠️ Seleziona almeno un giorno'); return; }
+  if(dateFrom && dateTo && dateFrom > dateTo) { showToast('⚠️ La data "Dal" deve essere prima della data "Al"'); return; }
+
+  const ric = getRicorrenti();
+  ric.push({ id: Date.now(), desc, amount, cat, pay, days, dateFrom, dateTo });
+  saveRicorrentiData(ric);
+
+  // Reset form
+  document.getElementById('ricDesc').value = '';
+  document.getElementById('ricAmount').value = '';
+  document.getElementById('ricDateFrom').value = '';
+  document.getElementById('ricDateTo').value = '';
+  document.querySelectorAll('.ric-day-btn').forEach(b => b.classList.remove('active'));
+
+  renderRicorrentiList();
+  showToast('✅ Spesa ricorrente salvata!');
+}
+
+function deleteRicorrente(id) {
+  tcAsk('Eliminare questa spesa ricorrente?', '🗑️', 'Elimina', '#e05c5c', '_doDeleteRicorrente', id);
+}
+
+function _doDeleteRicorrente(id) {
+  const ric = getRicorrenti().filter(r => r.id !== id);
+  saveRicorrentiData(ric);
+  renderRicorrentiList();
+  showToast('🗑️ Ricorrente eliminata');
+}
+
+function _addRicorrente(r, dateStr) {
+  const target = new Date(dateStr + 'T12:00:00');
+  const yr = target.getFullYear();
+  const mo = target.getMonth() + 1;
+  const key = yr + '_' + mo;
+  const existing = load('expenses_' + key, []) || [];
+  const alreadyExists = existing.some(e =>
+    e.desc === r.desc && e.amount === r.amount && e.date === dateStr && e.source === 'ricorrente'
+  );
+  if(alreadyExists) return false;
+  existing.push({
+    id: Date.now() + Math.random(),
+    cat: r.cat, amount: r.amount, desc: r.desc,
+    pay: r.pay, date: dateStr, source: 'ricorrente', ts: Date.now()
+  });
+  save('expenses_' + key, existing);
+  return true;
+}
+
+function applyAllRicorrenti(mode) {
+  if(!currentUser) return;
+  const ric = getRicorrenti();
+  if(!ric.length) { showToast('⚠️ Nessuna spesa ricorrente salvata'); return; }
+
+  const now = new Date();
+  const nowStr = now.toISOString().split('T')[0];
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  let added = 0;
+
+  if(mode === 'week') {
+    // Solo settimana corrente
+    const dayOfWeek = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+    ric.forEach(r => {
+      if(r.dateFrom && nowStr < r.dateFrom) return;
+      if(r.dateTo   && nowStr > r.dateTo)   return;
+      r.days.forEach(day => {
+        const target = new Date(monday);
+        const offset = day === 0 ? 6 : day - 1;
+        target.setDate(monday.getDate() + offset);
+        if(target > now) return;
+        const dateStr = fmt(target);
+        if(r.dateFrom && dateStr < r.dateFrom) return;
+        if(r.dateTo   && dateStr > r.dateTo)   return;
+        if(_addRicorrente(r, dateStr)) added++;
+      });
+    });
+
+  } else if(mode === 'period') {
+    // Tutto il periodo dal dateFrom al dateTo (o da 30gg fa a oggi se non specificato)
+    ric.forEach(r => {
+      const start = new Date((r.dateFrom || nowStr) + 'T12:00:00');
+      const end   = new Date(Math.min(
+        new Date((r.dateTo || nowStr) + 'T12:00:00').getTime(),
+        now.getTime()
+      ));
+      if(start > end) return;
+
+      // Itera ogni giorno dal start all'end
+      const cur = new Date(start);
+      while(cur <= end) {
+        const dayOfWeek = cur.getDay();
+        if(r.days.includes(dayOfWeek)) {
+          if(_addRicorrente(r, fmt(cur))) added++;
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+    });
+  }
+
+  if(added > 0) {
+    bumpVersion(); fbPushToCloud(true);
+    showToast('✅ ' + added + ' spese ricorrenti aggiunte!');
+    renderRicorrentiList();
+  } else {
+    showToast('ℹ️ Tutte le ricorrenti erano già presenti');
+  }
+}
+
+function applyRicorrente(id) {
+  const ric = getRicorrenti().find(r => r.id === id);
+  if(!ric) return;
+
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+  const yr = now.getFullYear();
+  const mo = now.getMonth() + 1;
+  const key = yr + '_' + mo;
+
+  const existing = load('expenses_' + key, []) || [];
+  existing.push({
+    id: Date.now() + Math.random(),
+    cat: ric.cat, amount: ric.amount, desc: ric.desc,
+    pay: ric.pay, date: dateStr, source: 'ricorrente', ts: Date.now()
+  });
+  save('expenses_' + key, existing);
+  bumpVersion(); fbPushToCloud(true);
+  showToast('✅ "' + ric.desc + '" aggiunta per oggi!');
+}
+
+function renderRicorrentiList() {
+  const list = document.getElementById('ricorrentiList');
+  if(!list) return;
+  const ric = getRicorrenti();
+  if(!ric.length) {
+    list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Nessuna spesa ricorrente salvata</div>';
+    return;
+  }
+
+  const CAT_ICONS_MAP = { bar:'☕', ristorante:'🍽️', supermercato:'🛒', svago:'🎭', viaggi:'✈️', extra:'💡', rata:'📦' };
+  const PAY_ICONS_MAP = { tickets:'🎫', satispay:'📱', contanti:'💵', sella:'🏦', bancomat:'💳', klarna:'🅺' };
+
+  list.innerHTML = ric.map(r => {
+    const daysLabel = r.days.length === 7 ? 'Tutti i giorni' :
+                      r.days.length === 0 ? 'Nessun giorno' :
+                      r.days.map(d => GIORNI_LABELS[d]).join(', ');
+    const periodLabel = r.dateFrom || r.dateTo
+      ? (r.dateFrom ? r.dateFrom.split('-').reverse().join('/') : '∞') + ' → ' + (r.dateTo ? r.dateTo.split('-').reverse().join('/') : '∞')
+      : 'Sempre attiva';
+    return `<div class="ric-card">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          ${CAT_ICONS_MAP[r.cat]||'💡'} ${r.desc}
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
+          ${PAY_ICONS_MAP[r.pay]||'💳'} ${r.pay} · 📅 ${daysLabel}
+        </div>
+        <div style="font-size:10px;color:rgba(201,168,76,0.7);margin-top:2px;">📆 ${periodLabel}</div>
+      </div>
+      <div style="font-size:16px;font-weight:800;color:var(--gold);flex-shrink:0;">€${r.amount.toFixed(2).replace('.',',')}</div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button onclick="applyRicorrente(${r.id})" title="Aggiungi oggi" style="padding:6px 10px;border-radius:8px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);cursor:pointer;font-size:13px;">▶️</button>
+        <button onclick="deleteRicorrente(${r.id})" title="Elimina" style="padding:6px 10px;border-radius:8px;background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:var(--red);cursor:pointer;font-size:13px;">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ===== SFONDO LOGIN PERSONALIZZATO =====
+const BG_GRADIENTS = [
+  { label:'Originale', value:'linear-gradient(135deg,#1a1a2e 0%,#16213e 30%,#0f3460 60%,#533483 100%)' },
+  { label:'Tramonto', value:'linear-gradient(135deg,#ff6b35 0%,#f7c59f 50%,#efefd0 100%)' },
+  { label:'Oceano', value:'linear-gradient(135deg,#0077b6 0%,#00b4d8 50%,#90e0ef 100%)' },
+  { label:'Foresta', value:'linear-gradient(135deg,#1b4332 0%,#40916c 50%,#95d5b2 100%)' },
+  { label:'Aurora', value:'linear-gradient(135deg,#7400b8 0%,#6930c3 25%,#5e60ce 50%,#48cae4 75%,#00f5d4 100%)' },
+  { label:'Fuoco', value:'linear-gradient(135deg,#03071e 0%,#370617 25%,#6a040f 50%,#d00000 75%,#e85d04 100%)' },
+  { label:'Oro', value:'linear-gradient(135deg,#212529 0%,#343a40 30%,#8a6522 60%,#e8b44a 100%)' },
+  { label:'Rosa', value:'linear-gradient(135deg,#2d1b69 0%,#8b2fc9 40%,#e040fb 70%,#ff80ab 100%)' },
+];
+
+function openBgPicker() {
+  const modal = document.getElementById('bgPickerModal');
+  modal.style.display = 'flex';
+  // Render gradient grid
+  const grid = document.getElementById('bgGradientGrid');
+  if(grid) {
+    grid.innerHTML = BG_GRADIENTS.map((g,i) => 
+      `<div onclick="applyBgGradient('${g.value}')" title="${g.label}" style="height:52px;border-radius:12px;background:${g.value};cursor:pointer;border:2px solid rgba(255,255,255,0.1);transition:all 0.2s;position:relative;" onmouseover="this.style.transform='scale(1.05)';this.style.borderColor='rgba(201,168,76,0.8)'" onmouseout="this.style.transform='scale(1)';this.style.borderColor='rgba(255,255,255,0.1)'"></div>`
+    ).join('');
+  }
+}
+
+function closeBgPicker() {
+  document.getElementById('bgPickerModal').style.display = 'none';
+}
+
+function applyBgGradient(gradient) {
+  const lp = document.getElementById('loginPage');
+  if(lp) lp.style.background = gradient;
+  try { localStorage.setItem('tc_login_bg', JSON.stringify({type:'gradient', value:gradient})); } catch(e){}
+  closeBgPicker();
+}
+
+function applyBgColor(color) {
+  const lp = document.getElementById('loginPage');
+  if(lp) lp.style.background = color;
+  try { localStorage.setItem('tc_login_bg', JSON.stringify({type:'color', value:color})); } catch(e){}
+}
+
+function handleBgImage(input) {
+  const file = input.files[0];
+  if(!file) return;
+  if(file.size > 5 * 1024 * 1024) { showMsg('Immagine troppo grande (max 5MB)','error'); return; }
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    const lp = document.getElementById('loginPage');
+    if(lp) {
+      lp.style.background = `url('${dataUrl}') center/cover no-repeat`;
+    }
+    try { localStorage.setItem('tc_login_bg', JSON.stringify({type:'image', value:dataUrl})); } catch(e) {
+      showMsg('Immagine troppo grande per il salvataggio locale','error');
+    }
+    closeBgPicker();
+  };
+  reader.readAsDataURL(file);
+}
+
+function resetBg() {
+  const lp = document.getElementById('loginPage');
+  if(lp) lp.style.background = 'linear-gradient(135deg,#1a1a2e 0%,#16213e 30%,#0f3460 60%,#533483 100%)';
+  try { localStorage.removeItem('tc_login_bg'); } catch(e){}
+  closeBgPicker();
+}
+
+function loadSavedBg() {
+  try {
+    const saved = localStorage.getItem('tc_login_bg');
+    if(!saved) return;
+    const bg = JSON.parse(saved);
+    const lp = document.getElementById('loginPage');
+    if(!lp) return;
+    if(bg.type === 'gradient' || bg.type === 'color') lp.style.background = bg.value;
+    else if(bg.type === 'image') lp.style.background = `url('${bg.value}') center/cover no-repeat`;
+  } catch(e){}
 }
 
 // ===== SYNC =====
@@ -24094,8 +24590,16 @@ input:focus, select:focus, textarea:focus {
   font-weight: 500;
   letter-spacing: 3px;
   text-transform: uppercase;
-  color: var(--text-muted);
-  opacity: 0.7;
+  color: var(--gold);
+  opacity: 0.85;
+  transition: opacity 0.5s ease;
+}
+#brandGreeting {
+  animation: greetingFade 0.6s ease both;
+}
+@keyframes greetingFade {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 0.85; transform: translateY(0); }
 }
 @keyframes neonPulse {
   0%   { text-shadow: 0 0 6px #00f5ff, 0 0 14px #00f5ff, 0 0 28px rgba(0,245,255,0.7), 0 0 52px rgba(0,245,255,0.35); }
@@ -24112,6 +24616,36 @@ body.light .tradclab-dot { color: #6600cc; text-shadow: 0 0 6px rgba(102,0,204,0
   0%   { text-shadow: 0 0 6px rgba(0,102,204,0.4), 0 0 14px rgba(0,102,204,0.2); }
   100% { text-shadow: 0 0 10px rgba(0,102,204,0.6), 0 0 22px rgba(0,102,204,0.3); }
 }
+
+/* ── Spese Ricorrenti ── */
+.ric-day-btn {
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font);
+}
+.ric-day-btn.active {
+  background: rgba(201,168,76,0.2);
+  border-color: rgba(201,168,76,0.6);
+  color: var(--gold);
+}
+.ric-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ric-card:hover { background: rgba(255,255,255,0.07); }
 
 /* ── Sidebar — frosted glass macOS ── */
 .sidebar {
