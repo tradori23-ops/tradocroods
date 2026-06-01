@@ -6584,7 +6584,10 @@ setTimeout(_updateOfflineBanner, 500);
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <div style="font-size:13px;font-weight:700;color:var(--gold);">📋 Ricorrenti Salvate</div>
-        <button onclick="applyAllRicorrenti()" style="font-size:12px;padding:6px 14px;border-radius:10px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);cursor:pointer;font-weight:600;">▶️ Applica Questa Settimana</button>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          <button onclick="applyAllRicorrenti('week')" style="font-size:12px;padding:6px 14px;border-radius:10px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);cursor:pointer;font-weight:600;">▶️ Questa Settimana</button>
+          <button onclick="applyAllRicorrenti('period')" style="font-size:12px;padding:6px 14px;border-radius:10px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;cursor:pointer;font-weight:600;">🗓️ Tutto il Periodo</button>
+        </div>
       </div>
       <div id="ricorrentiList" style="display:flex;flex-direction:column;gap:10px;">
         <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Nessuna spesa ricorrente salvata</div>
@@ -20384,60 +20387,78 @@ function _doDeleteRicorrente(id) {
   showToast('🗑️ Ricorrente eliminata');
 }
 
-function applyAllRicorrenti() {
+function _addRicorrente(r, dateStr) {
+  const target = new Date(dateStr + 'T12:00:00');
+  const yr = target.getFullYear();
+  const mo = target.getMonth() + 1;
+  const key = yr + '_' + mo;
+  const existing = load('expenses_' + key, []) || [];
+  const alreadyExists = existing.some(e =>
+    e.desc === r.desc && e.amount === r.amount && e.date === dateStr && e.source === 'ricorrente'
+  );
+  if(alreadyExists) return false;
+  existing.push({
+    id: Date.now() + Math.random(),
+    cat: r.cat, amount: r.amount, desc: r.desc,
+    pay: r.pay, date: dateStr, source: 'ricorrente', ts: Date.now()
+  });
+  save('expenses_' + key, existing);
+  return true;
+}
+
+function applyAllRicorrenti(mode) {
   if(!currentUser) return;
   const ric = getRicorrenti();
   if(!ric.length) { showToast('⚠️ Nessuna spesa ricorrente salvata'); return; }
 
   const now = new Date();
   const nowStr = now.toISOString().split('T')[0];
-  const dayOfWeek = now.getDay();
-  const monday = new Date(now);
-  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-
+  const pad = n => String(n).padStart(2,'0');
+  const fmt = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
   let added = 0;
-  ric.forEach(r => {
-    // Controlla validità periodo
-    if(r.dateFrom && nowStr < r.dateFrom) return; // non ancora iniziata
-    if(r.dateTo   && nowStr > r.dateTo)   return; // già scaduta
 
-    r.days.forEach(day => {
-      const target = new Date(monday);
-      const offset = day === 0 ? 6 : day - 1;
-      target.setDate(monday.getDate() + offset);
+  if(mode === 'week') {
+    // Solo settimana corrente
+    const dayOfWeek = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
 
-      if(target > now) return;
-
-      const dateStr = target.toISOString().split('T')[0];
-      // Controlla anche che la data sia nel periodo
-      if(r.dateFrom && dateStr < r.dateFrom) return;
-      if(r.dateTo   && dateStr > r.dateTo)   return;
-      const yr = target.getFullYear();
-      const mo = target.getMonth() + 1;
-      const key = yr + '_' + mo;
-
-      // Controlla se già aggiunta oggi (stessa desc+amount+date)
-      const existing = load('expenses_' + key, []) || [];
-      const alreadyExists = existing.some(e =>
-        e.desc === r.desc && e.amount === r.amount && e.date === dateStr && e.source === 'ricorrente'
-      );
-      if(alreadyExists) return;
-
-      const newExp = {
-        id: Date.now() + Math.random(),
-        cat: r.cat,
-        amount: r.amount,
-        desc: r.desc,
-        pay: r.pay,
-        date: dateStr,
-        source: 'ricorrente',
-        ts: Date.now()
-      };
-      existing.push(newExp);
-      save('expenses_' + key, existing);
-      added++;
+    ric.forEach(r => {
+      if(r.dateFrom && nowStr < r.dateFrom) return;
+      if(r.dateTo   && nowStr > r.dateTo)   return;
+      r.days.forEach(day => {
+        const target = new Date(monday);
+        const offset = day === 0 ? 6 : day - 1;
+        target.setDate(monday.getDate() + offset);
+        if(target > now) return;
+        const dateStr = fmt(target);
+        if(r.dateFrom && dateStr < r.dateFrom) return;
+        if(r.dateTo   && dateStr > r.dateTo)   return;
+        if(_addRicorrente(r, dateStr)) added++;
+      });
     });
-  });
+
+  } else if(mode === 'period') {
+    // Tutto il periodo dal dateFrom al dateTo (o da 30gg fa a oggi se non specificato)
+    ric.forEach(r => {
+      const start = new Date((r.dateFrom || nowStr) + 'T12:00:00');
+      const end   = new Date(Math.min(
+        new Date((r.dateTo || nowStr) + 'T12:00:00').getTime(),
+        now.getTime()
+      ));
+      if(start > end) return;
+
+      // Itera ogni giorno dal start all'end
+      const cur = new Date(start);
+      while(cur <= end) {
+        const dayOfWeek = cur.getDay();
+        if(r.days.includes(dayOfWeek)) {
+          if(_addRicorrente(r, fmt(cur))) added++;
+        }
+        cur.setDate(cur.getDate() + 1);
+      }
+    });
+  }
 
   if(added > 0) {
     bumpVersion(); fbPushToCloud(true);
