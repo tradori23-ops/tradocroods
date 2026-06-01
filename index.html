@@ -7238,7 +7238,7 @@ function createHexagons() {
 try {
   createHexagons();
   renderVersion();
-  loadTheme();
+  loadTheme(true);
   loadLastUser();
   renderUsersGrid();
   initFirebase();
@@ -20108,7 +20108,8 @@ function _updateThemeBtn() {
   if(txtEl) txtEl.textContent = label;
 }
 
-function loadTheme() {
+function loadTheme(forceLogin) {
+  if(forceLogin) { isDark = true; document.body.classList.remove('light'); _updateThemeBtn(); return; }
   const saved = localStorage.getItem('tc_theme');
   if(saved === 'light') {
     isDark = false;
