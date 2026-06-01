@@ -3746,6 +3746,9 @@ setTimeout(_updateOfflineBanner, 500);
         <span class="icon">🔔</span> Promemoria
         <span id="reminderNavBadge" style="display:none;position:absolute;top:8px;right:12px;background:var(--red);color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;min-width:14px;text-align:center;"></span>
       </div>
+      <div class="nav-item" onclick="showSection('ricorrenti', this); closeSidebar()" style="background:linear-gradient(90deg,rgba(201,168,76,0.12),transparent);border-left:3px solid rgba(201,168,76,0.5);">
+        <span class="icon">🔁</span> <span style="font-weight:700;">Spese Ricorrenti</span>
+      </div>
       <div class="nav-item" onclick="showSection('emergenza', this); closeSidebar()" style="color:var(--red) !important;">
         <span class="icon">🚨</span> Emergenza
       </div>
@@ -6492,6 +6495,82 @@ setTimeout(_updateOfflineBanner, 500);
       </div>
     </div>
 
+  <!-- SEZIONE SPESE RICORRENTI -->
+  <section id="sec-ricorrenti" class="section" style="padding:20px;">
+    <div class="card-title" style="margin-bottom:16px;">🔁 Spese Ricorrenti</div>
+
+    <!-- Form nuova ricorrente -->
+    <div class="card mb-20" id="ricorrentiFormCard">
+      <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:14px;">➕ Nuova Spesa Ricorrente</div>
+      <div class="form-grid">
+        <div class="fld">
+          <label>Descrizione</label>
+          <input type="text" id="ricDesc" placeholder="Es: TassoBar, Colazione...">
+        </div>
+        <div class="fld">
+          <label>Importo (€)</label>
+          <input type="number" id="ricAmount" placeholder="0,00" step="0.01">
+        </div>
+        <div class="fld">
+          <label>Categoria</label>
+          <select id="ricCat">
+            <option value="bar">☕ Bar</option>
+            <option value="ristorante">🍽️ Ristorante</option>
+            <option value="supermercato">🛒 Supermercato</option>
+            <option value="svago">🎭 Svago</option>
+            <option value="viaggi">✈️ Viaggi</option>
+            <option value="extra">💡 Extra</option>
+            <option value="rata">📦 Rata</option>
+          </select>
+        </div>
+        <div class="fld">
+          <label>Metodo Pagamento</label>
+          <select id="ricPay">
+            <option value="tickets">🎫 Ticket/Buoni</option>
+            <option value="satispay">📱 Satispay</option>
+            <option value="contanti">💵 Contanti</option>
+            <option value="sella">🏦 Banca Sella</option>
+            <option value="bancomat">💳 Bancomat</option>
+            <option value="klarna">🅺 Klarna</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Selezione giorni -->
+      <div style="margin-top:14px;">
+        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:8px;">📅 Giorni della settimana</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="ricDaysGrid">
+          <button type="button" class="ric-day-btn" data-day="1" onclick="toggleRicDay(this)">Lun</button>
+          <button type="button" class="ric-day-btn" data-day="2" onclick="toggleRicDay(this)">Mar</button>
+          <button type="button" class="ric-day-btn" data-day="3" onclick="toggleRicDay(this)">Mer</button>
+          <button type="button" class="ric-day-btn" data-day="4" onclick="toggleRicDay(this)">Gio</button>
+          <button type="button" class="ric-day-btn" data-day="5" onclick="toggleRicDay(this)">Ven</button>
+          <button type="button" class="ric-day-btn" data-day="6" onclick="toggleRicDay(this)">Sab</button>
+          <button type="button" class="ric-day-btn" data-day="0" onclick="toggleRicDay(this)">Dom</button>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
+          <button type="button" onclick="selectRicDays([1,2,3,4,5])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Lun-Ven</button>
+          <button type="button" onclick="selectRicDays([6,0])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Weekend</button>
+          <button type="button" onclick="selectRicDays([0,1,2,3,4,5,6])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Tutti</button>
+          <button type="button" onclick="selectRicDays([])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Nessuno</button>
+        </div>
+      </div>
+
+      <button class="btn btn-gold" onclick="saveRicorrente()" style="width:100%;margin-top:16px;">💾 Salva Ricorrente</button>
+    </div>
+
+    <!-- Lista ricorrenti salvate -->
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;color:var(--gold);">📋 Ricorrenti Salvate</div>
+        <button onclick="applyAllRicorrenti()" style="font-size:12px;padding:6px 14px;border-radius:10px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);cursor:pointer;font-weight:600;">▶️ Applica Questa Settimana</button>
+      </div>
+      <div id="ricorrentiList" style="display:flex;flex-direction:column;gap:10px;">
+        <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Nessuna spesa ricorrente salvata</div>
+      </div>
+    </div>
+  </section>
+
   </main>
 </div>
 
@@ -8683,6 +8762,7 @@ function showSection(id, el) {
     settimanale:'📅 Questa Settimana',
     grafici:'📈 Grafici & Budget',
     calendario:'🗓️ Calendario & Note',
+    ricorrenti:'🔁 Spese Ricorrenti',
     emergenza:'🚨 Emergenza',
     documenti:'📁 Importa PDF & Documenti',
     vistaSpese:'🗓️ Spese Settimanali — Sella/Satispay/Revolut', /* legacy */
@@ -8717,6 +8797,7 @@ function showSection(id, el) {
   if(id==='entrate') updateRimanenza();
   if(id==='librietto') { setTimeout(() => renderLibrietto(), 50); }
   if(id==='contocorrente') { setTimeout(() => renderCC(), 50); }
+  if(id==='ricorrenti') { renderRicorrentiList(); }
   if(id==='ai') {
     aiLoadLocationAndWeather();
     aiUpdateWelcome();
@@ -20197,6 +20278,182 @@ function loadTheme(forceLogin) {
   _updateThemeBtn();
 }
 
+// ===== SPESE RICORRENTI =====
+const GIORNI_LABELS = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+function getRicorrenti() {
+  if(!currentUser) return [];
+  try { return JSON.parse(localStorage.getItem('tc_ricorrenti_' + currentUser.email) || '[]'); } catch(e) { return []; }
+}
+function saveRicorrentiData(data) {
+  if(!currentUser) return;
+  try { localStorage.setItem('tc_ricorrenti_' + currentUser.email, JSON.stringify(data)); } catch(e) {}
+}
+
+function toggleRicDay(btn) {
+  btn.classList.toggle('active');
+}
+
+function selectRicDays(days) {
+  document.querySelectorAll('.ric-day-btn').forEach(btn => {
+    const d = parseInt(btn.dataset.day);
+    btn.classList.toggle('active', days.includes(d));
+  });
+}
+
+function getSelectedRicDays() {
+  return [...document.querySelectorAll('.ric-day-btn.active')].map(b => parseInt(b.dataset.day));
+}
+
+function saveRicorrente() {
+  const desc   = document.getElementById('ricDesc')?.value?.trim();
+  const amount = parseFloat(document.getElementById('ricAmount')?.value);
+  const cat    = document.getElementById('ricCat')?.value;
+  const pay    = document.getElementById('ricPay')?.value;
+  const days   = getSelectedRicDays();
+
+  if(!desc)           { showToast('⚠️ Inserisci una descrizione'); return; }
+  if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido'); return; }
+  if(!days.length)    { showToast('⚠️ Seleziona almeno un giorno'); return; }
+
+  const ric = getRicorrenti();
+  ric.push({ id: Date.now(), desc, amount, cat, pay, days });
+  saveRicorrentiData(ric);
+
+  // Reset form
+  document.getElementById('ricDesc').value = '';
+  document.getElementById('ricAmount').value = '';
+  document.querySelectorAll('.ric-day-btn').forEach(b => b.classList.remove('active'));
+
+  renderRicorrentiList();
+  showToast('✅ Spesa ricorrente salvata!');
+}
+
+function deleteRicorrente(id) {
+  tcAsk('Eliminare questa spesa ricorrente?', '🗑️', 'Elimina', '#e05c5c', '_doDeleteRicorrente', id);
+}
+
+function _doDeleteRicorrente(id) {
+  const ric = getRicorrenti().filter(r => r.id !== id);
+  saveRicorrentiData(ric);
+  renderRicorrentiList();
+  showToast('🗑️ Ricorrente eliminata');
+}
+
+function applyAllRicorrenti() {
+  if(!currentUser) return;
+  const ric = getRicorrenti();
+  if(!ric.length) { showToast('⚠️ Nessuna spesa ricorrente salvata'); return; }
+
+  // Trova la settimana corrente (lunedì - domenica)
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0=dom, 1=lun...
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+  let added = 0;
+  ric.forEach(r => {
+    r.days.forEach(day => {
+      // Calcola la data del giorno nella settimana corrente
+      const target = new Date(monday);
+      const offset = day === 0 ? 6 : day - 1; // Lun=0 offset, Dom=6 offset
+      target.setDate(monday.getDate() + offset);
+
+      // Non aggiungere date future
+      if(target > now) return;
+
+      const dateStr = target.toISOString().split('T')[0];
+      const yr = target.getFullYear();
+      const mo = target.getMonth() + 1;
+      const key = yr + '_' + mo;
+
+      // Controlla se già aggiunta oggi (stessa desc+amount+date)
+      const existing = load('expenses_' + key, []) || [];
+      const alreadyExists = existing.some(e =>
+        e.desc === r.desc && e.amount === r.amount && e.date === dateStr && e.source === 'ricorrente'
+      );
+      if(alreadyExists) return;
+
+      const newExp = {
+        id: Date.now() + Math.random(),
+        cat: r.cat,
+        amount: r.amount,
+        desc: r.desc,
+        pay: r.pay,
+        date: dateStr,
+        source: 'ricorrente',
+        ts: Date.now()
+      };
+      existing.push(newExp);
+      save('expenses_' + key, existing);
+      added++;
+    });
+  });
+
+  if(added > 0) {
+    bumpVersion(); fbPushToCloud(true);
+    showToast('✅ ' + added + ' spese ricorrenti aggiunte!');
+    renderRicorrentiList();
+  } else {
+    showToast('ℹ️ Tutte le ricorrenti erano già presenti');
+  }
+}
+
+function applyRicorrente(id) {
+  const ric = getRicorrenti().find(r => r.id === id);
+  if(!ric) return;
+
+  const now = new Date();
+  const dateStr = now.toISOString().split('T')[0];
+  const yr = now.getFullYear();
+  const mo = now.getMonth() + 1;
+  const key = yr + '_' + mo;
+
+  const existing = load('expenses_' + key, []) || [];
+  existing.push({
+    id: Date.now() + Math.random(),
+    cat: ric.cat, amount: ric.amount, desc: ric.desc,
+    pay: ric.pay, date: dateStr, source: 'ricorrente', ts: Date.now()
+  });
+  save('expenses_' + key, existing);
+  bumpVersion(); fbPushToCloud(true);
+  showToast('✅ "' + ric.desc + '" aggiunta per oggi!');
+}
+
+function renderRicorrentiList() {
+  const list = document.getElementById('ricorrentiList');
+  if(!list) return;
+  const ric = getRicorrenti();
+  if(!ric.length) {
+    list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Nessuna spesa ricorrente salvata</div>';
+    return;
+  }
+
+  const CAT_ICONS_MAP = { bar:'☕', ristorante:'🍽️', supermercato:'🛒', svago:'🎭', viaggi:'✈️', extra:'💡', rata:'📦' };
+  const PAY_ICONS_MAP = { tickets:'🎫', satispay:'📱', contanti:'💵', sella:'🏦', bancomat:'💳', klarna:'🅺' };
+
+  list.innerHTML = ric.map(r => {
+    const daysLabel = r.days.length === 7 ? 'Tutti i giorni' :
+                      r.days.length === 0 ? 'Nessun giorno' :
+                      r.days.map(d => GIORNI_LABELS[d]).join(', ');
+    return `<div class="ric-card">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          ${CAT_ICONS_MAP[r.cat]||'💡'} ${r.desc}
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
+          ${PAY_ICONS_MAP[r.pay]||'💳'} ${r.pay} · 📅 ${daysLabel}
+        </div>
+      </div>
+      <div style="font-size:16px;font-weight:800;color:var(--gold);flex-shrink:0;">€${r.amount.toFixed(2).replace('.',',')}</div>
+      <div style="display:flex;gap:6px;flex-shrink:0;">
+        <button onclick="applyRicorrente(${r.id})" title="Aggiungi oggi" style="padding:6px 10px;border-radius:8px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);cursor:pointer;font-size:13px;">▶️</button>
+        <button onclick="deleteRicorrente(${r.id})" title="Elimina" style="padding:6px 10px;border-radius:8px;background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:var(--red);cursor:pointer;font-size:13px;">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // ===== SFONDO LOGIN PERSONALIZZATO =====
 const BG_GRADIENTS = [
   { label:'Originale', value:'linear-gradient(135deg,#1a1a2e 0%,#16213e 30%,#0f3460 60%,#533483 100%)' },
@@ -24278,6 +24535,36 @@ body.light .tradclab-dot { color: #6600cc; text-shadow: 0 0 6px rgba(102,0,204,0
   0%   { text-shadow: 0 0 6px rgba(0,102,204,0.4), 0 0 14px rgba(0,102,204,0.2); }
   100% { text-shadow: 0 0 10px rgba(0,102,204,0.6), 0 0 22px rgba(0,102,204,0.3); }
 }
+
+/* ── Spese Ricorrenti ── */
+.ric-day-btn {
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font);
+}
+.ric-day-btn.active {
+  background: rgba(201,168,76,0.2);
+  border-color: rgba(201,168,76,0.6);
+  color: var(--gold);
+}
+.ric-card {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.ric-card:hover { background: rgba(255,255,255,0.07); }
 
 /* ── Sidebar — frosted glass macOS ── */
 .sidebar {
