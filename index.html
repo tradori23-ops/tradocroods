@@ -9479,6 +9479,7 @@ function azzeraRimanenzaMese(yr, mo) {
 
 function _doRicalcolaEffettivo() {
   // Esegui il ricalcolo
+}
 
 function salvaRimanenzeModificate() {
   const container = document.getElementById('rimanenze-list');
@@ -9499,7 +9500,7 @@ function salvaRimanenzeModificate() {
 async function ricalcolaTuttoLoStorico() {
   if(!currentUser) return;
   tcAsk('Ricalcolare le rimanenze storiche? I valori salvati verranno sovrascritti.','📊','Ricalcola','#c9a84c','_doRicalcolaEffettivo'); return;
-  if(false) { // rimpiazzato da tcAsk
+  if(false) { // rimpiazzato da tcAsk - DISABLED
 
   const btn = document.getElementById('btn-ricalcola');
   const progressDiv = document.getElementById('ricalcola-progress');
@@ -9596,6 +9597,7 @@ async function ricalcolaTuttoLoStorico() {
   renderRimanenzeList();
   caricaRimanenzaPrecedente();
   showToast(`✅ Storico ricalcolato: ${months.length} mesi aggiornati`);
+  } // end if(false)
 }
 
 function delIncome(id) {
