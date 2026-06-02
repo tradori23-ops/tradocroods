@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v191';
+  var BUILD = '20260602-v192';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -7284,16 +7284,30 @@ async function doManualLoginWithToken() {
   }
 
   const uf = r.files['tradocroods_users.json'];
-  if(!uf?.content) {
+  const df2 = r.files['tradocroods_data.json'];
+
+  // Se tradocroods_users.json manca o è vuoto, prova a recuperare utenti da tradocroods_data.json
+  let fbUsers = null;
+  if(uf?.content) {
+    try { fbUsers = JSON.parse(uf.content); } catch(e) {}
+  }
+  // Fallback: cerca utenti dentro tradocroods_data.json
+  if((!fbUsers || !fbUsers.length) && df2?.content) {
+    try {
+      const encPass3 = null; // non abbiamo ancora la password per decifrare
+      const raw = df2.content.startsWith('__tc_encrypted_v1__') ? null : JSON.parse(df2.content);
+      if(raw && raw['tc_users']) fbUsers = JSON.parse(raw['tc_users']);
+    } catch(e) {}
+  }
+
+  if(!fbUsers || !Array.isArray(fbUsers) || !fbUsers.length) {
     errEl.style.color = '#e05c5c';
-    errEl.textContent = '❌ Nessun dato trovato nel Gist.';
+    errEl.textContent = '❌ Nessun profilo nel Gist. Dal PC: Cloud Sync → fai un Push per sincronizzare.';
     _gistToken = null; _gistId = null;
     return;
   }
-
   try {
-    const fbUsers = JSON.parse(uf.content);
-    const fbUser  = Array.isArray(fbUsers) && fbUsers.find(u => u.email===email && u.pass===pass);
+    const fbUser = fbUsers.find(u => u.email===email && u.pass===pass);
     if(!fbUser) {
       errEl.style.color = '#e05c5c';
       errEl.textContent = '❌ Credenziali non valide.';
@@ -7301,12 +7315,10 @@ async function doManualLoginWithToken() {
       _gistToken = null; _gistId = null;
       return;
     }
-    // Salva configurazione Gist e utenti in localStorage
     gistSaveConfig(token, gistId);
     try { localStorage.setItem('tc_users', JSON.stringify(fbUsers)); } catch(e){}
     errEl.style.color = 'var(--green)';
     errEl.textContent = '✅ Connesso! Caricamento…';
-    // Inizializza sync e avvia app
     await initGistSync();
     enterApp(fbUser);
   } catch(e) {
