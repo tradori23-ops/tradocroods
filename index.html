@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260601-v183';
+  var BUILD = '20260602-v184';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -24634,6 +24634,20 @@ body.light .tradclab-dot { color: #6600cc; text-shadow: 0 0 6px rgba(102,0,204,0
   background: rgba(201,168,76,0.2);
   border-color: rgba(201,168,76,0.6);
   color: var(--gold);
+}
+body.light .ric-day-btn {
+  background: #f5f5f0;
+  border-color: rgba(0,0,0,0.15);
+  color: #444;
+}
+body.light .ric-day-btn:hover {
+  background: #ece8d8;
+  border-color: rgba(201,168,76,0.5);
+}
+body.light .ric-day-btn.active {
+  background: rgba(201,168,76,0.25);
+  border-color: #c9a84c;
+  color: #7a5500;
 }
 .ric-card {
   background: rgba(255,255,255,0.04);
