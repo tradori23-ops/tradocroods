@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v194';
+  var BUILD = '20260602-v195';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -6598,7 +6598,7 @@ function gistSaveConfig(token, id) {
 }
 async function gistApiFetch(method, path, body, timeoutMs) {
   if(!_gistToken) return null;
-  timeoutMs = timeoutMs || 8000;
+  timeoutMs = timeoutMs || 20000;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -6634,16 +6634,23 @@ async function initGistSync() {
   // Timeout ridotto su iOS (5s) per non bloccare il caricamento
   const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
                  (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
-  const data = await gistApiFetch('GET', '/gists/' + _gistId, undefined, _isIOS ? 5000 : 10000);
+  const data = await gistApiFetch('GET', '/gists/' + _gistId, undefined, _isIOS ? 15000 : 20000);
   if(data && data.id) {
     fbReady = true; gistReady = true; window._gistRetryCount=0; window._gistPushFails=0; clearTimeout(window._gistAutoRetry); updateCloudBadge(true);
     if(!window._gistAutoSync) window._gistAutoSync = setInterval(() => {
       if(gistReady && currentUser && !_gistSyncing && !_fbImporting) gistPushToCloud();
-    }, 180000);
+    }, 300000);
     if(!window._gistVisSetup) {
       window._gistVisSetup = true;
       document.addEventListener('visibilitychange', () => {
-        if(document.visibilityState==='visible' && gistReady && currentUser) gistSyncFromCloud(currentUser.email, refreshAll);
+        if(document.visibilityState==='visible' && gistReady && currentUser) {
+          // Debounce: non sincronizzare se l'ultimo sync è avvenuto meno di 60s fa
+          const now = Date.now();
+          if(!window._lastGistSync || (now - window._lastGistSync) > 60000) {
+            window._lastGistSync = now;
+            gistSyncFromCloud(currentUser.email, refreshAll);
+          }
+        }
       });
       window.addEventListener('online', () => { if(!gistReady) initGistSync(); });
     }
@@ -6815,7 +6822,13 @@ async function gistSyncFromCloud(email, onDone) {
 
   const _isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent) ||
                  (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
-  const r = await gistApiFetch('GET', '/gists/' + _gistId, undefined, _isIOS ? 6000 : 12000);
+  const r = await gistApiFetch('GET', '/gists/' + _gistId, undefined, _isIOS ? 15000 : 20000);
+  if(!r) {
+    // Fetch fallito — non disconnettere, mantieni stato corrente
+    updateCloudBadge(gistReady ? true : false);
+    if(onDone) onDone();
+    return;
+  }
   if(r && r.files) {
     const df = r.files['tradocroods_data.json'];
     if(df && df.content) {
@@ -6826,8 +6839,8 @@ async function gistSyncFromCloud(email, onDone) {
           ? await tcDecrypt(df.content, encPass2)
           : JSON.parse(df.content);
         if(!b) {
-          console.error('[Sync] Decifratura fallita — password errata o dati corrotti');
-          updateCloudBadge(false);
+          console.warn('[Sync] Decifratura fallita — dati ignorati, connessione mantenuta');
+          updateCloudBadge(true);
           if(onDone) onDone();
           _gistSyncing = false;
           return;
@@ -6861,6 +6874,7 @@ async function gistSyncFromCloud(email, onDone) {
       } catch(e) {}
     }
   }
+  window._lastGistSync = Date.now();
   updateCloudBadge(true);
   if(onDone) onDone();
 }
