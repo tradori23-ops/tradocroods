@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v193';
+  var BUILD = '20260602-v194';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -3415,7 +3415,7 @@ setTimeout(_updateOfflineBanner, 500);
           <button class="btn btn-gold" onclick="saveGistConfig()" style="flex:2;">☁️ Connetti Gist</button>
         </div>
         <button onclick="forcePushAll()" style="width:100%;margin-top:10px;padding:10px;border-radius:12px;background:rgba(52,211,153,0.15);border:1.5px solid rgba(52,211,153,0.3);color:#6ee7b7;font-size:13px;font-weight:700;cursor:pointer;">🔄 Forza Push (salva tutto sul Gist)</button>
-        <p id="fb-msg" style="font-size:12px;color:#4ae87a;margin-top:10px;text-align:center;"></p>
+        <p id="fb-msg" style="font-size:13px;font-weight:700;color:#111;background:#ffe600;border-radius:8px;padding:8px 12px;margin-top:10px;text-align:center;display:none;"></p>
       </div>
     </div>
 
@@ -6907,7 +6907,7 @@ function fbForceReconnect() {
 function openFirebaseModal() {
   document.getElementById('gist-token-input').value = _gistToken || '';
   document.getElementById('gist-id-input').value = _gistId || '';
-  document.getElementById('fb-msg').textContent = '';
+  const _fbmsg = document.getElementById('fb-msg'); if(_fbmsg){_fbmsg.textContent=''; _fbmsg.style.display='none';}
   document.getElementById('firebaseModal').style.display = 'flex';
 }
 function closeFirebaseModal() {
@@ -6918,11 +6918,11 @@ async function saveGistConfig() {
   const token = (document.getElementById('gist-token-input').value||'').trim().replace(/\s+/g,'');
   const gistId = (document.getElementById('gist-id-input').value||'').trim().replace(/\s+/g,'');
   const msg = document.getElementById('fb-msg');
-  if(!token) { msg.style.color='#e05c5c'; msg.textContent='⚠️ Inserisci il token GitHub.'; return; }
+  if(!token) { msg.style.background='#ffe0e0'; msg.style.color='#8b0000'; msg.style.display='block'; msg.textContent='⚠️ Inserisci il token GitHub.'; return; }
   if(!token.startsWith('ghp_') && !token.startsWith('github_pat_') && !token.startsWith('gho_')) {
-    msg.style.color='#e05c5c'; msg.textContent='⚠️ Il token deve iniziare con ghp_ — rigenera il token.'; return;
+    msg.style.background='#ffe0e0'; msg.style.color='#8b0000'; msg.style.display='block'; msg.textContent='⚠️ Il token deve iniziare con ghp_ — rigenera il token.'; return;
   }
-  msg.style.color='var(--gold)'; msg.textContent='⏳ Verifica token...';
+  msg.style.background='#ffe600'; msg.style.color='#5a3a00'; msg.style.display='block'; msg.textContent='⏳ Verifica token...';
   _gistToken = token;
 
   // Verify token works first
@@ -6932,25 +6932,25 @@ async function saveGistConfig() {
   if(!testRes || !testRes.ok) {
     const status = testRes?.status || 'network error';
     msg.style.color='#e05c5c';
-    msg.textContent = status===401 ? '❌ Token non valido o scaduto. Rigenera il token.' :
+    msg.style.background='#ffe0e0'; msg.style.color='#8b0000'; msg.style.display='block'; msg.textContent = status===401 ? '❌ Token non valido o scaduto. Rigenera il token.' :
                       status===403 ? '❌ Token senza permessi Gist. Crea un nuovo token con scope "gist".' :
                       '❌ Errore di rete ('+status+'). Controlla la connessione.';
     _gistToken = null; return;
   }
 
   const user = await testRes.json();
-  msg.textContent = '✅ Token OK (' + (user.login||'utente') + '). ' + (gistId ? 'Verifico Gist...' : 'Creo Gist...');
+  msg.style.background='#ffe600'; msg.style.color='#5a3a00'; msg.style.display='block'; msg.textContent = '✅ Token OK (' + (user.login||'utente') + '). ' + (gistId ? 'Verifico Gist...' : 'Creo Gist...');
 
   if(gistId) {
     const ok = await gistApiFetch('GET', '/gists/'+gistId);
-    if(!ok) { msg.style.color='#e05c5c'; msg.textContent='❌ Gist non trovato. Controlla ID o lascia vuoto per crearne uno.'; return; }
+    if(!ok) { msg.style.background='#ffe0e0'; msg.style.color='#8b0000'; msg.style.display='block'; msg.textContent='❌ Gist non trovato. Controlla ID o lascia vuoto per crearne uno.'; return; }
     _gistId = gistId; gistSaveConfig(token, gistId);
   } else {
     const nid = await gistCreateNew(token);
-    if(!nid) { msg.style.color='#e05c5c'; msg.textContent='❌ Errore creazione Gist. Assicurati che il token abbia il permesso "gist".'; return; }
+    if(!nid) { msg.style.background='#ffe0e0'; msg.style.color='#8b0000'; msg.style.display='block'; msg.textContent='❌ Errore creazione Gist. Assicurati che il token abbia il permesso "gist".'; return; }
     _gistId = nid; gistSaveConfig(token, nid);
   }
-  msg.style.color='#4ae87a'; msg.textContent='✅ Connesso! Sincronizzazione...';
+  msg.style.background='#d4f7e0'; msg.style.color='#0a5c2a'; msg.style.display='block'; msg.textContent='✅ Connesso! Sincronizzazione...';
   gistReady = true; fbReady = true; updateCloudBadge(true);
   if(currentUser) await gistSyncFromCloud(currentUser.email, ()=>refreshAll());
   await gistPushToCloud();
@@ -6963,10 +6963,10 @@ function parseFBPaste() {}
 async function forcePushAll() {
   const msg = document.getElementById('fb-msg');
   if(!_gistToken || !_gistId) {
-    if(msg) { msg.style.color='#e05c5c'; msg.textContent='❌ Connetti prima il Gist.'; }
+    if(msg) { msg.style.background='#ffe0e0'; msg.style.color='#8b0000'; msg.style.display='block'; msg.textContent='❌ Connetti prima il Gist.'; }
     return;
   }
-  if(msg) { msg.style.color='var(--gold)'; msg.textContent='⏳ Push in corso...'; }
+  if(msg) { msg.style.background='#ffe600'; msg.style.color='#5a3a00'; msg.style.display='block'; msg.textContent='⏳ Push in corso...'; }
 
   const users = getUsers();
   const files = {
@@ -6992,10 +6992,10 @@ async function forcePushAll() {
 
   const r = await gistApiFetch('PATCH', '/gists/' + _gistId, { files });
   if(r) {
-    if(msg) { msg.style.color='#4ae87a'; msg.textContent='✅ Push completato! ' + users.length + ' profil' + (users.length===1?'o':'i') + ' salvat' + (users.length===1?'o':'i') + '.'; }
+    if(msg) { msg.style.background='#d4f7e0'; msg.style.color='#0a5c2a'; msg.style.display='block'; msg.textContent='✅ Push completato! ' + users.length + ' profil' + (users.length===1?'o':'i') + ' salvat' + (users.length===1?'o':'i') + '.'; }
     showToast('✅ Dati sincronizzati sul Gist!');
   } else {
-    if(msg) { msg.style.color='#e05c5c'; msg.textContent='❌ Push fallito. Controlla la connessione.'; }
+    if(msg) { msg.style.background='#ffe0e0'; msg.style.color='#8b0000'; msg.style.display='block'; msg.textContent='❌ Push fallito. Controlla la connessione.'; }
   }
 }
 
