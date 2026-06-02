@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v198';
+  var BUILD = '20260602-v199';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -12365,6 +12365,10 @@ function saveBudgetForWeekUI(weekIdx) {
   inp.style.color = hasB ? 'var(--gold)' : 'var(--text)';
   // Feedback visivo
   if(hasB) showToast(`✅ Budget Sett.${weekIdx}: €${val.toFixed(2).replace('.',',')} salvato`);
+  // Push al cloud
+  bumpVersion();
+  clearTimeout(window._budgetSaveTimer);
+  window._budgetSaveTimer = setTimeout(() => fbPushToCloud(), 1500);
   // Rirenderizza barra e grafico
   renderWeek();
   if(currentGraphTab === 'budget') renderBudgetChart();
@@ -21569,6 +21573,9 @@ function saveBudgetWeekly(val) {
   const v = parseFloat(val);
   if(!isNaN(v) && v > 0) save('budget_weekly', { amount: v });
   else localStorage.removeItem(getKey('budget_weekly'));
+  bumpVersion();
+  clearTimeout(window._budgetSaveTimer);
+  window._budgetSaveTimer = setTimeout(() => fbPushToCloud(), 1500);
 }
 
 function loadBudgetWeekly() {
