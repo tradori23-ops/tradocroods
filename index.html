@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v186';
+  var BUILD = '20260602-v188';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -7024,7 +7024,7 @@ async function initGistSync() {
                  (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent));
   const data = await gistApiFetch('GET', '/gists/' + _gistId, undefined, _isIOS ? 5000 : 10000);
   if(data && data.id) {
-    fbReady = true; gistReady = true; updateCloudBadge(true);
+    fbReady = true; gistReady = true; window._gistRetryCount=0; window._gistPushFails=0; clearTimeout(window._gistAutoRetry); updateCloudBadge(true);
     if(!window._gistAutoSync) window._gistAutoSync = setInterval(() => {
       if(gistReady && currentUser && !_gistSyncing && !_fbImporting) gistPushToCloud();
     }, 180000);
@@ -7053,7 +7053,7 @@ function updateCloudBadge(state) {
     b.style.background='rgba(224,92,92,0.15)'; b.style.borderColor='rgba(224,92,92,0.4)'; b.style.color='#e05c5c';
     b.innerHTML='☁️ Offline <span onclick="fbRetryConnect()" style="cursor:pointer;font-size:11px;background:rgba(255,255,255,0.1);border-radius:4px;padding:1px 7px;margin-left:5px;">🔄</span><span onclick="openFirebaseModal()" style="cursor:pointer;font-size:11px;background:rgba(201,168,76,0.15);border-radius:4px;padding:1px 7px;margin-left:3px;">⚙️</span>';
     clearTimeout(window._gistAutoRetry);
-    window._gistAutoRetry = setTimeout(()=>{ if(!gistReady && _gistToken) fbRetryConnect(); }, 8000);
+    window._gistAutoRetry = setTimeout(()=>{ if(!gistReady && _gistToken && navigator.onLine) { window._gistRetryCount=(window._gistRetryCount||0)+1; fbRetryConnect(); } }, Math.min(20000*Math.pow(2,(window._gistRetryCount||0)),300000));
   }
 }
 
@@ -7158,13 +7158,18 @@ async function gistPushToCloud() {
   const r = await gistApiFetch('PATCH', '/gists/' + _gistId, { files });
   _gistSyncing = false;
   if(r) {
+    window._gistPushFails = 0;
+    window._gistRetryCount = 0;
     updateCloudBadge(true);
     if(_getEncPassword() && !window._encToastShown) {
       window._encToastShown = true;
       showToast('🔐 Dati cifrati con AES-256 — nessuno può leggerli senza la tua password');
     }
   } else {
-    gistReady = false; fbReady = false; updateCloudBadge(false);
+    window._gistPushFails = (window._gistPushFails || 0) + 1;
+    if(window._gistPushFails >= 3) {
+      gistReady = false; fbReady = false; updateCloudBadge(false);
+    }
   }
 }
 
