@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v184';
+  var BUILD = '20260602-v185';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -3746,9 +3746,7 @@ setTimeout(_updateOfflineBanner, 500);
         <span class="icon">🔔</span> Promemoria
         <span id="reminderNavBadge" style="display:none;position:absolute;top:8px;right:12px;background:var(--red);color:#fff;border-radius:10px;font-size:9px;font-weight:700;padding:1px 5px;min-width:14px;text-align:center;"></span>
       </div>
-      <div class="nav-item" onclick="showSection('ricorrenti', this); closeSidebar()" style="background:linear-gradient(90deg,rgba(201,168,76,0.12),transparent);border-left:3px solid rgba(201,168,76,0.5);">
-        <span class="icon">🔁</span> <span style="font-weight:700;">Spese Ricorrenti</span>
-      </div>
+
       <div class="nav-item" onclick="showSection('emergenza', this); closeSidebar()" style="color:var(--red) !important;">
         <span class="icon">🚨</span> Emergenza
       </div>
@@ -4859,6 +4857,66 @@ setTimeout(_updateOfflineBanner, 500);
         <div class="card-title">🎯 Budget Settimanale</div>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Imposta un budget diverso per ogni settimana del mese. Le settimane che non hanno un budget vengono mostrate senza limite.</p>
         <div id="budgetWeekTable" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
+      <!-- ══════════════════════════════════════════════
+           💡 SPESE SUGGERITE
+      ══════════════════════════════════════════════ -->
+      <div class="card mb-20" id="speseSuggeriteCard" style="border:2px solid rgba(99,102,241,0.35);background:rgba(99,102,241,0.04);display:none;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+          <div>
+            <div class="card-title" style="margin-bottom:2px;">💡 Spese Suggerite</div>
+            <div style="font-size:12px;color:var(--text-muted);">Trovate nel tuo storico — aggiungile con un clic</div>
+          </div>
+          <button onclick="document.getElementById('speseSuggeriteCard').style.display='none'" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">✕ Chiudi</button>
+        </div>
+        <div id="speseSuggeriteList" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
+      <!-- Modal aggiungi suggerita -->
+      <div id="suggeritaModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:3000;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;">
+        <div style="background:var(--surface2);border-radius:20px;padding:24px;width:100%;max-width:420px;border:1px solid var(--border);">
+          <div style="font-size:16px;font-weight:700;margin-bottom:6px;" id="suggeritaModalTitle"></div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;" id="suggeritaModalSubtitle"></div>
+
+          <!-- Scelta: settimana o giorni specifici -->
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+            <button onclick="suggeritaApply('week')" style="padding:14px;border-radius:14px;background:rgba(201,168,76,0.15);border:1.5px solid rgba(201,168,76,0.4);color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;text-align:left;">
+              📅 Aggiungi per tutta questa settimana
+              <div style="font-size:11px;font-weight:400;opacity:0.8;margin-top:3px;" id="suggeritaWeekLabel"></div>
+            </button>
+            <button onclick="suggeritaToggleGiorni()" style="padding:14px;border-radius:14px;background:rgba(99,102,241,0.1);border:1.5px solid rgba(99,102,241,0.3);color:#a5b4fc;font-size:14px;font-weight:700;cursor:pointer;text-align:left;">
+              🗓️ Scegli giorni e date specifiche
+            </button>
+          </div>
+
+          <!-- Pannello giorni specifici (nascosto di default) -->
+          <div id="suggeritaGiorniPanel" style="display:none;margin-bottom:20px;">
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">Seleziona i giorni:</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="suggeritaGiorniGrid">
+              <button type="button" class="sug-day-btn" data-day="1">Lun</button>
+              <button type="button" class="sug-day-btn" data-day="2">Mar</button>
+              <button type="button" class="sug-day-btn" data-day="3">Mer</button>
+              <button type="button" class="sug-day-btn" data-day="4">Gio</button>
+              <button type="button" class="sug-day-btn" data-day="5">Ven</button>
+              <button type="button" class="sug-day-btn" data-day="6">Sab</button>
+              <button type="button" class="sug-day-btn" data-day="0">Dom</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Dal</label>
+                <input type="date" id="suggeritaFrom" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;font-family:var(--font);">
+              </div>
+              <div>
+                <label style="font-size:11px;color:var(--text-muted);display:block;margin-bottom:4px;">Al</label>
+                <input type="date" id="suggeritaTo" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;font-family:var(--font);">
+              </div>
+            </div>
+            <button onclick="suggeritaApply('giorni')" style="width:100%;padding:12px;border-radius:12px;background:rgba(99,102,241,0.2);border:1.5px solid rgba(99,102,241,0.4);color:#a5b4fc;font-size:14px;font-weight:700;cursor:pointer;">✅ Aggiungi nei giorni selezionati</button>
+          </div>
+
+          <button onclick="closeSuggeritaModal()" style="width:100%;padding:10px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-size:13px;cursor:pointer;">Annulla</button>
+        </div>
       </div>
 
       <div class="card mb-20">
@@ -6494,106 +6552,6 @@ setTimeout(_updateOfflineBanner, 500);
         </div>
       </div>
     </div>
-
-  <!-- SEZIONE SPESE RICORRENTI -->
-  <section id="sec-ricorrenti" class="section" style="padding:20px;">
-    <div class="card-title" style="margin-bottom:16px;">🔁 Spese Ricorrenti</div>
-
-    <!-- Form nuova ricorrente -->
-    <div class="card mb-20" id="ricorrentiFormCard">
-      <div style="font-size:13px;font-weight:700;color:var(--gold);margin-bottom:14px;">➕ Nuova Spesa Ricorrente</div>
-      <div class="form-grid">
-        <div class="fld">
-          <label>Descrizione</label>
-          <input type="text" id="ricDesc" placeholder="Es: TassoBar, Colazione...">
-        </div>
-        <div class="fld">
-          <label>Importo (€)</label>
-          <input type="number" id="ricAmount" placeholder="0,00" step="0.01">
-        </div>
-        <div class="fld">
-          <label>Categoria</label>
-          <select id="ricCat">
-            <option value="bar">☕ Bar</option>
-            <option value="ristorante">🍽️ Ristorante</option>
-            <option value="supermercato">🛒 Supermercato</option>
-            <option value="svago">🎭 Svago</option>
-            <option value="viaggi">✈️ Viaggi</option>
-            <option value="extra">💡 Extra</option>
-            <option value="rata">📦 Rata</option>
-          </select>
-        </div>
-        <div class="fld">
-          <label>Metodo Pagamento</label>
-          <select id="ricPay">
-            <option value="tickets">🎫 Ticket/Buoni</option>
-            <option value="satispay">📱 Satispay</option>
-            <option value="contanti">💵 Contanti</option>
-            <option value="sella">🏦 Banca Sella</option>
-            <option value="bancomat">💳 Bancomat</option>
-            <option value="klarna">🅺 Klarna</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Selezione giorni -->
-      <div style="margin-top:14px;">
-        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:8px;">📅 Giorni della settimana</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;" id="ricDaysGrid">
-          <button type="button" class="ric-day-btn" data-day="1" onclick="toggleRicDay(this)">Lun</button>
-          <button type="button" class="ric-day-btn" data-day="2" onclick="toggleRicDay(this)">Mar</button>
-          <button type="button" class="ric-day-btn" data-day="3" onclick="toggleRicDay(this)">Mer</button>
-          <button type="button" class="ric-day-btn" data-day="4" onclick="toggleRicDay(this)">Gio</button>
-          <button type="button" class="ric-day-btn" data-day="5" onclick="toggleRicDay(this)">Ven</button>
-          <button type="button" class="ric-day-btn" data-day="6" onclick="toggleRicDay(this)">Sab</button>
-          <button type="button" class="ric-day-btn" data-day="0" onclick="toggleRicDay(this)">Dom</button>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-          <button type="button" onclick="selectRicDays([1,2,3,4,5])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Lun-Ven</button>
-          <button type="button" onclick="selectRicDays([6,0])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Weekend</button>
-          <button type="button" onclick="selectRicDays([0,1,2,3,4,5,6])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Tutti</button>
-          <button type="button" onclick="selectRicDays([])" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Nessuno</button>
-        </div>
-      </div>
-
-      <!-- Intervallo date -->
-      <div style="margin-top:14px;">
-        <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:8px;">📆 Periodo validità <span style="font-weight:400;opacity:0.6;">(opzionale — lascia vuoto per sempre)</span></label>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-          <div class="fld" style="margin:0;">
-            <label>Dal</label>
-            <input type="date" id="ricDateFrom">
-          </div>
-          <div class="fld" style="margin:0;">
-            <label>Al</label>
-            <input type="date" id="ricDateTo">
-          </div>
-        </div>
-        <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-          <button type="button" onclick="setRicPeriod('month')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Questo mese</button>
-          <button type="button" onclick="setRicPeriod('3months')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Prossimi 3 mesi</button>
-          <button type="button" onclick="setRicPeriod('year')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">Quest'anno</button>
-          <button type="button" onclick="setRicPeriod('clear')" style="font-size:11px;padding:4px 10px;border-radius:8px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.12);color:var(--text-muted);cursor:pointer;">✕ Nessun limite</button>
-        </div>
-      </div>
-
-      <button class="btn btn-gold" onclick="saveRicorrente()" style="width:100%;margin-top:16px;">💾 Salva Ricorrente</button>
-    </div>
-
-    <!-- Lista ricorrenti salvate -->
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-        <div style="font-size:13px;font-weight:700;color:var(--gold);">📋 Ricorrenti Salvate</div>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;">
-          <button onclick="applyAllRicorrenti('week')" style="font-size:12px;padding:6px 14px;border-radius:10px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);cursor:pointer;font-weight:600;">▶️ Questa Settimana</button>
-          <button onclick="applyAllRicorrenti('period')" style="font-size:12px;padding:6px 14px;border-radius:10px;background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.3);color:#a5b4fc;cursor:pointer;font-weight:600;">🗓️ Tutto il Periodo</button>
-        </div>
-      </div>
-      <div id="ricorrentiList" style="display:flex;flex-direction:column;gap:10px;">
-        <div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Nessuna spesa ricorrente salvata</div>
-      </div>
-    </div>
-  </section>
 
   </main>
 </div>
@@ -8786,7 +8744,7 @@ function showSection(id, el) {
     settimanale:'📅 Questa Settimana',
     grafici:'📈 Grafici & Budget',
     calendario:'🗓️ Calendario & Note',
-    ricorrenti:'🔁 Spese Ricorrenti',
+    ricorrenti:'🔁 Spese Ricorrenti', // legacy
     emergenza:'🚨 Emergenza',
     documenti:'📁 Importa PDF & Documenti',
     vistaSpese:'🗓️ Spese Settimanali — Sella/Satispay/Revolut', /* legacy */
@@ -8816,12 +8774,12 @@ function showSection(id, el) {
   if(id==='settimanale') { renderWeek(); renderOggiBanner(); }
   if(id==='vistaSpese') { initVSYearSelects(); renderVSAll(); }
   if(id==='promemoria') { renderReminderList(); checkNotifPermission(); updateReminderBadge(); }
-  if(id==='aggiungiSpesa') { setTimeout(renderBudgetCard, 50); }
+  if(id==='aggiungiSpesa') { setTimeout(renderBudgetCard, 50); setTimeout(renderSpeseSuggerite, 80); }
   if(id==='documenti') { renderAllDocLists(); initDocDragDrop(); }
   if(id==='entrate') updateRimanenza();
   if(id==='librietto') { setTimeout(() => renderLibrietto(), 50); }
   if(id==='contocorrente') { setTimeout(() => renderCC(), 50); }
-  if(id==='ricorrenti') { renderRicorrentiList(); }
+  if(id==='ricorrenti') { /* legacy - sezione rimossa */ }
   if(id==='ai') {
     aiLoadLocationAndWeather();
     aiUpdateWelcome();
@@ -20305,234 +20263,180 @@ function loadTheme(forceLogin) {
 // ===== SPESE RICORRENTI =====
 const GIORNI_LABELS = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
 
-function getRicorrenti() {
+// ===== SPESE SUGGERITE =====
+// Analizza lo storico e trova spese che si ripetono (≥2 occorrenze, stessa desc+importo)
+function getSpeseRicorrentiDaStorico() {
   if(!currentUser) return [];
-  try {
-    const data = JSON.parse(localStorage.getItem('tc_ricorrenti_' + currentUser.email) || '[]');
-    // Normalizza: se days manca o è vuoto (dati vecchi/corrotti), default = tutti i giorni
-    return data.map(r => ({
-      ...r,
-      days: (r.days && r.days.length > 0) ? r.days : [0,1,2,3,4,5,6]
-    }));
-  } catch(e) { return []; }
-}
-function saveRicorrentiData(data) {
-  if(!currentUser) return;
-  try { localStorage.setItem('tc_ricorrenti_' + currentUser.email, JSON.stringify(data)); } catch(e) {}
-}
-
-function toggleRicDay(btn) {
-  btn.classList.toggle('active');
-}
-
-function selectRicDays(days) {
-  document.querySelectorAll('.ric-day-btn').forEach(btn => {
-    const d = parseInt(btn.dataset.day);
-    btn.classList.toggle('active', days.includes(d));
+  const now = new Date();
+  const allExpenses = [];
+  // Leggi ultimi 6 mesi
+  for(let i = 0; i < 6; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const key = d.getFullYear() + '_' + (d.getMonth()+1);
+    const exps = load('expenses_' + key, []) || [];
+    allExpenses.push(...exps);
+  }
+  // Raggruppa per desc+importo
+  const map = {};
+  allExpenses.forEach(e => {
+    if(!e.desc || e.desc === '—' || !e.amount) return;
+    const k = (e.desc.toLowerCase().trim()) + '_' + e.amount;
+    if(!map[k]) map[k] = { desc: e.desc, amount: e.amount, cat: e.cat, pay: e.pay, count: 0, dates: [], days: {} };
+    map[k].count++;
+    map[k].dates.push(e.date);
+    const day = new Date(e.date + 'T12:00:00').getDay();
+    map[k].days[day] = (map[k].days[day] || 0) + 1;
   });
+  // Filtra: almeno 2 occorrenze
+  return Object.values(map)
+    .filter(s => s.count >= 2)
+    .sort((a,b) => b.count - a.count)
+    .map(s => ({
+      ...s,
+      // Giorno più frequente
+      topDay: Object.entries(s.days).sort((a,b)=>b[1]-a[1]).map(e=>parseInt(e[0]))
+    }));
 }
 
-function getSelectedRicDays() {
-  return [...document.querySelectorAll('.ric-day-btn.active')].map(b => parseInt(b.dataset.day));
+// Stato corrente del suggerimento selezionato
+let _suggeritaCurrent = null;
+
+function renderSpeseSuggerite() {
+  const card = document.getElementById('speseSuggeriteCard');
+  const list = document.getElementById('speseSuggeriteList');
+  if(!card || !list) return;
+  const suggerite = getSpeseRicorrentiDaStorico();
+  if(!suggerite.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  const CAT_ICONS_MAP = { bar:'☕', ristorante:'🍽️', supermercato:'🛒', svago:'🎭', viaggi:'✈️', extra:'💡', rata:'📦' };
+  const PAY_ICONS_MAP = { tickets:'🎫', satispay:'📱', contanti:'💵', sella:'🏦', bancomat:'💳', klarna:'🅺', scalapay:'🔷', bonifico:'🏦' };
+  const GIORNI = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  list.innerHTML = suggerite.map((s,i) => {
+    const topDayLabel = s.topDay.length ? 'Di solito ' + s.topDay.map(d=>GIORNI[d]).join('/') : '';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;background:rgba(255,255,255,0.04);border-radius:12px;border:1px solid rgba(255,255,255,0.08);">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:13px;font-weight:700;color:var(--text);">${CAT_ICONS_MAP[s.cat]||'💡'} ${s.desc}</div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${PAY_ICONS_MAP[s.pay]||'💳'} ${s.pay||''} · ${s.count}x negli ultimi 6 mesi${topDayLabel?' · '+topDayLabel:''}</div>
+      </div>
+      <div style="font-size:15px;font-weight:800;color:var(--gold);flex-shrink:0;">€${s.amount.toFixed(2).replace('.',',')}</div>
+      <button onclick="openSuggeritaModal(${i})" style="flex-shrink:0;padding:8px 14px;border-radius:10px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);cursor:pointer;font-size:12px;font-weight:700;">+ Aggiungi</button>
+    </div>`;
+  }).join('');
+  // Salva lista in variabile globale per accesso da modal
+  window._suggeriteLista = suggerite;
 }
 
-function setRicPeriod(type) {
+function openSuggeritaModal(idx) {
+  const s = window._suggeriteLista[idx];
+  if(!s) return;
+  _suggeritaCurrent = s;
+  const GIORNI = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  document.getElementById('suggeritaModalTitle').textContent = '💡 ' + s.desc + ' — €' + s.amount.toFixed(2).replace('.',',');
+  document.getElementById('suggeritaModalSubtitle').textContent = 'Trovata ' + s.count + ' volte negli ultimi 6 mesi. Come vuoi aggiungerla?';
+  // Label settimana corrente
+  const now = new Date();
+  const dow = now.getDay();
+  const mon = new Date(now); mon.setDate(now.getDate() - (dow===0?6:dow-1));
+  const sun = new Date(mon); sun.setDate(mon.getDate()+6);
+  const fmt = d => d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
+  document.getElementById('suggeritaWeekLabel').textContent = fmt(mon) + ' → ' + fmt(sun);
+  // Reset giorni
+  document.querySelectorAll('.sug-day-btn').forEach(b => b.classList.remove('active'));
+  // Pre-seleziona i giorni più frequenti
+  s.topDay.forEach(d => {
+    const btn = document.querySelector(`.sug-day-btn[data-day="${d}"]`);
+    if(btn) btn.classList.add('active');
+  });
+  // Date default: oggi → fine settimana
+  const pad = n => String(n).padStart(2,'0');
+  const fmtDate = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  document.getElementById('suggeritaFrom').value = fmtDate(now);
+  document.getElementById('suggeritaTo').value = fmtDate(sun);
+  document.getElementById('suggeritaGiorniPanel').style.display = 'none';
+  const modal = document.getElementById('suggeritaModal');
+  modal.style.display = 'flex';
+}
+
+function closeSuggeritaModal() {
+  document.getElementById('suggeritaModal').style.display = 'none';
+  _suggeritaCurrent = null;
+}
+
+function suggeritaToggleGiorni() {
+  const panel = document.getElementById('suggeritaGiorniPanel');
+  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+// Click sui giorni nel modal suggerita
+document.addEventListener('click', function(e) {
+  if(e.target.classList.contains('sug-day-btn')) {
+    e.target.classList.toggle('active');
+  }
+});
+
+function suggeritaApply(mode) {
+  const s = _suggeritaCurrent;
+  if(!s) return;
   const now = new Date();
   const pad = n => String(n).padStart(2,'0');
   const fmt = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-  const fromEl = document.getElementById('ricDateFrom');
-  const toEl   = document.getElementById('ricDateTo');
-  if(type === 'clear') { fromEl.value=''; toEl.value=''; return; }
-  fromEl.value = fmt(now);
-  if(type === 'month') {
-    toEl.value = fmt(new Date(now.getFullYear(), now.getMonth()+1, 0));
-  } else if(type === '3months') {
-    const t = new Date(now); t.setMonth(t.getMonth()+3);
-    toEl.value = fmt(t);
-  } else if(type === 'year') {
-    toEl.value = now.getFullYear()+'-12-31';
+  let added = 0;
+
+  if(mode === 'week') {
+    // Tutta la settimana corrente
+    const dow = now.getDay();
+    const mon = new Date(now); mon.setDate(now.getDate() - (dow===0?6:dow-1));
+    for(let i=0; i<7; i++) {
+      const d = new Date(mon); d.setDate(mon.getDate()+i);
+      if(d > now) break;
+      if(_addSuggerita(s, fmt(d))) added++;
+    }
+  } else if(mode === 'giorni') {
+    const selectedDays = [...document.querySelectorAll('.sug-day-btn.active')].map(b=>parseInt(b.dataset.day));
+    if(!selectedDays.length) { showToast('⚠️ Seleziona almeno un giorno'); return; }
+    const fromVal = document.getElementById('suggeritaFrom').value;
+    const toVal   = document.getElementById('suggeritaTo').value;
+    if(!fromVal || !toVal) { showToast('⚠️ Inserisci le date'); return; }
+    const start = new Date(fromVal + 'T12:00:00');
+    const end   = new Date(toVal   + 'T12:00:00');
+    if(start > end) { showToast('⚠️ La data "Dal" deve essere prima della data "Al"'); return; }
+    const cur = new Date(start);
+    while(cur <= end && cur <= now) {
+      if(selectedDays.includes(cur.getDay())) {
+        if(_addSuggerita(s, fmt(cur))) added++;
+      }
+      cur.setDate(cur.getDate()+1);
+    }
+  }
+
+  closeSuggeritaModal();
+  if(added > 0) {
+    bumpVersion(); fbPushToCloud(true);
+    renderExpenses(); renderDashboard(); renderWeek(); renderCalendar();
+    showToast('✅ ' + added + ' spese aggiunte!');
+  } else {
+    showToast('ℹ️ Spese già presenti per questi giorni');
   }
 }
 
-function saveRicorrente() {
-  const desc     = document.getElementById('ricDesc')?.value?.trim();
-  const amount   = parseFloat(document.getElementById('ricAmount')?.value);
-  const cat      = document.getElementById('ricCat')?.value;
-  const pay      = document.getElementById('ricPay')?.value;
-  const days     = getSelectedRicDays();
-  const dateFrom = document.getElementById('ricDateFrom')?.value || '';
-  const dateTo   = document.getElementById('ricDateTo')?.value || '';
-
-  if(!desc)           { showToast('⚠️ Inserisci una descrizione'); return; }
-  if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido'); return; }
-  if(!days.length)    { showToast('⚠️ Seleziona almeno un giorno'); return; }
-  if(dateFrom && dateTo && dateFrom > dateTo) { showToast('⚠️ La data "Dal" deve essere prima della data "Al"'); return; }
-
-  const ric = getRicorrenti();
-  ric.push({ id: Date.now(), desc, amount, cat, pay, days, dateFrom, dateTo });
-  saveRicorrentiData(ric);
-
-  // Reset form
-  document.getElementById('ricDesc').value = '';
-  document.getElementById('ricAmount').value = '';
-  document.getElementById('ricDateFrom').value = '';
-  document.getElementById('ricDateTo').value = '';
-  document.querySelectorAll('.ric-day-btn').forEach(b => b.classList.remove('active'));
-
-  renderRicorrentiList();
-  showToast('✅ Spesa ricorrente salvata!');
-}
-
-function deleteRicorrente(id) {
-  tcAsk('Eliminare questa spesa ricorrente?', '🗑️', 'Elimina', '#e05c5c', '_doDeleteRicorrente', id);
-}
-
-function _doDeleteRicorrente(id) {
-  const ric = getRicorrenti().filter(r => r.id !== id);
-  saveRicorrentiData(ric);
-  renderRicorrentiList();
-  showToast('🗑️ Ricorrente eliminata');
-}
-
-function _addRicorrente(r, dateStr) {
+function _addSuggerita(s, dateStr) {
   const target = new Date(dateStr + 'T12:00:00');
   const yr = target.getFullYear();
   const mo = target.getMonth() + 1;
   const key = yr + '_' + mo;
   const existing = load('expenses_' + key, []) || [];
   const alreadyExists = existing.some(e =>
-    e.desc === r.desc && e.amount === r.amount && e.date === dateStr && e.source === 'ricorrente'
+    e.desc === s.desc && e.amount === s.amount && e.date === dateStr
   );
   if(alreadyExists) return false;
   existing.push({
     id: Date.now() + Math.random(),
-    cat: r.cat, amount: r.amount, desc: r.desc,
-    pay: r.pay, date: dateStr, source: 'ricorrente', ts: Date.now()
+    cat: s.cat, amount: s.amount, desc: s.desc,
+    pay: s.pay, date: dateStr, source: 'suggerita', ts: Date.now(),
+    createdAt: new Date().toISOString()
   });
   save('expenses_' + key, existing);
   return true;
-}
-
-function applyAllRicorrenti(mode) {
-  if(!currentUser) return;
-  const ric = getRicorrenti();
-  if(!ric.length) { showToast('⚠️ Nessuna spesa ricorrente salvata'); return; }
-
-  const now = new Date();
-  const nowStr = now.toISOString().split('T')[0];
-  const pad = n => String(n).padStart(2,'0');
-  const fmt = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-  let added = 0;
-
-  if(mode === 'week') {
-    // Solo settimana corrente
-    const dayOfWeek = now.getDay();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-
-    ric.forEach(r => {
-      if(r.dateFrom && nowStr < r.dateFrom) return;
-      if(r.dateTo   && nowStr > r.dateTo)   return;
-      r.days.forEach(day => {
-        const target = new Date(monday);
-        const offset = day === 0 ? 6 : day - 1;
-        target.setDate(monday.getDate() + offset);
-        if(target > now) return;
-        const dateStr = fmt(target);
-        if(r.dateFrom && dateStr < r.dateFrom) return;
-        if(r.dateTo   && dateStr > r.dateTo)   return;
-        if(_addRicorrente(r, dateStr)) added++;
-      });
-    });
-
-  } else if(mode === 'period') {
-    // Tutto il periodo dal dateFrom al dateTo (o da 30gg fa a oggi se non specificato)
-    ric.forEach(r => {
-      const start = new Date((r.dateFrom || nowStr) + 'T12:00:00');
-      const end   = new Date(Math.min(
-        new Date((r.dateTo || nowStr) + 'T12:00:00').getTime(),
-        now.getTime()
-      ));
-      if(start > end) return;
-
-      // Itera ogni giorno dal start all'end
-      const cur = new Date(start);
-      while(cur <= end) {
-        const dayOfWeek = cur.getDay();
-        if(r.days.includes(dayOfWeek)) {
-          if(_addRicorrente(r, fmt(cur))) added++;
-        }
-        cur.setDate(cur.getDate() + 1);
-      }
-    });
-  }
-
-  if(added > 0) {
-    bumpVersion(); fbPushToCloud(true);
-    showToast('✅ ' + added + ' spese ricorrenti aggiunte!');
-    renderRicorrentiList();
-  } else {
-    showToast('ℹ️ Tutte le ricorrenti erano già presenti');
-  }
-}
-
-function applyRicorrente(id) {
-  const ric = getRicorrenti().find(r => r.id === id);
-  if(!ric) return;
-
-  const now = new Date();
-  const dateStr = now.toISOString().split('T')[0];
-  const yr = now.getFullYear();
-  const mo = now.getMonth() + 1;
-  const key = yr + '_' + mo;
-
-  const existing = load('expenses_' + key, []) || [];
-  existing.push({
-    id: Date.now() + Math.random(),
-    cat: ric.cat, amount: ric.amount, desc: ric.desc,
-    pay: ric.pay, date: dateStr, source: 'ricorrente', ts: Date.now()
-  });
-  save('expenses_' + key, existing);
-  bumpVersion(); fbPushToCloud(true);
-  showToast('✅ "' + ric.desc + '" aggiunta per oggi!');
-}
-
-function renderRicorrentiList() {
-  const list = document.getElementById('ricorrentiList');
-  if(!list) return;
-  const ric = getRicorrenti();
-  if(!ric.length) {
-    list.innerHTML = '<div style="color:var(--text-muted);font-size:13px;text-align:center;padding:20px;">Nessuna spesa ricorrente salvata</div>';
-    return;
-  }
-
-  const CAT_ICONS_MAP = { bar:'☕', ristorante:'🍽️', supermercato:'🛒', svago:'🎭', viaggi:'✈️', extra:'💡', rata:'📦' };
-  const PAY_ICONS_MAP = { tickets:'🎫', satispay:'📱', contanti:'💵', sella:'🏦', bancomat:'💳', klarna:'🅺' };
-
-  list.innerHTML = ric.map(r => {
-    const daysLabel = r.days.length === 7 ? 'Tutti i giorni' :
-                      r.days.length === 0 ? 'Nessun giorno' :
-                      r.days.map(d => GIORNI_LABELS[d]).join(', ');
-    const periodLabel = r.dateFrom || r.dateTo
-      ? (r.dateFrom ? r.dateFrom.split('-').reverse().join('/') : '∞') + ' → ' + (r.dateTo ? r.dateTo.split('-').reverse().join('/') : '∞')
-      : 'Sempre attiva';
-    return `<div class="ric-card">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-          ${CAT_ICONS_MAP[r.cat]||'💡'} ${r.desc}
-        </div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">
-          ${PAY_ICONS_MAP[r.pay]||'💳'} ${r.pay} · 📅 ${daysLabel}
-        </div>
-        <div style="font-size:10px;color:rgba(201,168,76,0.7);margin-top:2px;">📆 ${periodLabel}</div>
-      </div>
-      <div style="font-size:16px;font-weight:800;color:var(--gold);flex-shrink:0;">€${r.amount.toFixed(2).replace('.',',')}</div>
-      <div style="display:flex;gap:6px;flex-shrink:0;">
-        <button onclick="applyRicorrente(${r.id})" title="Aggiungi oggi" style="padding:6px 10px;border-radius:8px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);cursor:pointer;font-size:13px;">▶️</button>
-        <button onclick="deleteRicorrente(${r.id})" title="Elimina" style="padding:6px 10px;border-radius:8px;background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:var(--red);cursor:pointer;font-size:13px;">🗑</button>
-      </div>
-    </div>`;
-  }).join('');
 }
 
 // ===== SFONDO LOGIN PERSONALIZZATO =====
@@ -24648,6 +24552,33 @@ body.light .ric-day-btn.active {
   background: rgba(201,168,76,0.25);
   border-color: #c9a84c;
   color: #7a5500;
+}
+.sug-day-btn {
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1.5px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.05);
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-family: var(--font);
+}
+.sug-day-btn.active {
+  background: rgba(99,102,241,0.2);
+  border-color: rgba(99,102,241,0.6);
+  color: #a5b4fc;
+}
+body.light .sug-day-btn {
+  background: #f5f5f0;
+  border-color: rgba(0,0,0,0.15);
+  color: #444;
+}
+body.light .sug-day-btn.active {
+  background: rgba(99,102,241,0.15);
+  border-color: #6366f1;
+  color: #4338ca;
 }
 .ric-card {
   background: rgba(255,255,255,0.04);
