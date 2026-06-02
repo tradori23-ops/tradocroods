@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v196';
+  var BUILD = '20260602-v197';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -2843,6 +2843,31 @@ input, select, textarea {
 #tc-update-banner {
   top: calc(24px + env(safe-area-inset-top));
   right: calc(24px + env(safe-area-inset-right));
+}
+
+/* ══ PWA STANDALONE — app installata sulla schermata Home ══
+   In standalone non c'è la barra Safari → la Dynamic Island
+   copre direttamente la topbar → serve padding-top esplicito */
+@media (display-mode: standalone) {
+  .topbar {
+    padding-top: env(safe-area-inset-top, 50px) !important;
+    min-height: calc(52px + env(safe-area-inset-top, 50px)) !important;
+  }
+  .main-content {
+    padding-bottom: calc(32px + env(safe-area-inset-bottom, 20px)) !important;
+  }
+  .sidebar {
+    padding-top: env(safe-area-inset-top, 50px) !important;
+  }
+  #topbarMobileMenu > div {
+    top: calc(env(safe-area-inset-top, 50px) + 56px) !important;
+  }
+  #tc-ai-fab {
+    bottom: calc(env(safe-area-inset-bottom, 20px) + 20px) !important;
+  }
+  #offlineBanner {
+    padding-top: calc(env(safe-area-inset-top, 50px) + 8px) !important;
+  }
 }
 
 /* ══════════════════════════════════════════════════════
