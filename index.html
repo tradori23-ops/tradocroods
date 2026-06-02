@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v197';
+  var BUILD = '20260602-v198';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -12448,7 +12448,8 @@ function renderWeekBudgetBar(weekTotal) {
   const firstDate = dates[0];
   const wi = weeks.findIndex(w => firstDate >= w.start && firstDate <= w.end);
   const weekIdx = wi >= 0 ? weeks[wi].num : 1;
-  const budgetAmt = getBudgetForWeek(weekIdx);
+  // Usa budget specifico settimana, altrimenti fallback al budget globale
+  const budgetAmt = getBudgetForWeek(weekIdx) || loadBudgetWeekly();
   if(!budgetAmt) { bar.style.display = 'none'; return; }
   bar.style.display = 'block';
   const pct = Math.min((weekTotal / budgetAmt) * 100, 100);
