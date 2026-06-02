@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v185';
+  var BUILD = '20260602-v186';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -4875,24 +4875,34 @@ setTimeout(_updateOfflineBanner, 500);
 
       <!-- Modal aggiungi suggerita -->
       <div id="suggeritaModal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;z-index:3000;background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px;">
-        <div style="background:var(--surface2);border-radius:20px;padding:24px;width:100%;max-width:420px;border:1px solid var(--border);">
+        <div style="background:var(--surface2);border-radius:20px;padding:24px;width:100%;max-width:420px;border:1px solid var(--border);max-height:90vh;overflow-y:auto;">
           <div style="font-size:16px;font-weight:700;margin-bottom:6px;" id="suggeritaModalTitle"></div>
           <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;" id="suggeritaModalSubtitle"></div>
 
-          <!-- Scelta: settimana o giorni specifici -->
-          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+          <!-- Scelta modalità -->
+          <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:16px;">
             <button onclick="suggeritaApply('week')" style="padding:14px;border-radius:14px;background:rgba(201,168,76,0.15);border:1.5px solid rgba(201,168,76,0.4);color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;text-align:left;">
-              📅 Aggiungi per tutta questa settimana
+              📅 Tutta questa settimana
               <div style="font-size:11px;font-weight:400;opacity:0.8;margin-top:3px;" id="suggeritaWeekLabel"></div>
             </button>
-            <button onclick="suggeritaToggleGiorni()" style="padding:14px;border-radius:14px;background:rgba(99,102,241,0.1);border:1.5px solid rgba(99,102,241,0.3);color:#a5b4fc;font-size:14px;font-weight:700;cursor:pointer;text-align:left;">
-              🗓️ Scegli giorni e date specifiche
+            <button onclick="suggeritaShowPanel('giorno')" style="padding:14px;border-radius:14px;background:rgba(52,211,153,0.1);border:1.5px solid rgba(52,211,153,0.3);color:#6ee7b7;font-size:14px;font-weight:700;cursor:pointer;text-align:left;">
+              📌 Solo un giorno specifico
+            </button>
+            <button onclick="suggeritaShowPanel('range')" style="padding:14px;border-radius:14px;background:rgba(99,102,241,0.1);border:1.5px solid rgba(99,102,241,0.3);color:#a5b4fc;font-size:14px;font-weight:700;cursor:pointer;text-align:left;">
+              🗓️ Range di date + giorni specifici
             </button>
           </div>
 
-          <!-- Pannello giorni specifici (nascosto di default) -->
-          <div id="suggeritaGiorniPanel" style="display:none;margin-bottom:20px;">
-            <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">Seleziona i giorni:</div>
+          <!-- Pannello: solo un giorno -->
+          <div id="suggeritaPanelGiorno" style="display:none;margin-bottom:16px;padding:14px;background:rgba(52,211,153,0.07);border-radius:12px;border:1px solid rgba(52,211,153,0.2);">
+            <label style="font-size:12px;font-weight:600;color:var(--text-muted);display:block;margin-bottom:8px;">Seleziona il giorno:</label>
+            <input type="date" id="suggeritaSingleDate" style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:14px;font-family:var(--font);">
+            <button onclick="suggeritaApply('giorno')" style="width:100%;padding:12px;border-radius:12px;background:rgba(52,211,153,0.2);border:1.5px solid rgba(52,211,153,0.4);color:#6ee7b7;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;">✅ Aggiungi per questo giorno</button>
+          </div>
+
+          <!-- Pannello: range + giorni -->
+          <div id="suggeritaGiorniPanel" style="display:none;margin-bottom:16px;padding:14px;background:rgba(99,102,241,0.07);border-radius:12px;border:1px solid rgba(99,102,241,0.2);">
+            <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">Giorni della settimana <span style="font-weight:400;opacity:0.7;">(lascia vuoto = tutti)</span></div>
             <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" id="suggeritaGiorniGrid">
               <button type="button" class="sug-day-btn" data-day="1">Lun</button>
               <button type="button" class="sug-day-btn" data-day="2">Mar</button>
@@ -4912,7 +4922,7 @@ setTimeout(_updateOfflineBanner, 500);
                 <input type="date" id="suggeritaTo" style="width:100%;padding:8px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:13px;font-family:var(--font);">
               </div>
             </div>
-            <button onclick="suggeritaApply('giorni')" style="width:100%;padding:12px;border-radius:12px;background:rgba(99,102,241,0.2);border:1.5px solid rgba(99,102,241,0.4);color:#a5b4fc;font-size:14px;font-weight:700;cursor:pointer;">✅ Aggiungi nei giorni selezionati</button>
+            <button onclick="suggeritaApply('giorni')" style="width:100%;padding:12px;border-radius:12px;background:rgba(99,102,241,0.2);border:1.5px solid rgba(99,102,241,0.4);color:#a5b4fc;font-size:14px;font-weight:700;cursor:pointer;">✅ Aggiungi nel periodo</button>
           </div>
 
           <button onclick="closeSuggeritaModal()" style="width:100%;padding:10px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-size:13px;cursor:pointer;">Annulla</button>
@@ -20305,7 +20315,13 @@ function renderSpeseSuggerite() {
   const card = document.getElementById('speseSuggeriteCard');
   const list = document.getElementById('speseSuggeriteList');
   if(!card || !list) return;
-  const suggerite = getSpeseRicorrentiDaStorico();
+  // Carica lista ignorati
+  let ignorati = [];
+  try { ignorati = JSON.parse(localStorage.getItem('tc_suggerite_ignore_' + (currentUser?.email||'')) || '[]'); } catch(e){}
+  const suggerite = getSpeseRicorrentiDaStorico().filter(s => {
+    const k = s.desc.toLowerCase().trim() + '_' + s.amount;
+    return !ignorati.includes(k);
+  });
   if(!suggerite.length) { card.style.display = 'none'; return; }
   card.style.display = 'block';
   const CAT_ICONS_MAP = { bar:'☕', ristorante:'🍽️', supermercato:'🛒', svago:'🎭', viaggi:'✈️', extra:'💡', rata:'📦' };
@@ -20320,17 +20336,24 @@ function renderSpeseSuggerite() {
       </div>
       <div style="font-size:15px;font-weight:800;color:var(--gold);flex-shrink:0;">€${s.amount.toFixed(2).replace('.',',')}</div>
       <button onclick="openSuggeritaModal(${i})" style="flex-shrink:0;padding:8px 14px;border-radius:10px;background:rgba(201,168,76,0.15);border:1px solid rgba(201,168,76,0.3);color:var(--gold);cursor:pointer;font-size:12px;font-weight:700;">+ Aggiungi</button>
+      <button onclick="ignoraSuggerita('${s.desc.toLowerCase().trim()}_${s.amount}')" title="Nascondi" style="flex-shrink:0;padding:8px 10px;border-radius:10px;background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.25);color:var(--red);cursor:pointer;font-size:13px;">🗑</button>
     </div>`;
   }).join('');
-  // Salva lista in variabile globale per accesso da modal
   window._suggeriteLista = suggerite;
+}
+
+function ignoraSuggerita(key) {
+  let ignorati = [];
+  try { ignorati = JSON.parse(localStorage.getItem('tc_suggerite_ignore_' + (currentUser?.email||'')) || '[]'); } catch(e){}
+  if(!ignorati.includes(key)) ignorati.push(key);
+  try { localStorage.setItem('tc_suggerite_ignore_' + (currentUser?.email||''), JSON.stringify(ignorati)); } catch(e){}
+  renderSpeseSuggerite();
 }
 
 function openSuggeritaModal(idx) {
   const s = window._suggeriteLista[idx];
   if(!s) return;
   _suggeritaCurrent = s;
-  const GIORNI = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
   document.getElementById('suggeritaModalTitle').textContent = '💡 ' + s.desc + ' — €' + s.amount.toFixed(2).replace('.',',');
   document.getElementById('suggeritaModalSubtitle').textContent = 'Trovata ' + s.count + ' volte negli ultimi 6 mesi. Come vuoi aggiungerla?';
   // Label settimana corrente
@@ -20340,31 +20363,29 @@ function openSuggeritaModal(idx) {
   const sun = new Date(mon); sun.setDate(mon.getDate()+6);
   const fmt = d => d.toLocaleDateString('it-IT',{day:'2-digit',month:'short'});
   document.getElementById('suggeritaWeekLabel').textContent = fmt(mon) + ' → ' + fmt(sun);
-  // Reset giorni
-  document.querySelectorAll('.sug-day-btn').forEach(b => b.classList.remove('active'));
-  // Pre-seleziona i giorni più frequenti
-  s.topDay.forEach(d => {
-    const btn = document.querySelector(`.sug-day-btn[data-day="${d}"]`);
-    if(btn) btn.classList.add('active');
-  });
-  // Date default: oggi → fine settimana
+  // Reset pannelli
+  document.getElementById('suggeritaPanelGiorno').style.display = 'none';
+  document.getElementById('suggeritaGiorniPanel').style.display = 'none';
+  // Data singola default = oggi
   const pad = n => String(n).padStart(2,'0');
   const fmtDate = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-  document.getElementById('suggeritaFrom').value = fmtDate(now);
+  document.getElementById('suggeritaSingleDate').value = fmtDate(now);
+  // Range default
+  document.getElementById('suggeritaFrom').value = fmtDate(mon);
   document.getElementById('suggeritaTo').value = fmtDate(sun);
-  document.getElementById('suggeritaGiorniPanel').style.display = 'none';
-  const modal = document.getElementById('suggeritaModal');
-  modal.style.display = 'flex';
+  // Reset giorni (nessuno pre-selezionato = tutti i giorni)
+  document.querySelectorAll('.sug-day-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('suggeritaModal').style.display = 'flex';
+}
+
+function suggeritaShowPanel(type) {
+  document.getElementById('suggeritaPanelGiorno').style.display = type === 'giorno' ? 'block' : 'none';
+  document.getElementById('suggeritaGiorniPanel').style.display = type === 'range' ? 'block' : 'none';
 }
 
 function closeSuggeritaModal() {
   document.getElementById('suggeritaModal').style.display = 'none';
   _suggeritaCurrent = null;
-}
-
-function suggeritaToggleGiorni() {
-  const panel = document.getElementById('suggeritaGiorniPanel');
-  panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
 // Click sui giorni nel modal suggerita
@@ -20383,7 +20404,7 @@ function suggeritaApply(mode) {
   let added = 0;
 
   if(mode === 'week') {
-    // Tutta la settimana corrente
+    // Tutta la settimana corrente — tutti i giorni fino ad oggi
     const dow = now.getDay();
     const mon = new Date(now); mon.setDate(now.getDate() - (dow===0?6:dow-1));
     for(let i=0; i<7; i++) {
@@ -20391,9 +20412,14 @@ function suggeritaApply(mode) {
       if(d > now) break;
       if(_addSuggerita(s, fmt(d))) added++;
     }
+  } else if(mode === 'giorno') {
+    // Solo un giorno specifico
+    const dateVal = document.getElementById('suggeritaSingleDate').value;
+    if(!dateVal) { showToast('⚠️ Seleziona una data'); return; }
+    if(_addSuggerita(s, dateVal)) added++;
   } else if(mode === 'giorni') {
+    // Range di date — se nessun giorno selezionato = tutti i giorni
     const selectedDays = [...document.querySelectorAll('.sug-day-btn.active')].map(b=>parseInt(b.dataset.day));
-    if(!selectedDays.length) { showToast('⚠️ Seleziona almeno un giorno'); return; }
     const fromVal = document.getElementById('suggeritaFrom').value;
     const toVal   = document.getElementById('suggeritaTo').value;
     if(!fromVal || !toVal) { showToast('⚠️ Inserisci le date'); return; }
@@ -20401,8 +20427,9 @@ function suggeritaApply(mode) {
     const end   = new Date(toVal   + 'T12:00:00');
     if(start > end) { showToast('⚠️ La data "Dal" deve essere prima della data "Al"'); return; }
     const cur = new Date(start);
-    while(cur <= end && cur <= now) {
-      if(selectedDays.includes(cur.getDay())) {
+    while(cur <= end) {
+      // Se nessun giorno selezionato → tutti i giorni; altrimenti filtra
+      if(!selectedDays.length || selectedDays.includes(cur.getDay())) {
         if(_addSuggerita(s, fmt(cur))) added++;
       }
       cur.setDate(cur.getDate()+1);
@@ -20413,7 +20440,7 @@ function suggeritaApply(mode) {
   if(added > 0) {
     bumpVersion(); fbPushToCloud(true);
     renderExpenses(); renderDashboard(); renderWeek(); renderCalendar();
-    showToast('✅ ' + added + ' spese aggiunte!');
+    showToast('✅ ' + added + ' ' + (added===1?'spesa aggiunta':'spese aggiunte') + '!');
   } else {
     showToast('ℹ️ Spese già presenti per questi giorni');
   }
