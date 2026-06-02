@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v192';
+  var BUILD = '20260602-v193';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -3414,6 +3414,7 @@ setTimeout(_updateOfflineBanner, 500);
           <button class="btn btn-outline" onclick="closeFirebaseModal()" style="flex:1;">Annulla</button>
           <button class="btn btn-gold" onclick="saveGistConfig()" style="flex:2;">☁️ Connetti Gist</button>
         </div>
+        <button onclick="forcePushAll()" style="width:100%;margin-top:10px;padding:10px;border-radius:12px;background:rgba(52,211,153,0.15);border:1.5px solid rgba(52,211,153,0.3);color:#6ee7b7;font-size:13px;font-weight:700;cursor:pointer;">🔄 Forza Push (salva tutto sul Gist)</button>
         <p id="fb-msg" style="font-size:12px;color:#4ae87a;margin-top:10px;text-align:center;"></p>
       </div>
     </div>
@@ -6957,6 +6958,46 @@ async function saveGistConfig() {
 }
 function saveFirebaseConfig() { saveGistConfig(); }
 function parseFBPaste() {}
+
+// Forza push completo — funziona anche senza currentUser loggato
+async function forcePushAll() {
+  const msg = document.getElementById('fb-msg');
+  if(!_gistToken || !_gistId) {
+    if(msg) { msg.style.color='#e05c5c'; msg.textContent='❌ Connetti prima il Gist.'; }
+    return;
+  }
+  if(msg) { msg.style.color='var(--gold)'; msg.textContent='⏳ Push in corso...'; }
+
+  const users = getUsers();
+  const files = {
+    'tradocroods_users.json': { content: JSON.stringify(users) }
+  };
+
+  // Se c'è un utente loggato, includi anche i dati
+  if(currentUser) {
+    const email = currentUser.email;
+    const prefix = 'tc_' + email + '_';
+    const batch = {};
+    for(let i=0;i<localStorage.length;i++) {
+      const k = localStorage.key(i);
+      if(k && k.startsWith(prefix)) {
+        const sk = k.substring(prefix.length);
+        try { batch[sk] = JSON.parse(localStorage.getItem(k)); } catch(e) { batch[sk] = localStorage.getItem(k); }
+      }
+    }
+    const photo = localStorage.getItem('tc_photo_' + email);
+    if(photo) batch['__photo__'] = photo;
+    files['tradocroods_data.json'] = { content: JSON.stringify(batch) };
+  }
+
+  const r = await gistApiFetch('PATCH', '/gists/' + _gistId, { files });
+  if(r) {
+    if(msg) { msg.style.color='#4ae87a'; msg.textContent='✅ Push completato! ' + users.length + ' profil' + (users.length===1?'o':'i') + ' salvat' + (users.length===1?'o':'i') + '.'; }
+    showToast('✅ Dati sincronizzati sul Gist!');
+  } else {
+    if(msg) { msg.style.color='#e05c5c'; msg.textContent='❌ Push fallito. Controlla la connessione.'; }
+  }
+}
 
 
 // ===== HEXAGONS =====
