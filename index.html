@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v188';
+  var BUILD = '20260602-v189';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -4616,75 +4616,221 @@ setTimeout(_updateOfflineBanner, 500);
         </div>
       </div>
 
-      <!-- EXCEL IMPORT CARD -->
-      <div class="card mb-20" style="border:2px dashed var(--gold);background:rgba(201,168,76,0.05);">
-        <div class="card-title">📊 Importa da Excel</div>
-        <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Carica un file Excel (.xlsx) con le colonne: <strong>Data, Categoria, Descrizione, Importo, Pagamento</strong> oppure per le entrate: <strong>Data, Tipo, Causale, Importo</strong>. Il sistema rileva automaticamente il tipo di foglio.</p>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importFromExcel(event)">
-          <button class="btn btn-gold" onclick="document.getElementById('excelFileInput').click()" style="padding:10px 20px;">📂 Scegli File Excel</button>
-          <button class="btn btn-outline" onclick="downloadExcelTemplate()" style="padding:10px 20px;">⬇️ Scarica Template</button>
-          <span id="excelStatus" style="font-size:13px;color:var(--text-muted);"></span>
-        </div>
-        <div id="excelPreview" style="margin-top:16px;display:none;">
-          <div style="font-size:13px;font-weight:600;margin-bottom:8px;" id="excelPreviewTitle"></div>
-          <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;" id="excelPreviewList"></div>
-          <div style="display:flex;gap:10px;margin-top:12px;">
-            <button class="btn btn-gold" onclick="confirmExcelImport()" style="flex:1;">✅ Importa Tutto</button>
-            <button class="btn btn-danger" onclick="cancelExcelImport()" style="flex:1;">❌ Annulla</button>
+      <!-- ══════════════════════════════════════════════
+           📥 IMPORTA DATI — ACCORDION
+      ══════════════════════════════════════════════ -->
+      <div class="card mb-20" id="importAccordionCard" style="padding:0;overflow:hidden;">
+        <!-- Header accordion -->
+        <div onclick="toggleImportAccordion()" style="display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:pointer;user-select:none;">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:18px;">📥</span>
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--text);">Importa Dati</div>
+              <div style="font-size:11px;color:var(--text-muted);">Excel, PDF, CSV, Screenshot</div>
+            </div>
           </div>
+          <span id="importAccordionChevron" style="font-size:16px;color:var(--text-muted);transition:transform 0.25s;">▼</span>
         </div>
-      </div>
 
-      <!-- SATISPAY RICEVUTA SINGOLA -->
-      <div class="card mb-20" style="border:2px dashed rgba(255,140,0,0.45);background:rgba(255,140,0,0.04);">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <span style="font-size:28px;">🧾</span>
+        <!-- Contenuto collassabile -->
+        <div id="importAccordionBody" style="display:none;border-top:1px solid var(--border);">
+
+          <!-- Gruppi per fonte -->
+          <!-- ── EXCEL ── -->
+          <div style="border-bottom:1px solid var(--border);">
+            <div onclick="toggleImportGroup('excel')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;background:rgba(201,168,76,0.04);">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--gold);">📊 Excel</div>
+              <span class="ig-chevron" id="ig-chevron-excel" style="font-size:12px;color:var(--text-muted);">▶</span>
+            </div>
+            <div id="ig-body-excel" style="display:none;padding:14px 18px 16px;">
+              <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">Colonne richieste: <strong>Data, Categoria, Descrizione, Importo, Pagamento</strong></p>
+              <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" style="display:none;" onchange="importFromExcel(event)">
+                <button class="btn btn-gold" onclick="document.getElementById('excelFileInput').click()" style="padding:9px 18px;">📂 Scegli File Excel</button>
+                <button class="btn btn-outline" onclick="downloadExcelTemplate()" style="padding:9px 18px;">⬇️ Template</button>
+                <span id="excelStatus" style="font-size:12px;color:var(--text-muted);"></span>
+              </div>
+              <div id="excelPreview" style="margin-top:14px;display:none;">
+                <div style="font-size:13px;font-weight:600;margin-bottom:8px;" id="excelPreviewTitle"></div>
+                <div style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:8px;" id="excelPreviewList"></div>
+                <div style="display:flex;gap:10px;margin-top:10px;">
+                  <button class="btn btn-gold" onclick="confirmExcelImport()" style="flex:1;">✅ Importa Tutto</button>
+                  <button class="btn btn-danger" onclick="cancelExcelImport()" style="flex:1;">❌ Annulla</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── SATISPAY ── -->
+          <div style="border-bottom:1px solid var(--border);">
+            <div onclick="toggleImportGroup('satispay')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;background:rgba(255,140,0,0.04);">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#ff8c00;">📱 Satispay</div>
+              <span class="ig-chevron" id="ig-chevron-satispay" style="font-size:12px;color:var(--text-muted);">▶</span>
+            </div>
+            <div id="ig-body-satispay" style="display:none;padding:14px 18px 16px;display:flex;flex-direction:column;gap:14px;">
+              <!-- Ricevuta singola -->
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">🧾 Ricevuta/e singola</div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <input type="file" id="satispayRicevutaInput" accept=".pdf" style="display:none;" onchange="importSatispayRicevuta(event)" multiple>
+                  <button class="btn" onclick="document.getElementById('satispayRicevutaInput').click()" style="background:linear-gradient(135deg,#ff8c00,#e07000);color:#fff;padding:9px 16px;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:13px;">🧾 Scegli PDF/e</button>
+                  <span id="satispayRicevutaStatus" style="font-size:12px;color:var(--text-muted);"></span>
+                </div>
+                <div id="satispayRicevutaPreview" style="display:none;margin-top:12px;">
+                  <div id="satispayRicevutaList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px;"></div>
+                  <div style="display:flex;gap:10px;">
+                    <button class="btn btn-gold" onclick="confirmSatispayRicevute()" style="flex:1;">✅ Importa tutte</button>
+                    <button class="btn btn-outline" onclick="cancelSatispayRicevute()" style="flex:1;">❌ Annulla</button>
+                  </div>
+                </div>
+              </div>
+              <!-- Estratto PDF -->
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">📄 Estratto PDF completo</div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <input type="file" id="satispayFileInput" accept=".pdf" style="display:none;" onchange="importSatispayPDF(event)">
+                  <button class="btn" onclick="document.getElementById('satispayFileInput').click()" style="background:linear-gradient(135deg,#e05c5c,#c94444);color:#fff;padding:9px 16px;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:13px;">📂 Scegli PDF Satispay</button>
+                  <span id="satispayStatus" style="font-size:12px;color:var(--text-muted);"></span>
+                </div>
+                <div id="satispayPreview" style="display:none;margin-top:12px;">
+                  <div id="satispayPreviewSummary" style="margin-bottom:10px;"></div>
+                  <div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;" id="satispayPreviewTable"></div>
+                  <div style="display:flex;gap:10px;margin-top:12px;">
+                    <button class="btn btn-gold" onclick="confirmSatispayImport()" style="flex:1;">✅ Importa Tutto</button>
+                    <button class="btn btn-outline" onclick="cancelSatispayImport()" style="flex:1;">❌ Annulla</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── BANCA SELLA ── -->
+          <div style="border-bottom:1px solid var(--border);">
+            <div onclick="toggleImportGroup('sella')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;background:rgba(74,184,232,0.04);">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#4ab8e8;">🏦 Banca Sella</div>
+              <span class="ig-chevron" id="ig-chevron-sella" style="font-size:12px;color:var(--text-muted);">▶</span>
+            </div>
+            <div id="ig-body-sella" style="display:none;padding:14px 18px 16px;display:flex;flex-direction:column;gap:14px;">
+              <!-- Screenshot -->
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">📷 Screenshot app</div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <input type="file" id="sellaScreenshotInput" accept="image/*" style="display:none;" onchange="importSellaScreenshot(event)" multiple>
+                  <button class="btn" onclick="document.getElementById('sellaScreenshotInput').click()" style="background:linear-gradient(135deg,#4ab8e8,#2a8fc9);color:#fff;padding:9px 16px;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:13px;">📷 Scegli screenshot/i</button>
+                  <span id="sellaScreenshotStatus" style="font-size:12px;color:var(--text-muted);"></span>
+                </div>
+                <div id="sellaScreenshotPreview" style="display:none;margin-top:12px;">
+                  <div id="sellaScreenshotInfo" style="margin-bottom:8px;font-size:13px;font-weight:600;color:#4a90e8;"></div>
+                  <div id="sellaScreenshotList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px;"></div>
+                  <div style="display:flex;gap:10px;">
+                    <button class="btn btn-gold" onclick="confirmSellaScreenshots()" style="flex:1;">✅ Importa spese</button>
+                    <button class="btn btn-outline" onclick="cancelSellaScreenshots()" style="flex:1;">❌ Annulla</button>
+                  </div>
+                </div>
+              </div>
+              <!-- PDF -->
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">📄 Estratto PDF</div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <input type="file" id="sellaFileInput" accept=".pdf" style="display:none;" onchange="importSellaPDF(event)">
+                  <button class="btn" onclick="document.getElementById('sellaFileInput').click()" style="background:linear-gradient(135deg,#4ab8e8,#2a8fc9);color:#fff;padding:9px 16px;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:13px;">📂 Scegli PDF Sella</button>
+                  <span id="sellaStatus" style="font-size:12px;color:var(--text-muted);"></span>
+                </div>
+                <div id="sellaPreview" style="display:none;margin-top:12px;">
+                  <div id="sellaPreviewSummary" style="margin-bottom:10px;"></div>
+                  <div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;" id="sellaPreviewTable"></div>
+                  <div style="display:flex;gap:10px;margin-top:12px;">
+                    <button class="btn btn-gold" onclick="confirmSellaImport()" style="flex:1;">✅ Importa Tutto</button>
+                    <button class="btn btn-outline" onclick="cancelSellaImport()" style="flex:1;">❌ Annulla</button>
+                  </div>
+                </div>
+              </div>
+              <!-- CSV -->
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">📋 CSV <span style="font-weight:400;opacity:0.7;">— Conto → Movimenti → Esporta → CSV</span></div>
+                <div style="background:rgba(74,184,232,0.07);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:11px;color:var(--text-muted);">Formato: <code>Data;Causale;Descrizione;Importo;Saldo</code></div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <input type="file" id="sellaCsvInput" accept=".csv,.txt" style="display:none;" onchange="importSellaCSV(event)">
+                  <button class="btn" onclick="document.getElementById('sellaCsvInput').click()" style="background:linear-gradient(135deg,#4ab8e8,#2a8fc9);color:#fff;padding:9px 16px;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:13px;">📄 Scegli CSV Sella</button>
+                  <span id="sellaCsvStatus" style="font-size:12px;color:var(--text-muted);"></span>
+                </div>
+                <div id="sellaCsvPreview" style="display:none;margin-top:12px;">
+                  <div id="sellaCsvSummary" style="margin-bottom:10px;"></div>
+                  <div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;" id="sellaCsvTable"></div>
+                  <div style="display:flex;gap:10px;margin-top:12px;">
+                    <button class="btn btn-gold" onclick="confirmSellaCSV()" style="flex:1;">✅ Importa Tutto</button>
+                    <button class="btn btn-outline" onclick="cancelSellaCSV()" style="flex:1;">❌ Annulla</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── REVOLUT ── -->
           <div>
-            <div class="card-title" style="margin:0;">Carica Ricevuta Satispay</div>
-            <div style="font-size:12px;color:var(--text-muted);">Carica la ricevuta PDF di un singolo pagamento — viene aggiunta automaticamente alle spese</div>
+            <div onclick="toggleImportGroup('revolut')" style="display:flex;align-items:center;justify-content:space-between;padding:12px 18px;cursor:pointer;background:rgba(130,100,220,0.04);">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:#8264dc;">💜 Revolut</div>
+              <span class="ig-chevron" id="ig-chevron-revolut" style="font-size:12px;color:var(--text-muted);">▶</span>
+            </div>
+            <div id="ig-body-revolut" style="display:none;padding:14px 18px 16px;display:flex;flex-direction:column;gap:14px;">
+              <!-- Screenshot -->
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">📷 Screenshot transazione</div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <input type="file" id="revolutScreenshotInput" accept="image/*" style="display:none;" onchange="importRevolutScreenshot(event)" multiple>
+                  <button class="btn" onclick="document.getElementById('revolutScreenshotInput').click()" style="background:linear-gradient(135deg,#8264dc,#5a3fb5);color:#fff;padding:9px 16px;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:13px;">📷 Scegli screenshot/i</button>
+                  <span id="revolutScreenshotStatus" style="font-size:12px;color:var(--text-muted);"></span>
+                </div>
+                <div id="revolutScreenshotPreview" style="display:none;margin-top:12px;">
+                  <div id="revolutScreenshotList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px;"></div>
+                  <div style="display:flex;gap:10px;">
+                    <button class="btn btn-gold" onclick="confirmRevolutScreenshots()" style="flex:1;">✅ Importa tutte</button>
+                    <button class="btn btn-outline" onclick="cancelRevolutScreenshots()" style="flex:1;">❌ Annulla</button>
+                  </div>
+                </div>
+              </div>
+              <!-- PDF -->
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:8px;">📄 Estratto PDF</div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <input type="file" id="revolutFileInput" accept=".pdf" style="display:none;" onchange="importRevolutPDF(event)">
+                  <button class="btn" onclick="document.getElementById('revolutFileInput').click()" style="background:linear-gradient(135deg,#8264dc,#5a3fb5);color:#fff;padding:9px 16px;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:13px;">📂 Scegli PDF Revolut</button>
+                  <span id="revolutStatus" style="font-size:12px;color:var(--text-muted);"></span>
+                </div>
+                <div id="revolutPreview" style="display:none;margin-top:12px;">
+                  <div id="revolutPreviewSummary" style="margin-bottom:10px;"></div>
+                  <div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;" id="revolutPreviewTable"></div>
+                  <div style="display:flex;gap:10px;margin-top:12px;">
+                    <button class="btn btn-gold" onclick="confirmRevolutImport()" style="flex:1;">✅ Importa Tutto</button>
+                    <button class="btn btn-outline" onclick="cancelRevolutImport()" style="flex:1;">❌ Annulla</button>
+                  </div>
+                </div>
+              </div>
+              <!-- CSV -->
+              <div>
+                <div style="font-size:12px;font-weight:600;color:var(--text-muted);margin-bottom:4px;">📋 CSV <span style="font-weight:400;opacity:0.7;">— Conto → ··· → Estratto Conto → CSV</span></div>
+                <div style="background:rgba(130,100,220,0.07);border-radius:8px;padding:6px 10px;margin-bottom:8px;font-size:11px;color:var(--text-muted);">Formato: <code>Type,Product,Started Date,...,Amount</code></div>
+                <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                  <input type="file" id="revolutCsvInput" accept=".csv,.txt" style="display:none;" onchange="importRevolutCSV(event)">
+                  <button class="btn" onclick="document.getElementById('revolutCsvInput').click()" style="background:linear-gradient(135deg,#8264dc,#5a3fb5);color:#fff;padding:9px 16px;border:none;border-radius:10px;font-weight:600;cursor:pointer;font-size:13px;">📄 Scegli CSV Revolut</button>
+                  <span id="revolutCsvStatus" style="font-size:12px;color:var(--text-muted);"></span>
+                </div>
+                <div id="revolutCsvPreview" style="display:none;margin-top:12px;">
+                  <div id="revolutCsvSummary" style="margin-bottom:10px;"></div>
+                  <div style="max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;" id="revolutCsvTable"></div>
+                  <div style="display:flex;gap:10px;margin-top:12px;">
+                    <button class="btn btn-gold" onclick="confirmRevolutCSV()" style="flex:1;">✅ Importa Tutto</button>
+                    <button class="btn btn-outline" onclick="cancelRevolutCSV()" style="flex:1;">❌ Annulla</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <input type="file" id="satispayRicevutaInput" accept=".pdf" style="display:none;" onchange="importSatispayRicevuta(event)" multiple>
-          <button class="btn" onclick="document.getElementById('satispayRicevutaInput').click()" style="background:linear-gradient(135deg,#ff8c00,#e07000);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">🧾 Scegli ricevuta/e PDF</button>
-          <span id="satispayRicevutaStatus" style="font-size:13px;color:var(--text-muted);"></span>
-        </div>
-        <div id="satispayRicevutaPreview" style="display:none;margin-top:16px;">
-          <div id="satispayRicevutaList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;"></div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="btn btn-gold" onclick="confirmSatispayRicevute()" style="flex:1;min-width:140px;">✅ Importa tutte</button>
-            <button class="btn btn-outline" onclick="cancelSatispayRicevute()" style="flex:1;min-width:120px;">❌ Annulla</button>
-          </div>
-        </div>
-      </div>
 
-      <!-- SATISPAY PDF IMPORT CARD -->
-      <div class="card mb-20" style="border:2px dashed rgba(255,92,92,0.45);background:rgba(255,92,92,0.04);">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <span style="font-size:28px;">📱</span>
-          <div>
-            <div class="card-title" style="margin:0;">Importa da Satispay PDF</div>
-            <div style="font-size:12px;color:var(--text-muted);">Carica l'estratto PDF di Satispay — importa automaticamente tutte le uscite nei mesi corretti</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <input type="file" id="satispayFileInput" accept=".pdf" style="display:none;" onchange="importSatispayPDF(event)">
-          <button class="btn" onclick="document.getElementById('satispayFileInput').click()" style="background:linear-gradient(135deg,#e05c5c,#c94444);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📂 Scegli PDF Satispay</button>
-          <span id="satispayStatus" style="font-size:13px;color:var(--text-muted);"></span>
-        </div>
-        <!-- Preview risultati -->
-        <div id="satispayPreview" style="display:none;margin-top:16px;">
-          <div id="satispayPreviewSummary" style="margin-bottom:12px;"></div>
-          <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;" id="satispayPreviewTable"></div>
-          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
-            <button class="btn btn-gold" onclick="confirmSatispayImport()" style="flex:1;min-width:140px;">✅ Importa Tutto</button>
-            <button class="btn btn-outline" onclick="cancelSatispayImport()" style="flex:1;min-width:120px;">❌ Annulla</button>
-          </div>
-        </div>
-      </div>
+        </div><!-- /importAccordionBody -->
+      </div><!-- /importAccordionCard -->
 
-      <!-- MODAL SATISPAY — MAPPA CATEGORIE -->
+      <!-- SATISPAY MODAL CATEGORIE (fuori accordion) -->
       <div id="satispayModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:5000;background:rgba(0,0,0,0.8);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:16px;">
         <div class="modal" style="width:min(580px,100%);max-height:85vh;overflow-y:auto;">
           <h3 style="margin-bottom:4px;">📱 Importa da Satispay</h3>
@@ -4697,163 +4843,7 @@ setTimeout(_updateOfflineBanner, 500);
         </div>
       </div>
 
-
-      <!-- BANCA SELLA SCREENSHOT IMPORT -->
-      <div class="card mb-20" style="border:2px dashed rgba(74,184,232,0.6);background:rgba(74,184,232,0.06);">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <span style="font-size:28px;">📷</span>
-          <div>
-            <div class="card-title" style="margin:0;">Screenshot App Banca Sella</div>
-            <div style="font-size:12px;color:var(--text-muted);">Carica uno screenshot della home Sella — l'AI legge i movimenti, aggiorna le spese e il saldo</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <input type="file" id="sellaScreenshotInput" accept="image/*" style="display:none;" onchange="importSellaScreenshot(event)" multiple>
-          <button class="btn" onclick="document.getElementById('sellaScreenshotInput').click()" style="background:linear-gradient(135deg,#4ab8e8,#2a8fc9);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📷 Scegli screenshot/i</button>
-          <span id="sellaScreenshotStatus" style="font-size:13px;color:var(--text-muted);"></span>
-        </div>
-        <div id="sellaScreenshotPreview" style="display:none;margin-top:16px;">
-          <div id="sellaScreenshotInfo" style="margin-bottom:10px;font-size:13px;font-weight:600;color:#4a90e8;"></div>
-          <div id="sellaScreenshotList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;"></div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="btn btn-gold" onclick="confirmSellaScreenshots()" style="flex:1;min-width:140px;">✅ Importa spese</button>
-            <button class="btn btn-outline" onclick="cancelSellaScreenshots()" style="flex:1;min-width:120px;">❌ Annulla</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- BANCA SELLA PDF IMPORT CARD -->
-      <div class="card mb-20" style="border:2px dashed rgba(74,184,232,0.45);background:rgba(74,184,232,0.04);">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <span style="font-size:28px;">🏦</span>
-          <div>
-            <div class="card-title" style="margin:0;">Importa da Banca Sella PDF</div>
-            <div style="font-size:12px;color:var(--text-muted);">Carica l'estratto conto PDF di Banca Sella — importa automaticamente tutte le uscite nei mesi corretti</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <input type="file" id="sellaFileInput" accept=".pdf" style="display:none;" onchange="importSellaPDF(event)">
-          <button class="btn" onclick="document.getElementById('sellaFileInput').click()" style="background:linear-gradient(135deg,#4ab8e8,#2a8fc9);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📂 Scegli PDF Sella</button>
-          <span id="sellaStatus" style="font-size:13px;color:var(--text-muted);"></span>
-        </div>
-        <div id="sellaPreview" style="display:none;margin-top:16px;">
-          <div id="sellaPreviewSummary" style="margin-bottom:12px;"></div>
-          <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;" id="sellaPreviewTable"></div>
-          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
-            <button class="btn btn-gold" onclick="confirmSellaImport()" style="flex:1;min-width:140px;">✅ Importa Tutto</button>
-            <button class="btn btn-outline" onclick="cancelSellaImport()" style="flex:1;min-width:120px;">❌ Annulla</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- REVOLUT SCREENSHOT IMPORT -->
-      <div class="card mb-20" style="border:2px dashed rgba(130,100,220,0.6);background:rgba(130,100,220,0.06);">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <span style="font-size:28px;">💜</span>
-          <div>
-            <div class="card-title" style="margin:0;">Screenshot transazione Revolut</div>
-            <div style="font-size:12px;color:var(--text-muted);">Carica uno screenshot dal dettaglio transazione Revolut — l'AI estrae importo, commerciante e data in automatico</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <input type="file" id="revolutScreenshotInput" accept="image/*" style="display:none;" onchange="importRevolutScreenshot(event)" multiple>
-          <button class="btn" onclick="document.getElementById('revolutScreenshotInput').click()" style="background:linear-gradient(135deg,#8264dc,#5a3fb5);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📷 Scegli screenshot/i</button>
-          <span id="revolutScreenshotStatus" style="font-size:13px;color:var(--text-muted);"></span>
-        </div>
-        <div id="revolutScreenshotPreview" style="display:none;margin-top:16px;">
-          <div id="revolutScreenshotList" style="border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px;"></div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="btn btn-gold" onclick="confirmRevolutScreenshots()" style="flex:1;min-width:140px;">✅ Importa tutte</button>
-            <button class="btn btn-outline" onclick="cancelRevolutScreenshots()" style="flex:1;min-width:120px;">❌ Annulla</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- REVOLUT PDF IMPORT CARD -->
-      <div class="card mb-20" style="border:2px dashed rgba(130,100,220,0.45);background:rgba(130,100,220,0.04);">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-          <span style="font-size:28px;">💜</span>
-          <div>
-            <div class="card-title" style="margin:0;">Importa da Revolut PDF</div>
-            <div style="font-size:12px;color:var(--text-muted);">Carica l'estratto PDF di Revolut — importa automaticamente tutte le uscite nei mesi corretti</div>
-          </div>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <input type="file" id="revolutFileInput" accept=".pdf" style="display:none;" onchange="importRevolutPDF(event)">
-          <button class="btn" onclick="document.getElementById('revolutFileInput').click()" style="background:linear-gradient(135deg,#8264dc,#5a3fb5);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📂 Scegli PDF Revolut</button>
-          <span id="revolutStatus" style="font-size:13px;color:var(--text-muted);"></span>
-        </div>
-        <div id="revolutPreview" style="display:none;margin-top:16px;">
-          <div id="revolutPreviewSummary" style="margin-bottom:12px;"></div>
-          <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;" id="revolutPreviewTable"></div>
-          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
-            <button class="btn btn-gold" onclick="confirmRevolutImport()" style="flex:1;min-width:140px;">✅ Importa Tutto</button>
-            <button class="btn btn-outline" onclick="cancelRevolutImport()" style="flex:1;min-width:120px;">❌ Annulla</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ═══ CSV IMPORT SECTION ═══ -->
-      <div style="padding:10px 0 6px;margin-bottom:8px;">
-        <div style="font-size:13px;font-weight:700;color:var(--gold);letter-spacing:0.5px;">📄 IMPORT DA CSV — Alternativa al PDF</div>
-        <div style="font-size:11px;color:var(--text-muted);margin-top:3px;">Sella e Revolut esportano anche file CSV direttamente dall'app — più veloci dei PDF</div>
-      </div>
-
-      <!-- SELLA CSV -->
-      <div class="card mb-20" style="border:2px dashed rgba(74,184,232,0.4);background:rgba(74,184,232,0.04);">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-          <span style="font-size:26px;">🏦</span>
-          <div>
-            <div class="card-title" style="margin:0;">Importa da Banca Sella CSV</div>
-            <div style="font-size:12px;color:var(--text-muted);">Nell'app Sella: <strong>Conto → Movimenti → Esporta → CSV</strong></div>
-          </div>
-        </div>
-        <div style="background:rgba(74,184,232,0.07);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:11px;color:var(--text-muted);">
-          📋 Formato atteso: <code>Data;Causale;Descrizione;Importo;Saldo</code> con separatore <strong>;</strong>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <input type="file" id="sellaCsvInput" accept=".csv,.txt" style="display:none;" onchange="importSellaCSV(event)">
-          <button class="btn" onclick="document.getElementById('sellaCsvInput').click()" style="background:linear-gradient(135deg,#4ab8e8,#2a8fc9);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📄 Scegli CSV Sella</button>
-          <span id="sellaCsvStatus" style="font-size:13px;color:var(--text-muted);"></span>
-        </div>
-        <div id="sellaCsvPreview" style="display:none;margin-top:16px;">
-          <div id="sellaCsvSummary" style="margin-bottom:12px;"></div>
-          <div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;" id="sellaCsvTable"></div>
-          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
-            <button class="btn btn-gold" onclick="confirmSellaCSV()" style="flex:1;min-width:140px;">✅ Importa Tutto</button>
-            <button class="btn btn-outline" onclick="cancelSellaCSV()" style="flex:1;min-width:120px;">❌ Annulla</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- REVOLUT CSV -->
-      <div class="card mb-20" style="border:2px dashed rgba(130,100,220,0.4);background:rgba(130,100,220,0.04);">
-        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
-          <span style="font-size:26px;">💜</span>
-          <div>
-            <div class="card-title" style="margin:0;">Importa da Revolut CSV</div>
-            <div style="font-size:12px;color:var(--text-muted);">Nell'app Revolut: <strong>Conto → ··· → Estratto Conto → CSV</strong></div>
-          </div>
-        </div>
-        <div style="background:rgba(130,100,220,0.07);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:11px;color:var(--text-muted);">
-          📋 Formato atteso: <code>Type,Product,Started Date,Completed Date,Description,Amount,Fee,Currency,State,Balance</code>
-        </div>
-        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-          <input type="file" id="revolutCsvInput" accept=".csv,.txt" style="display:none;" onchange="importRevolutCSV(event)">
-          <button class="btn" onclick="document.getElementById('revolutCsvInput').click()" style="background:linear-gradient(135deg,#8264dc,#5a3fb5);color:#fff;padding:10px 20px;border:none;border-radius:10px;font-weight:600;cursor:pointer;">📄 Scegli CSV Revolut</button>
-          <span id="revolutCsvStatus" style="font-size:13px;color:var(--text-muted);"></span>
-        </div>
-        <div id="revolutCsvPreview" style="display:none;margin-top:16px;">
-          <div id="revolutCsvSummary" style="margin-bottom:12px;"></div>
-          <div style="max-height:300px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;" id="revolutCsvTable"></div>
-          <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
-            <button class="btn btn-gold" onclick="confirmRevolutCSV()" style="flex:1;min-width:140px;">✅ Importa Tutto</button>
-            <button class="btn btn-outline" onclick="cancelRevolutCSV()" style="flex:1;min-width:120px;">❌ Annulla</button>
-          </div>
-        </div>
-      </div>
-
-            <div class="card mb-20" id="budgetCard" style="border:2px solid rgba(201,168,76,0.4);background:rgba(201,168,76,0.04);">
+                  <div class="card mb-20" id="budgetCard" style="border:2px solid rgba(201,168,76,0.4);background:rgba(201,168,76,0.04);">
         <div class="card-title">🎯 Budget Settimanale</div>
         <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Imposta un budget diverso per ogni settimana del mese. Le settimane che non hanno un budget vengono mostrate senza limite.</p>
         <div id="budgetWeekTable" style="display:flex;flex-direction:column;gap:10px;"></div>
@@ -20277,6 +20267,34 @@ function loadTheme(forceLogin) {
 
 // ===== SPESE RICORRENTI =====
 const GIORNI_LABELS = ['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+
+// ===== IMPORT ACCORDION =====
+function toggleImportAccordion() {
+  const body = document.getElementById('importAccordionBody');
+  const chevron = document.getElementById('importAccordionChevron');
+  if(!body) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  if(chevron) chevron.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+function toggleImportGroup(group) {
+  const body = document.getElementById('ig-body-' + group);
+  const chevron = document.getElementById('ig-chevron-' + group);
+  if(!body) return;
+  const open = body.style.display === 'flex' || body.style.display === 'block';
+  // Chiudi tutti gli altri
+  ['excel','satispay','sella','revolut'].forEach(g => {
+    const b = document.getElementById('ig-body-' + g);
+    const c = document.getElementById('ig-chevron-' + g);
+    if(b) b.style.display = 'none';
+    if(c) c.textContent = '▶';
+  });
+  if(!open) {
+    body.style.display = group === 'excel' ? 'block' : 'flex';
+    if(chevron) chevron.textContent = '▼';
+  }
+}
 
 // ===== SPESE SUGGERITE =====
 // Analizza lo storico e trova spese che si ripetono (≥2 occorrenze, stessa desc+importo)
