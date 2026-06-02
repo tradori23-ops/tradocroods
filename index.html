@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v195';
+  var BUILD = '20260602-v196';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -1162,6 +1162,20 @@ body.light .stat-mini .s-label { color:#44446a; }
   margin-bottom: 20px;
   flex-wrap: nowrap;
   min-height: 48px;
+  /* Safe area per notch e Dynamic Island — si attiva automaticamente */
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Compensazione main-content per safe area */
+@supports (padding-top: env(safe-area-inset-top)) {
+  @media (max-width: 767px) {
+    .topbar {
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+    .main-content {
+      padding-top: 0 !important;
+    }
+  }
 }
 
 /* Titolo + occhio: cresce al centro */
@@ -2044,13 +2058,23 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
    ══════════════════════════════════════════════════════════════════ */
 @media (max-width:430px) and (min-height:850px) {
   .topbar {
-    padding-top: max(14px, env(safe-area-inset-top, 14px)) !important;
+    padding-top: max(59px, env(safe-area-inset-top, 59px)) !important;
+    min-height: calc(48px + max(59px, env(safe-area-inset-top, 59px))) !important;
   }
   .main-content {
+    padding-top: calc(max(59px, env(safe-area-inset-top, 59px)) + 58px) !important;
     padding-bottom: max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px)) !important;
   }
   #tc-ai-fab {
-    bottom: max(82px, calc(env(safe-area-inset-bottom, 0px) + 82px)) !important;
+    bottom: max(90px, calc(env(safe-area-inset-bottom, 0px) + 90px)) !important;
+  }
+  /* Sidebar parte sotto la Dynamic Island */
+  .sidebar {
+    padding-top: max(64px, env(safe-area-inset-top, 64px)) !important;
+  }
+  /* Mobile menu dropdown scende sotto la Dynamic Island */
+  #topbarMobileMenu > div {
+    top: calc(max(59px, env(safe-area-inset-top, 59px)) + 58px) !important;
   }
 }
 
