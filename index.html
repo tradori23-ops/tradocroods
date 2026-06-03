@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v219';
+  var BUILD = '20260602-v221';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -3750,22 +3750,28 @@ setTimeout(_updateOfflineBanner, 500);
   </div>
 
   <div class="login-card">
-    <!-- PORTAFOGLIO ANIMATO -->
-    <div class="login-logo">
-      <div id="walletWrap" class="wallet-wrap">
-        <!-- Portafoglio SVG -->
-        <div class="wallet-outer" id="walletOuter">
-          <div class="wallet-body">
-            <div class="wallet-stitching"></div>
-            <div class="wallet-pocket"></div>
-            <div class="wallet-clasp"></div>
-          </div>
-          <div class="wallet-flap" id="walletFlap">
-            <div class="wallet-stitching"></div>
-            <div class="wallet-clasp-top"></div>
-          </div>
+    <!-- PORTAFOGLIO VERO CHE SI APRE -->
+    <div id="walletScene" class="wallet-scene">
+      <!-- Ala sinistra -->
+      <div class="wallet-wing wallet-left" id="walletLeft">
+        <div class="wallet-wing-inner">
+          <div class="wallet-stitch"></div>
+          <div class="wallet-brand">TC</div>
+          <div class="wallet-card-slot"></div>
+          <div class="wallet-card-slot"></div>
         </div>
-        <!-- Logo che emerge dal portafoglio -->
+        <div class="wallet-spine"></div>
+      </div>
+      <!-- Ala destra -->
+      <div class="wallet-wing wallet-right" id="walletRight">
+        <div class="wallet-wing-inner">
+          <div class="wallet-stitch"></div>
+          <div class="wallet-pocket-slot"></div>
+        </div>
+        <div class="wallet-spine-r"></div>
+      </div>
+      <!-- CONTENUTO INTERNO — la schermata di accesso -->
+      <div class="wallet-interior" id="walletInterior">
         <div class="wallet-logo-reveal" id="walletLogoReveal">
           <h1>TRAD.CLAB</h1>
           <p>by Family</p>
@@ -7726,31 +7732,63 @@ function createHexagons() {
 }
 // ── Portafoglio animato ──
 function openWallet() {
-  const flap = document.getElementById('walletFlap');
+  const wLeft = document.getElementById('walletLeft');
+  const wRight = document.getElementById('walletRight');
+  const interior = document.getElementById('walletInterior');
   const logo = document.getElementById('walletLogoReveal');
-  if(!flap || !logo) return;
-  // Reset stato
-  flap.classList.remove('open','closing');
-  logo.classList.remove('visible','hiding');
-  // Pausa iniziale poi apri patta lentamente
-  setTimeout(() => { flap.classList.add('open'); }, 300);
-  // Logo emerge dopo che la patta è quasi sparita
-  setTimeout(() => { logo.classList.add('visible'); }, 1400);
+  if(!wLeft || !wRight) return;
+
+  // Reset stato chiuso
+  wLeft.classList.remove('open');
+  wRight.classList.remove('open');
+  if(interior) interior.classList.remove('visible');
+  if(logo) {
+    logo.classList.remove('visible','hiding');
+    logo.style.opacity = '0';
+    logo.style.transform = 'scale(0.9)';
+  }
+  void wLeft.offsetHeight;
+
+  // Pausa drammatica poi apri le ali
+  setTimeout(() => {
+    wLeft.classList.add('open');
+    wRight.classList.add('open');
+  }, 400);
+
+  // Mostra interno
+  setTimeout(() => {
+    if(interior) interior.classList.add('visible');
+  }, 900);
+
+  // Mostra logo
+  setTimeout(() => {
+    if(logo) logo.classList.add('visible');
+  }, 1100);
 }
 
 function closeWallet(onComplete) {
-  const flap = document.getElementById('walletFlap');
+  const wLeft = document.getElementById('walletLeft');
+  const wRight = document.getElementById('walletRight');
+  const interior = document.getElementById('walletInterior');
   const logo = document.getElementById('walletLogoReveal');
-  if(!flap || !logo) { if(onComplete) onComplete(); return; }
-  // Nascondi logo subito
-  logo.classList.add('hiding');
-  logo.classList.remove('visible');
-  // Chiudi patta dopo che il logo è sparito
+  if(!wLeft) { if(onComplete) onComplete(); return; }
+
+  // Nascondi logo
+  if(logo) logo.classList.add('hiding');
+
+  // Nascondi interno
   setTimeout(() => {
-    flap.classList.remove('open');
-  }, 400);
-  // Callback dopo animazione completa
-  setTimeout(() => { if(onComplete) onComplete(); }, 1200);
+    if(interior) interior.classList.remove('visible');
+  }, 200);
+
+  // Chiudi le ali
+  setTimeout(() => {
+    wLeft.classList.remove('open');
+    wRight.classList.remove('open');
+  }, 300);
+
+  // Callback
+  setTimeout(() => { if(onComplete) onComplete(); }, 1400);
 }
 
 // ── Citazioni rotanti pannello sinistro ──
@@ -25503,137 +25541,176 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
 /* ══════════════════════════════════════════════════════
    PORTAFOGLIO ANIMATO — LOGIN LOGO
    ══════════════════════════════════════════════════════ */
-.wallet-wrap {
+/* ══════════════════════════════════════════════════════
+   PORTAFOGLIO VERO — SI APRE COME UN LIBRO
+   ══════════════════════════════════════════════════════ */
+
+/* Scena portafoglio — contiene tutto */
+.wallet-scene {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin-bottom: 4px;
-  min-height: 100px;
+  width: 240px;
+  height: 80px;
+  margin: 0 auto 28px;
+  perspective: 800px;
 }
 
-/* Corpo portafoglio */
-.wallet-outer {
-  position: relative;
-  width: 96px;
-  height: 64px;
-  margin: 0 auto 16px;
-  cursor: default;
-}
-
-.wallet-body {
+/* Ali del portafoglio */
+.wallet-wing {
   position: absolute;
-  inset: 0;
-  background: linear-gradient(145deg, #2a1a08, #3d2510, #2a1a08);
-  border-radius: 6px;
-  border: 1px solid rgba(201,168,76,0.5);
-  box-shadow:
-    0 4px 20px rgba(0,0,0,0.6),
-    inset 0 1px 0 rgba(201,168,76,0.3),
-    0 0 0 1px rgba(201,168,76,0.1);
+  top: 0;
+  width: 116px;
+  height: 80px;
+  background: linear-gradient(145deg, #2a1a08 0%, #4a2e12 40%, #2a1a08 100%);
+  border: 1px solid rgba(201,168,76,0.55);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7), inset 0 1px 0 rgba(201,168,76,0.25);
+  transform-origin: center;
+  transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 1.2s ease;
   overflow: hidden;
-}
-
-.wallet-stitching {
-  position: absolute;
-  inset: 4px;
-  border: 1px dashed rgba(201,168,76,0.2);
   border-radius: 4px;
-  pointer-events: none;
-}
-
-.wallet-pocket {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 24px;
-  background: linear-gradient(180deg, rgba(201,168,76,0.08), rgba(201,168,76,0.04));
-  border-top: 1px solid rgba(201,168,76,0.25);
-}
-
-.wallet-clasp {
-  position: absolute;
-  right: 12px; top: 50%;
-  transform: translateY(-50%);
-  width: 9px; height: 9px;
-  background: radial-gradient(circle, #f5cb72, #a07830);
-  border-radius: 50%;
-  box-shadow: 0 0 6px rgba(201,168,76,0.6);
-}
-
-/* Patta — usa scaleY + translateY invece di rotateX per massima compatibilità */
-.wallet-flap {
-  position: absolute;
-  top: 0; left: -1px; right: -1px;
-  height: 34px;
-  background: linear-gradient(160deg, #3d2510, #2a1a08, #3d2510);
-  border-radius: 6px 6px 0 0;
-  border: 1px solid rgba(201,168,76,0.5);
-  transform-origin: top center;
-  transform: scaleY(1) translateY(0px);
-  transition: transform 1.4s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 1s ease;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-  overflow: hidden;
   z-index: 2;
 }
 
-.wallet-flap .wallet-stitching {
-  inset: 3px 4px;
-  bottom: 0;
+.wallet-left {
+  left: 0;
+  border-radius: 4px 0 0 4px;
+  transform-origin: right center;
+  transform: rotateY(0deg);
 }
 
-.wallet-clasp-top {
+.wallet-right {
+  right: 0;
+  border-radius: 0 4px 4px 0;
+  transform-origin: left center;
+  transform: rotateY(0deg);
+}
+
+/* Stato aperto */
+.wallet-left.open {
+  transform: rotateY(-165deg);
+  box-shadow: -8px 12px 40px rgba(0,0,0,0.5);
+}
+
+.wallet-right.open {
+  transform: rotateY(165deg);
+  box-shadow: 8px 12px 40px rgba(0,0,0,0.5);
+}
+
+/* Interno delle ali */
+.wallet-wing-inner {
   position: absolute;
-  left: 50%; bottom: -5px;
-  transform: translateX(-50%);
-  width: 10px; height: 10px;
-  background: radial-gradient(circle at 40% 35%, #f5cb72, #a07830);
-  border-radius: 50%;
-  border: 1px solid rgba(201,168,76,0.8);
-  box-shadow: 0 0 8px rgba(201,168,76,0.7), 0 2px 4px rgba(0,0,0,0.4);
+  inset: 0;
 }
 
-/* Stato APERTO — patta scivola su e svanisce */
-.wallet-flap.open {
-  transform: scaleY(0.05) translateY(-40px);
+/* Cucitura */
+.wallet-stitch {
+  position: absolute;
+  inset: 5px;
+  border: 1px dashed rgba(201,168,76,0.22);
+  border-radius: 3px;
+  pointer-events: none;
+}
+
+/* Brand TC sull'ala sinistra */
+.wallet-brand {
+  position: absolute;
+  bottom: 10px;
+  right: 14px;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 18px;
+  font-weight: 300;
+  letter-spacing: 2px;
+  color: rgba(201,168,76,0.5);
+}
+
+/* Slot carte */
+.wallet-card-slot {
+  position: absolute;
+  left: 10px;
+  width: 70px;
+  height: 18px;
+  background: rgba(0,0,0,0.3);
+  border-radius: 3px;
+  border: 1px solid rgba(201,168,76,0.15);
+}
+.wallet-card-slot:first-of-type { top: 14px; }
+.wallet-card-slot:last-of-type  { top: 38px; }
+
+/* Tasca sull'ala destra */
+.wallet-pocket-slot {
+  position: absolute;
+  right: 10px; left: 10px;
+  top: 14px;
+  height: 48px;
+  background: rgba(0,0,0,0.2);
+  border-radius: 3px;
+  border: 1px solid rgba(201,168,76,0.12);
+}
+
+/* Rilegatura centrale */
+.wallet-spine {
+  position: absolute;
+  right: -1px; top: 0; bottom: 0;
+  width: 5px;
+  background: linear-gradient(90deg, #1a0e04, #2a1a08, #1a0e04);
+  border-right: 1px solid rgba(201,168,76,0.35);
+}
+.wallet-spine-r {
+  position: absolute;
+  left: -1px; top: 0; bottom: 0;
+  width: 5px;
+  background: linear-gradient(90deg, #1a0e04, #2a1a08, #1a0e04);
+  border-left: 1px solid rgba(201,168,76,0.35);
+}
+
+/* Interno del portafoglio — logo + accesso */
+.wallet-interior {
+  position: absolute;
+  inset: 2px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   opacity: 0;
-  transition: transform 1.6s cubic-bezier(0.4, 0, 0.2, 1),
-              opacity 1.2s ease;
+  transition: opacity 0.8s ease 0.8s;
+  z-index: 1;
 }
 
-/* Logo che emerge */
+.wallet-interior.visible {
+  opacity: 1;
+}
+
+/* Logo reveal */
 .wallet-logo-reveal {
-  opacity: 0;
-  transform: translateY(16px) scale(0.88);
-  transition: opacity 1.2s ease, transform 1.2s cubic-bezier(0.2,0.8,0.2,1);
   text-align: center;
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 1s ease, transform 1s cubic-bezier(0.2,0.8,0.2,1);
 }
-
 .wallet-logo-reveal.visible {
   opacity: 1;
-  transform: translateY(0) scale(1);
+  transform: scale(1);
 }
-
 .wallet-logo-reveal.hiding {
   opacity: 0;
-  transform: translateY(10px) scale(0.92);
-  transition: opacity 0.5s ease, transform 0.5s ease;
+  transform: scale(0.92);
+  transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-/* Shimmer sul portafoglio */
-@keyframes walletShine {
+/* Shimmer sulle ali al momento apertura */
+@keyframes wingShine {
   0%   { left: -100%; opacity: 0; }
-  10%  { opacity: 1; }
-  70%  { left: 120%; opacity: 1; }
+  15%  { opacity: 1; }
+  70%  { left: 120%; opacity: 0.6; }
   100% { left: 120%; opacity: 0; }
 }
-.wallet-body::after {
+.wallet-wing::after {
   content: '';
   position: absolute;
   top: 0; left: -100%;
-  width: 60%; height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.2), transparent);
-  animation: walletShine 3s ease 0.4s both;
+  width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.18), transparent);
+  animation: wingShine 2.2s ease 0.5s both;
 }
 
 /* ════ RESPONSIVE LOGIN PAGE — NETFLIX STYLE ════ */
