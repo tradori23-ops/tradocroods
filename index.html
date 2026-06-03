@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v213';
+  var BUILD = '20260602-v217';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -251,6 +251,15 @@ body.light .fld input::placeholder { color: #8888aa; }
 /* Login page: mantieni sempre dark indipendentemente dal tema */
 #loginPage, #loginPage * { -webkit-text-fill-color: unset; }
 #loginPage .login-logo h1 { -webkit-text-fill-color: transparent; }
+
+/* Pannello sinistro — sempre visibile, mai testo nero */
+body.light #loginLeftPanel .llp-logo { -webkit-text-fill-color: transparent !important; }
+body.light #loginLeftPanel .llp-sub { color: rgba(245,203,114,0.55) !important; }
+body.light #loginLeftPanel .llp-quote { color: rgba(255,255,255,0.85) !important; }
+body.light #loginLeftPanel .llp-quote-author { color: rgba(245,203,114,0.65) !important; }
+body.light #loginLeftPanel .llp-feat { color: rgba(245,203,114,0.65) !important; }
+body.light #loginLeftPanel .llp-year { color: rgba(245,203,114,0.35) !important; }
+body.light #loginLeftPanel .llp-divider { background: linear-gradient(90deg, transparent, rgba(245,203,114,0.6)) !important; }
 body.light #loginPage .form-group label { color: rgba(201,168,76,0.65) !important; }
 body.light #loginPage #loginTitle { color: rgba(201,168,76,0.5) !important; }
 body.light #loginPage .profile-name { color: rgba(201,168,76,0.6) !important; }
@@ -995,9 +1004,18 @@ body.light .stat-mini .s-label { color:#44446a; }
   font-family: 'DM Sans', sans-serif;
   font-size: 10px;
   letter-spacing: 6px;
-  color: rgba(245,203,114,0.55);
   text-transform: uppercase;
   margin-bottom: 32px;
+  background: linear-gradient(
+    90deg,
+    #a07830 0%, #c9a84c 20%, #f5cb72 40%, #ffe97a 50%,
+    #f5cb72 60%, #c9a84c 80%, #a07830 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: goldShimmerText 3.5s linear infinite;
 }
 
 .llp-divider {
@@ -1294,12 +1312,30 @@ body.light .stat-mini .s-label { color:#44446a; }
 
 .login-logo p {
   font-family: 'DM Sans', sans-serif;
-  color: rgba(201,168,76,0.45);
   font-size: 9px;
   letter-spacing: 5px;
   text-transform: uppercase;
   margin-top: 6px;
-  font-weight: 300;
+  font-weight: 400;
+  background: linear-gradient(
+    90deg,
+    #a07830 0%,
+    #c9a84c 20%,
+    #f5cb72 35%,
+    #ffe97a 50%,
+    #f5cb72 65%,
+    #c9a84c 80%,
+    #a07830 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: goldShimmerText 3s linear infinite;
+}
+@keyframes goldShimmerText {
+  0%   { background-position: 200% center; }
+  100% { background-position: 0% center; }
 }
 
 /* Tabs */
@@ -1519,19 +1555,19 @@ body.light .stat-mini .s-label { color:#44446a; }
 }
 
 .sidebar-logo {
-  padding: 0 20px 20px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 12px;
+  padding: 14px 20px 14px;
+  border-bottom: 1px solid rgba(201,168,76,0.12);
+  margin-bottom: 0;
 }
 
 .sidebar-logo h2 {
-  font-family: 'Playfair Display', serif;
+  font-family: 'Cormorant Garamond', serif;
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 300;
   background: linear-gradient(135deg, var(--gold), var(--gold-light));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  letter-spacing: -0.3px;
+  letter-spacing: 4px;
 }
 
 .sidebar-logo p {
@@ -1542,12 +1578,65 @@ body.light .stat-mini .s-label { color:#44446a; }
   margin-top: 1px;
 }
 
+/* Luxury logo sidebar */
+.tradclab-lux-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+.tradclab-lux {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 22px;
+  font-weight: 300;
+  letter-spacing: 5px;
+  background: linear-gradient(135deg, #a07830, #c9a84c, #f5cb72, #c9a84c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  animation: luxLogoShimmer 4s ease-in-out infinite alternate;
+}
+@keyframes luxLogoShimmer {
+  0%   { background-position: 0% 50%; }
+  100% { background-position: 100% 50%; }
+}
+.tradclab-lux-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 8px;
+  font-weight: 400;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  opacity: 1;
+  transition: opacity 0.5s ease;
+  background: linear-gradient(
+    90deg,
+    #a07830 0%, #c9a84c 20%, #f5cb72 40%, #ffe97a 50%,
+    #f5cb72 60%, #c9a84c 80%, #a07830 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: goldShimmerText 4s linear infinite;
+}
+#brandGreeting {
+  animation: greetingFade 0.6s ease both;
+}
+body.light .tradclab-lux {
+  background: linear-gradient(135deg, #8a6500, #c9a84c, #e8b44a);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+body.light .tradclab-lux-sub { color: rgba(138,101,0,0.5); }
+
 .sidebar-user {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 10px 20px;
-  margin-bottom: 8px;
+  padding: 10px 16px;
+  margin-bottom: 0;
 }
 
 /* Sidebar user con sfondo personalizzato */
@@ -3661,9 +3750,27 @@ setTimeout(_updateOfflineBanner, 500);
   </div>
 
   <div class="login-card">
+    <!-- PORTAFOGLIO ANIMATO -->
     <div class="login-logo">
-      <h1>TRAD.CLAB</h1>
-      <p>by Family</p>
+      <div id="walletWrap" class="wallet-wrap">
+        <!-- Portafoglio SVG -->
+        <div class="wallet-outer" id="walletOuter">
+          <div class="wallet-body">
+            <div class="wallet-stitching"></div>
+            <div class="wallet-pocket"></div>
+            <div class="wallet-clasp"></div>
+          </div>
+          <div class="wallet-flap" id="walletFlap">
+            <div class="wallet-stitching"></div>
+            <div class="wallet-clasp-top"></div>
+          </div>
+        </div>
+        <!-- Logo che emerge dal portafoglio -->
+        <div class="wallet-logo-reveal" id="walletLogoReveal">
+          <h1>TRAD.CLAB</h1>
+          <p>by Family</p>
+        </div>
+      </div>
     </div>
 
     <!-- NETFLIX PROFILES -->
@@ -3885,13 +3992,13 @@ setTimeout(_updateOfflineBanner, 500);
   <!-- SIDEBAR -->
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-logo">
-      <div class="tradclab-neon-wrap">
-        <span class="tradclab-neon">TRAD<span class="tradclab-dot">.</span>CLAB</span>
-        <span class="tradclab-sub" id="brandGreeting">by Family</span>
+      <div class="tradclab-lux-wrap">
+        <span class="tradclab-lux">TRAD.CLAB</span>
+        <span class="tradclab-lux-sub" id="brandGreeting">by Family</span>
       </div>
     </div>
-    <div id="sidebarUserHero" style="position:relative;overflow:hidden;border-radius:0;transition:all 0.3s ease;">
-      <div class="sidebar-user" style="position:relative;z-index:1;">
+    <div id="sidebarUserHero" style="position:relative;overflow:hidden;border-radius:0;transition:all 0.3s ease;border-bottom:1px solid rgba(201,168,76,0.08);">
+      <div class="sidebar-user" style="position:relative;z-index:1;padding:12px 16px;margin-bottom:0;">
         <div class="user-avatar" id="userAvatar" onclick="triggerPhotoUpload()" title="Cambia foto profilo">
           <div class="avatar-edit-overlay">📷</div>
         </div>
@@ -7617,6 +7724,36 @@ function createHexagons() {
     c.appendChild(h);
   }
 }
+// ── Portafoglio animato ──
+function openWallet() {
+  const flap = document.getElementById('walletFlap');
+  const logo = document.getElementById('walletLogoReveal');
+  if(!flap || !logo) return;
+  // Reset stato
+  flap.classList.remove('closing');
+  logo.classList.remove('hiding');
+  // Apri patta
+  setTimeout(() => { flap.classList.add('open'); }, 80);
+  // Mostra logo
+  setTimeout(() => { logo.classList.add('visible'); }, 500);
+}
+
+function closeWallet(onComplete) {
+  const flap = document.getElementById('walletFlap');
+  const logo = document.getElementById('walletLogoReveal');
+  if(!flap || !logo) { if(onComplete) onComplete(); return; }
+  // Nascondi logo
+  logo.classList.add('hiding');
+  logo.classList.remove('visible');
+  // Chiudi patta
+  setTimeout(() => {
+    flap.classList.add('closing');
+    flap.classList.remove('open');
+  }, 200);
+  // Callback dopo animazione
+  setTimeout(() => { if(onComplete) onComplete(); }, 900);
+}
+
 // ── Citazioni rotanti pannello sinistro ──
 const _luxQuotes = [
   { text: "Il denaro che si possiede è strumento di libertà; quello che si insegue è strumento di schiavitù.", author: "Jean-Jacques Rousseau" },
@@ -7717,6 +7854,7 @@ try {
   createHexagons();
   initLuxParticles();
   initLuxQuotes();
+  openWallet();
   renderVersion();
   loadTheme(true);
   loadSavedBg();
@@ -8322,13 +8460,19 @@ function enterApp(user) {
       const el2 = document.getElementById('tc-loading-screen');
       if(el2) el2.remove();
     }, 300);
-    document.getElementById('loginPage').style.display = 'none';
+    // Chiudi portafoglio poi nascondi login
+    closeWallet();
+    setTimeout(() => {
+      document.getElementById('loginPage').style.display = 'none';
+    }, 600);
     const appEl = document.getElementById('app');
-    appEl.style.display = 'block';
-    // Force browser repaint to fix position:fixed children after display:none→block
-    appEl.style.transform = 'translateZ(0)';
-    void appEl.offsetHeight; // trigger reflow
-    appEl.style.transform = '';
+    setTimeout(() => {
+      appEl.style.display = 'block';
+      // Force browser repaint to fix position:fixed children after display:none→block
+      appEl.style.transform = 'translateZ(0)';
+      void appEl.offsetHeight;
+      appEl.style.transform = '';
+    }, 400);
     // Ensure main-content has correct margin on desktop
     const mc = appEl.querySelector('.main-content');
     if(mc) {
@@ -8462,12 +8606,16 @@ async function esci() {
   document.getElementById('loginPassword').value = '';
   document.getElementById('loginPage').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
+  // Forza tema scuro sulla login page
+  loadTheme(true);
   // Torna alla griglia profili (non all'auto-selezione)
   document.getElementById('profilePasswordStep').style.display = 'none';
   document.getElementById('registerStep').style.display = 'none';
   document.getElementById('netflixProfiles').style.display = 'flex';
   renderProfilesGrid();
   showMsg('Hai effettuato il logout.', 'success');
+  // Apri portafoglio sulla login
+  setTimeout(() => openWallet(), 100);
 }
 
 
@@ -25164,64 +25312,10 @@ input:focus, select:focus, textarea:focus {
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ── Logo Neon TRAD.CLAB ── */
-.tradclab-neon-wrap {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  padding: 2px 0;
-}
-.tradclab-neon {
-  font-family: var(--font-mono), monospace;
-  font-size: 20px;
-  font-weight: 800;
-  letter-spacing: 2px;
-  color: #00f5ff;
-  text-shadow:
-    0 0 6px #00f5ff,
-    0 0 14px #00f5ff,
-    0 0 28px rgba(0,245,255,0.7),
-    0 0 52px rgba(0,245,255,0.35);
-  animation: neonPulse 2.8s ease-in-out infinite alternate;
-  line-height: 1;
-}
-.tradclab-dot {
-  color: #bf5fff;
-  text-shadow:
-    0 0 6px #bf5fff,
-    0 0 14px #bf5fff,
-    0 0 28px rgba(191,95,255,0.7);
-}
-.tradclab-sub {
-  font-size: 9px;
-  font-weight: 500;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--gold);
-  opacity: 0.85;
-  transition: opacity 0.5s ease;
-}
-#brandGreeting {
-  animation: greetingFade 0.6s ease both;
-}
+/* Legacy neon rimosso — ora usa luxury gold */
 @keyframes greetingFade {
   from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 0.85; transform: translateY(0); }
-}
-@keyframes neonPulse {
-  0%   { text-shadow: 0 0 6px #00f5ff, 0 0 14px #00f5ff, 0 0 28px rgba(0,245,255,0.7), 0 0 52px rgba(0,245,255,0.35); }
-  60%  { text-shadow: 0 0 4px #00f5ff, 0 0 10px #00f5ff, 0 0 20px rgba(0,245,255,0.5), 0 0 36px rgba(0,245,255,0.2); }
-  100% { text-shadow: 0 0 8px #00f5ff, 0 0 20px #00f5ff, 0 0 40px rgba(0,245,255,0.8), 0 0 72px rgba(0,245,255,0.45); }
-}
-body.light .tradclab-neon {
-  color: #0066cc;
-  text-shadow: 0 0 8px rgba(0,102,204,0.4), 0 0 16px rgba(0,102,204,0.2);
-  animation: neonPulseLight 2.8s ease-in-out infinite alternate;
-}
-body.light .tradclab-dot { color: #6600cc; text-shadow: 0 0 6px rgba(102,0,204,0.3); }
-@keyframes neonPulseLight {
-  0%   { text-shadow: 0 0 6px rgba(0,102,204,0.4), 0 0 14px rgba(0,102,204,0.2); }
-  100% { text-shadow: 0 0 10px rgba(0,102,204,0.6), 0 0 22px rgba(0,102,204,0.3); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Spese Ricorrenti ── */
@@ -25406,6 +25500,147 @@ body.light #app { background: var(--dark) !important; }
 .footer-copy { opacity: 0.5; }
 .footer-copy .copy-line.version { color: #00f5ff !important; text-shadow: 0 0 6px rgba(0,245,255,0.4); }
 body.light .footer-copy .copy-line.version { color: #0066cc !important; }
+
+/* ══════════════════════════════════════════════════════
+   PORTAFOGLIO ANIMATO — LOGIN LOGO
+   ══════════════════════════════════════════════════════ */
+.wallet-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 4px;
+  min-height: 90px;
+}
+
+/* Corpo portafoglio */
+.wallet-outer {
+  position: relative;
+  width: 88px;
+  height: 56px;
+  margin: 0 auto 14px;
+  perspective: 400px;
+  cursor: default;
+}
+
+.wallet-body {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(145deg, #2a1a08, #3d2510, #2a1a08);
+  border-radius: 6px 6px 8px 8px;
+  border: 1px solid rgba(201,168,76,0.5);
+  box-shadow:
+    0 4px 20px rgba(0,0,0,0.6),
+    inset 0 1px 0 rgba(201,168,76,0.3),
+    0 0 0 1px rgba(201,168,76,0.1);
+  overflow: hidden;
+}
+
+/* Cucitura decorativa */
+.wallet-stitching {
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed rgba(201,168,76,0.2);
+  border-radius: 4px;
+  pointer-events: none;
+}
+
+.wallet-pocket {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 22px;
+  background: linear-gradient(180deg, rgba(201,168,76,0.08), rgba(201,168,76,0.04));
+  border-top: 1px solid rgba(201,168,76,0.25);
+}
+
+.wallet-clasp {
+  position: absolute;
+  right: 10px; top: 50%;
+  transform: translateY(-50%);
+  width: 8px; height: 8px;
+  background: radial-gradient(circle, #f5cb72, #a07830);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(201,168,76,0.6);
+}
+
+/* Patta del portafoglio — si apre/chiude */
+.wallet-flap {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 32px;
+  background: linear-gradient(160deg, #3d2510, #2a1a08, #3d2510);
+  border-radius: 6px 6px 0 0;
+  border: 1px solid rgba(201,168,76,0.5);
+  border-bottom: none;
+  transform-origin: top center;
+  transform: rotateX(0deg);
+  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+  overflow: hidden;
+}
+
+.wallet-flap .wallet-stitching {
+  inset: 3px 4px;
+  bottom: 0;
+}
+
+.wallet-clasp-top {
+  position: absolute;
+  left: 50%; bottom: -5px;
+  transform: translateX(-50%);
+  width: 10px; height: 10px;
+  background: radial-gradient(circle at 40% 35%, #f5cb72, #a07830);
+  border-radius: 50%;
+  border: 1px solid rgba(201,168,76,0.8);
+  box-shadow: 0 0 8px rgba(201,168,76,0.7), 0 2px 4px rgba(0,0,0,0.4);
+}
+
+/* Stato aperto */
+.wallet-flap.open {
+  transform: rotateX(-140deg);
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
+}
+
+/* Logo che emerge */
+.wallet-logo-reveal {
+  opacity: 0;
+  transform: translateY(12px) scale(0.9);
+  transition: opacity 0.6s ease 0.5s, transform 0.6s cubic-bezier(0.2,0.8,0.2,1) 0.5s;
+  text-align: center;
+}
+
+.wallet-logo-reveal.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Stato chiuso (logout) */
+.wallet-flap.closing {
+  transform: rotateX(0deg);
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.wallet-logo-reveal.hiding {
+  opacity: 0;
+  transform: translateY(8px) scale(0.95);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Shimmer dorato sul portafoglio all'apertura */
+@keyframes walletShine {
+  0%   { left: -100%; }
+  60%  { left: 120%; }
+  100% { left: 120%; }
+}
+.wallet-body::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 60%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.15), transparent);
+  animation: walletShine 2s ease 0.3s both;
+}
 
 /* ════ RESPONSIVE LOGIN PAGE — NETFLIX STYLE ════ */
 
