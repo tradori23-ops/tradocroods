@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v199';
+  var BUILD = '20260602-v201';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -14294,6 +14294,20 @@ function openProfileModal() {
   if(redEl)  redEl.value  = p.redditoNetto || '';
   if(ctrEl)  ctrEl.value  = p.contratto    || 'indeterminato';
 
+  // Nuovi campi
+  const f = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+  f('profileDataNascita', p.dataNascita);
+  f('profileTelefono', p.telefono);
+  f('profileCitta', p.citta);
+  f('profileObiettivoFin', p.obiettivoFin);
+  f('profileObiettivoCustom', p.obiettivoCustom);
+  f('profileBio', p.bio);
+
+  // Sfondo hero
+  applyProfileHeroBg();
+  renderProfileStats();
+  switchProfileTab('info');
+
   updateProfessionFields();
   if(p.redditoNetto) updateRedditoPreview();
 
@@ -14393,23 +14407,148 @@ function _budgetBar(label, amt, total, color) {
 
 function saveProfileData(showConfirm) {
   if(!currentUser) return;
+  const g = (id) => document.getElementById(id)?.value || '';
   const p = {
-    profCategory: document.getElementById('profileProfCategory')?.value || '',
-    profCustom:   document.getElementById('profileProfCustom')?.value   || '',
-    redditoNetto: parseFloat(document.getElementById('profileRedditoNetto')?.value || '0'),
-    contratto:    document.getElementById('profileContratto')?.value     || 'indeterminato',
-    updatedAt:    new Date().toISOString()
+    profCategory:    g('profileProfCategory'),
+    profCustom:      g('profileProfCustom'),
+    redditoNetto:    parseFloat(g('profileRedditoNetto') || '0'),
+    contratto:       g('profileContratto') || 'indeterminato',
+    dataNascita:     g('profileDataNascita'),
+    telefono:        g('profileTelefono'),
+    citta:           g('profileCitta'),
+    obiettivoFin:    g('profileObiettivoFin'),
+    obiettivoCustom: g('profileObiettivoCustom'),
+    bio:             g('profileBio'),
+    updatedAt:       new Date().toISOString()
   };
   setProfileData(p);
   bumpVersion(); fbPushToCloud(true);
-  // Aggiorna sidebar e sincronizza stipendio nelle entrate
   renderProfileBadge();
   syncProfileStipendioToIncome();
   if(showConfirm) {
     closeProfileModal();
-    showToast('✅ Profilo aggiornato! Lo stipendio è stato aggiunto alle entrate.');
+    showToast('✅ Profilo aggiornato!');
   }
 }
+
+// ── Funzioni tab profilo ──
+function switchProfileTab(tab) {
+  ['info','dati','stats','sfondo'].forEach(t => {
+    const btn = document.getElementById('profileTab-' + t);
+    const cnt = document.getElementById('profileTabContent-' + t);
+    if(btn) { btn.style.borderBottomColor = t===tab ? 'var(--gold)' : 'transparent'; btn.style.color = t===tab ? 'var(--gold)' : 'var(--text-muted)'; }
+    if(cnt) cnt.style.display = t===tab ? 'block' : 'none';
+  });
+  if(tab === 'stats') renderProfileStatsDetail();
+}
+
+function renderProfileStats() {
+  const el = document.getElementById('profileStats');
+  if(!el || !currentUser) return;
+  // Conta spese totali
+  let totSpese = 0, totImporto = 0;
+  for(let i=0;i<localStorage.length;i++) {
+    const k = localStorage.key(i);
+    if(k && k.startsWith('tc_' + currentUser.email + '_expenses_')) {
+      try { const arr = JSON.parse(localStorage.getItem(k)||'[]'); totSpese += arr.length; arr.forEach(e=>totImporto+=e.amount||0); } catch(e){}
+    }
+  }
+  // Data iscrizione (prima spesa)
+  const p = getProfileData();
+  const stats = [
+    { label: 'Spese', value: totSpese },
+    { label: 'Totale', value: '€' + totImporto.toLocaleString('it-IT', {maximumFractionDigits:0}) },
+    { label: 'Città', value: p.citta || '—' },
+  ];
+  el.innerHTML = stats.map(s => `<div style="background:rgba(255,255,255,0.06);border-radius:10px;padding:8px 14px;text-align:center;min-width:80px;">
+    <div style="font-size:14px;font-weight:800;color:var(--gold);">${s.value}</div>
+    <div style="font-size:10px;color:var(--text-muted);margin-top:1px;">${s.label}</div>
+  </div>`).join('');
+}
+
+function renderProfileStatsDetail() {
+  const el = document.getElementById('profileStatsDetail');
+  if(!el || !currentUser) return;
+  let totSpese = 0, totImporto = 0, catMap = {}, payMap = {}, mesiAttivi = 0;
+  for(let i=0;i<localStorage.length;i++) {
+    const k = localStorage.key(i);
+    if(k && k.startsWith('tc_' + currentUser.email + '_expenses_')) {
+      try {
+        const arr = JSON.parse(localStorage.getItem(k)||'[]');
+        if(arr.length) mesiAttivi++;
+        arr.forEach(e => {
+          totSpese++;
+          totImporto += e.amount||0;
+          catMap[e.cat||'altro'] = (catMap[e.cat||'altro']||0) + (e.amount||0);
+          payMap[e.pay||'altro'] = (payMap[e.pay||'altro']||0) + 1;
+        });
+      } catch(e){}
+    }
+  }
+  const topCat = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
+  const topPay = Object.entries(payMap).sort((a,b)=>b[1]-a[1]).slice(0,1);
+  const fmt = v => '€' + v.toFixed(2).replace('.',',');
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+      <div style="background:rgba(201,168,76,0.08);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:var(--gold);">${totSpese}</div>
+        <div style="font-size:11px;color:var(--text-muted);">Spese totali registrate</div>
+      </div>
+      <div style="background:rgba(74,232,122,0.08);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;color:#4ae87a;">${fmt(totImporto)}</div>
+        <div style="font-size:11px;color:var(--text-muted);">Importo totale</div>
+      </div>
+      <div style="background:rgba(99,102,241,0.08);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:24px;font-weight:800;color:#a5b4fc;">${mesiAttivi}</div>
+        <div style="font-size:11px;color:var(--text-muted);">Mesi con dati</div>
+      </div>
+      <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;text-align:center;">
+        <div style="font-size:20px;font-weight:800;color:var(--text);">${totSpese>0?fmt(totImporto/totSpese):'€0'}</div>
+        <div style="font-size:11px;color:var(--text-muted);">Media per spesa</div>
+      </div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">🏆 Categorie top</div>
+    ${topCat.map(([cat,amt]) => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:10px;margin-bottom:6px;">
+      <span style="font-size:13px;color:var(--text);">${cat}</span>
+      <span style="font-size:13px;font-weight:700;color:var(--gold);">${fmt(amt)}</span>
+    </div>`).join('')}
+    <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin:12px 0 8px;">💳 Metodo più usato</div>
+    ${topPay.map(([pay,cnt]) => `<div style="padding:8px 12px;background:rgba(255,255,255,0.04);border-radius:10px;display:flex;justify-content:space-between;">
+      <span style="font-size:13px;color:var(--text);">${pay}</span>
+      <span style="font-size:13px;font-weight:700;color:#a5b4fc;">${cnt} volte</span>
+    </div>`).join('')}`;
+}
+
+// ── Sfondo profilo ──
+function applyProfileHeroBg() {
+  const hero = document.getElementById('profileHero');
+  if(!hero || !currentUser) return;
+  const bg = localStorage.getItem('tc_' + currentUser.email + '_profile_bg');
+  if(bg) {
+    if(bg.startsWith('data:image') || bg.startsWith('http')) {
+      hero.style.background = 'url(' + bg + ') center/cover no-repeat';
+    } else {
+      hero.style.background = bg;
+    }
+  }
+}
+
+function setProfileBg(bg) {
+  if(!currentUser) return;
+  localStorage.setItem('tc_' + currentUser.email + '_profile_bg', bg);
+  applyProfileHeroBg();
+  bumpVersion(); fbPushToCloud(true);
+}
+
+function setProfileBgImage(event) {
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => setProfileBg(e.target.result);
+  reader.readAsDataURL(file);
+}
+
+function openProfileBgPicker() { switchProfileTab('sfondo'); }
 
 function renderProfileBadge() {
   const p = getProfileData();
@@ -24195,9 +24334,13 @@ body.light #storageBar [style*="rgba(255,255,255,0.10)"] {
 /* ══ MODAL PROFILO ═══════════════════════════════════════════ */
 #profileModal > div { transition: transform 0.3s cubic-bezier(.2,.8,.2,1), opacity 0.3s; }
 
+/* Light mode */
 body.light #profileModal > div { background: #ffffff !important; border-color: rgba(201,168,76,0.25) !important; }
 body.light #profileProfCategory, body.light #profileProfCustom,
-body.light #profileRedditoNetto, body.light #profileContratto {
+body.light #profileRedditoNetto, body.light #profileContratto,
+body.light #profileDataNascita, body.light #profileTelefono,
+body.light #profileCitta, body.light #profileObiettivoFin,
+body.light #profileObiettivoCustom, body.light #profileBio {
   background: #f5f5ff !important; color: #111122 !important;
   border-color: rgba(201,168,76,0.4) !important;
 }
@@ -24207,6 +24350,86 @@ body.light #redditoPreview [style*="rgba(224,92,92,0.08)"] { background: rgba(22
 body.light #redditoPreview [style*="rgba(255,255,255,0.07)"] { background: rgba(0,0,0,0.05) !important; }
 body.light #profileModalName { color: #111122 !important; }
 body.light #profileModalEmail { color: #44446a !important; }
+body.light #profileStats > div { background: rgba(0,0,0,0.05) !important; }
+body.light #profileTabContent-stats [style*="rgba(255,255,255,0.05)"] { background: rgba(0,0,0,0.05) !important; }
+body.light #profileTabContent-stats [style*="rgba(255,255,255,0.04)"] { background: rgba(0,0,0,0.04) !important; }
+body.light #profileStatsDetail [style*="rgba(255,255,255,0.04)"] { background: rgba(0,0,0,0.04) !important; }
+
+/* Tab profilo */
+#profileModal [id^="profileTab-"] { transition: color 0.2s, border-color 0.2s; }
+
+/* ════ RESPONSIVE PROFILE MODAL ════ */
+
+/* Desktop grande 1440px+ */
+@media (min-width: 1440px) {
+  #profileModal > div { max-width: 580px !important; }
+  #profileHero { height: 180px !important; }
+  #profileModalAvatar { width: 90px !important; height: 90px !important; }
+  #profileModalName { font-size: 22px !important; }
+}
+
+/* Desktop 1280–1439px */
+@media (min-width: 1280px) and (max-width: 1439px) {
+  #profileModal > div { max-width: 520px !important; }
+  #profileHero { height: 170px !important; }
+}
+
+/* Tablet landscape 834–1279px */
+@media (min-width: 834px) and (max-width: 1279px) {
+  #profileModal { padding: 24px !important; align-items: center !important; }
+  #profileModal > div { max-width: 500px !important; margin: auto !important; }
+  #profileHero { height: 160px !important; }
+}
+
+/* Tablet portrait 768–833px */
+@media (min-width: 768px) and (max-width: 833px) {
+  #profileModal { padding: 16px !important; align-items: center !important; }
+  #profileModal > div { max-width: 480px !important; margin: auto !important; }
+  #profileHero { height: 150px !important; }
+  #profileModalAvatar { width: 74px !important; height: 74px !important; }
+}
+
+/* Mobile <768px — sheet dal basso */
+@media (max-width: 767px) {
+  #profileModal { padding: 0 !important; align-items: flex-end !important; }
+  #profileModal > div {
+    max-width: 100% !important; width: 100% !important;
+    border-radius: 24px 24px 0 0 !important;
+    max-height: 92vh !important; overflow-y: auto !important; margin: 0 !important;
+  }
+  #profileHero { height: 140px !important; }
+  #profileModalAvatar { width: 70px !important; height: 70px !important; }
+  #profileStats { gap: 6px !important; flex-wrap: wrap !important; }
+  #profileStats > div { min-width: 70px !important; padding: 6px 10px !important; }
+  #profileModal [id^="profileTab-"] { font-size: 11px !important; padding: 8px 4px !important; }
+  #profileTabContent-dati > div:first-child { grid-template-columns: 1fr !important; }
+}
+
+/* iPhone 430px */
+@media (max-width: 430px) {
+  #profileModal > div { max-height: calc(92vh - env(safe-area-inset-bottom, 0px)) !important; }
+  #profileHero { height: 130px !important; }
+  #profileModalAvatar { width: 66px !important; height: 66px !important; }
+  #profileModalName { font-size: 17px !important; }
+  #profileModal [id^="profileTab-"] { font-size: 10px !important; padding: 8px 2px !important; }
+  .profile-bg-preset { width: 40px !important; height: 28px !important; }
+}
+
+/* iPhone SE / mini */
+@media (max-width: 389px) {
+  #profileHero { height: 120px !important; }
+  #profileModalAvatar { width: 60px !important; height: 60px !important; }
+  #profileModalName { font-size: 16px !important; }
+  #profileStats > div { min-width: 60px !important; padding: 5px 8px !important; }
+}
+
+/* PWA standalone safe area */
+@media (display-mode: standalone) {
+  #profileModal > div {
+    padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+    max-height: calc(94vh - env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
 
 /* ── Fluidità generale ─────────────────────────────────────── */
 .section { transition: opacity 0.2s ease; }
@@ -24958,74 +25181,168 @@ window.addEventListener('beforeprint', function() {
 
 
 <!-- ══ MODAL PROFILO ESTESO ════════════════════════════════════════ -->
-<div id="profileModal" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:28px 22px;width:420px;max-width:100%;box-shadow:0 24px 80px rgba(0,0,0,0.5);position:relative;">
-    <button onclick="closeProfileModal()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.08);border:none;color:var(--text-muted);font-size:18px;cursor:pointer;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;">✕</button>
+<div id="profileModal" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;width:100%;max-width:520px;box-shadow:0 24px 80px rgba(0,0,0,0.5);position:relative;overflow:hidden;margin:auto;">
 
-    <!-- Avatar + nome -->
-    <div style="text-align:center;margin-bottom:24px;">
-      <div class="user-avatar" id="profileModalAvatar" onclick="triggerPhotoUpload()" title="Cambia foto" style="margin:0 auto 10px;cursor:pointer;width:72px;height:72px;">
-        <div class="avatar-edit-overlay">📷</div>
+    <!-- HERO SFONDO PERSONALIZZABILE -->
+    <div id="profileHero" style="position:relative;height:160px;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:0;">
+      <!-- Pulsante cambia sfondo -->
+      <button onclick="openProfileBgPicker()" title="Cambia sfondo" style="position:absolute;top:12px;right:48px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:13px;cursor:pointer;border-radius:8px;padding:5px 10px;z-index:2;">🎨 Sfondo</button>
+      <!-- Chiudi -->
+      <button onclick="closeProfileModal()" style="position:absolute;top:12px;right:12px;background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.2);color:#fff;font-size:16px;cursor:pointer;border-radius:8px;width:32px;height:32px;display:flex;align-items:center;justify-content:center;z-index:2;">✕</button>
+      <!-- Avatar sovrapposto al bordo hero -->
+      <div style="position:relative;z-index:3;margin-bottom:-40px;">
+        <div class="user-avatar" id="profileModalAvatar" onclick="triggerPhotoUpload()" title="Cambia foto" style="margin:0 auto;cursor:pointer;width:80px;height:80px;border:3px solid var(--surface);box-shadow:0 4px 20px rgba(0,0,0,0.4);">
+          <div class="avatar-edit-overlay">📷</div>
+        </div>
       </div>
-      <div style="font-size:18px;font-weight:700;" id="profileModalName"></div>
-      <div style="font-size:12px;color:var(--text-muted);" id="profileModalEmail"></div>
     </div>
 
-    <!-- Mestiere -->
-    <div class="fld" style="margin-bottom:14px;">
-      <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">💼 Professione</label>
-      <select id="profileProfCategory" onchange="updateProfessionFields()"
-        style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:11px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;margin-bottom:8px;">
-        <option value="">— Seleziona categoria —</option>
-        <option value="dipendente">👔 Dipendente / Impiegato</option>
-        <option value="operaio">🔧 Operaio / Tecnico</option>
-        <option value="libero_professionista">💼 Libero Professionista</option>
-        <option value="commerciante">🏪 Commerciante / Artigiano</option>
-        <option value="imprenditore">🚀 Imprenditore</option>
-        <option value="pubblico_impiego">🏛️ Pubblico Impiego</option>
-        <option value="insegnante">📚 Insegnante / Professore</option>
-        <option value="medico_sanitario">🏥 Medico / Sanitario</option>
-        <option value="informatico">💻 Informatico / Tech</option>
-        <option value="creativo">🎨 Creativo / Artista</option>
-        <option value="studente">🎓 Studente</option>
-        <option value="pensionato">🌿 Pensionato</option>
-        <option value="altro">📌 Altro</option>
-      </select>
-      <input type="text" id="profileProfCustom" placeholder="Es: Ingegnere, Avvocato, Chef..."
-        style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:11px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;box-sizing:border-box;"
-        oninput="saveProfileData()">
+    <!-- NOME + EMAIL sotto avatar -->
+    <div style="text-align:center;padding:50px 24px 16px;">
+      <div style="font-size:20px;font-weight:800;letter-spacing:-0.3px;" id="profileModalName"></div>
+      <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="profileModalEmail"></div>
+      <!-- Statistiche rapide -->
+      <div id="profileStats" style="display:flex;gap:10px;justify-content:center;margin-top:14px;flex-wrap:wrap;"></div>
     </div>
 
-    <!-- Reddito mensile netto -->
-    <div class="fld" style="margin-bottom:14px;">
-      <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">💶 Reddito Mensile Netto</label>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-size:14px;color:var(--text-muted);">€</span>
-        <input type="number" id="profileRedditoNetto" min="0" step="50" placeholder="es. 1800"
-          style="flex:1;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:11px 14px;color:var(--text);font-family:var(--font);font-size:15px;font-weight:700;outline:none;"
-          oninput="updateRedditoPreview()">
-        <span style="font-size:12px;color:var(--text-muted);">/mese</span>
+    <!-- TAB NAVIGAZIONE -->
+    <div style="display:flex;border-bottom:1px solid var(--border);margin:0 24px;">
+      <button onclick="switchProfileTab('info')" id="profileTab-info" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid var(--gold);color:var(--gold);cursor:pointer;font-family:var(--font);">👤 Profilo</button>
+      <button onclick="switchProfileTab('dati')" id="profileTab-dati" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">📋 Dati</button>
+      <button onclick="switchProfileTab('stats')" id="profileTab-stats" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">📊 Statistiche</button>
+      <button onclick="switchProfileTab('sfondo')" id="profileTab-sfondo" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">🎨 Sfondo</button>
+    </div>
+
+    <div style="padding:20px 24px 24px;">
+
+      <!-- TAB: PROFILO (lavoro + reddito) -->
+      <div id="profileTabContent-info">
+        <!-- Professione -->
+        <div class="fld" style="margin-bottom:14px;">
+          <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">💼 Professione</label>
+          <select id="profileProfCategory" onchange="updateProfessionFields()"
+            style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:11px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;margin-bottom:8px;">
+            <option value="">— Seleziona categoria —</option>
+            <option value="dipendente">👔 Dipendente / Impiegato</option>
+            <option value="operaio">🔧 Operaio / Tecnico</option>
+            <option value="libero_professionista">💼 Libero Professionista</option>
+            <option value="commerciante">🏪 Commerciante / Artigiano</option>
+            <option value="imprenditore">🚀 Imprenditore</option>
+            <option value="pubblico_impiego">🏛️ Pubblico Impiego</option>
+            <option value="insegnante">📚 Insegnante / Professore</option>
+            <option value="medico_sanitario">🏥 Medico / Sanitario</option>
+            <option value="informatico">💻 Informatico / Tech</option>
+            <option value="creativo">🎨 Creativo / Artista</option>
+            <option value="studente">🎓 Studente</option>
+            <option value="pensionato">🌿 Pensionato</option>
+            <option value="altro">📌 Altro</option>
+          </select>
+          <input type="text" id="profileProfCustom" placeholder="Es: Ingegnere, Avvocato, Chef..."
+            style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:11px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;box-sizing:border-box;"
+            oninput="saveProfileData()">
+        </div>
+        <!-- Tipo contratto -->
+        <div class="fld" id="profileContrattoWrap" style="display:none;margin-bottom:14px;">
+          <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">📋 Tipo Contratto</label>
+          <select id="profileContratto"
+            style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:11px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;"
+            onchange="saveProfileData()">
+            <option value="indeterminato">Tempo Indeterminato</option>
+            <option value="determinato">Tempo Determinato</option>
+            <option value="part_time">Part-time</option>
+            <option value="stage">Stage / Tirocinio</option>
+          </select>
+        </div>
+        <!-- Reddito -->
+        <div class="fld" style="margin-bottom:14px;">
+          <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">💶 Reddito Mensile Netto</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:14px;color:var(--text-muted);">€</span>
+            <input type="number" id="profileRedditoNetto" min="0" step="50" placeholder="es. 1800"
+              style="flex:1;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:11px 14px;color:var(--text);font-family:var(--font);font-size:15px;font-weight:700;outline:none;"
+              oninput="updateRedditoPreview()">
+            <span style="font-size:12px;color:var(--text-muted);">/mese</span>
+          </div>
+          <div id="redditoPreview" style="display:none;background:var(--dark3);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:14px;margin-top:10px;"></div>
+        </div>
       </div>
-      <!-- Preview breakdown reddito -->
-      <div id="redditoPreview" style="display:none;background:var(--dark3);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:14px;margin-top:10px;"></div>
-    </div>
 
-    <!-- Tipo contratto (per dipendenti) -->
-    <div class="fld" id="profileContrattoWrap" style="display:none;margin-bottom:14px;">
-      <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">📋 Tipo Contratto</label>
-      <select id="profileContratto"
-        style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:11px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;"
-        onchange="saveProfileData()">
-        <option value="indeterminato">Tempo Indeterminato</option>
-        <option value="determinato">Tempo Determinato</option>
-        <option value="part_time">Part-time</option>
-        <option value="stage">Stage / Tirocinio</option>
-      </select>
-    </div>
+      <!-- TAB: DATI PERSONALI -->
+      <div id="profileTabContent-dati" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+          <div class="fld" style="margin:0;">
+            <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">📅 Data di nascita</label>
+            <input type="date" id="profileDataNascita" style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box;" oninput="saveProfileData()">
+          </div>
+          <div class="fld" style="margin:0;">
+            <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">📞 Telefono</label>
+            <input type="tel" id="profileTelefono" placeholder="+39 333 000 0000" style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box;" oninput="saveProfileData()">
+          </div>
+        </div>
+        <div class="fld" style="margin-bottom:14px;">
+          <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">🏠 Città / Indirizzo</label>
+          <input type="text" id="profileCitta" placeholder="Es: Milano, Via Roma 1..." style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box;" oninput="saveProfileData()">
+        </div>
+        <div class="fld" style="margin-bottom:14px;">
+          <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">🎯 Obiettivo finanziario</label>
+          <select id="profileObiettivoFin" style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;margin-bottom:8px;" oninput="saveProfileData()">
+            <option value="">— Seleziona obiettivo —</option>
+            <option value="risparmio">💰 Aumentare il risparmio</option>
+            <option value="casa">🏠 Acquistare casa</option>
+            <option value="macchina">🚗 Acquistare un'auto</option>
+            <option value="viaggio">✈️ Viaggiare</option>
+            <option value="pensione">🌿 Prepararsi alla pensione</option>
+            <option value="emergenza">🆘 Fondo di emergenza</option>
+            <option value="investimento">📈 Investire</option>
+            <option value="debiti">📉 Estinguere debiti</option>
+          </select>
+          <input type="text" id="profileObiettivoCustom" placeholder="Descrivi il tuo obiettivo..." style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box;" oninput="saveProfileData()">
+        </div>
+        <div class="fld" style="margin-bottom:14px;">
+          <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">📝 Bio / Note personali</label>
+          <textarea id="profileBio" placeholder="Qualcosa su di te..." rows="3" style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;resize:vertical;box-sizing:border-box;" oninput="saveProfileData()"></textarea>
+        </div>
+      </div>
 
-    <div style="display:flex;gap:10px;margin-top:20px;">
-      <button onclick="closeProfileModal()" class="btn btn-outline" style="flex:1;">Chiudi</button>
-      <button onclick="saveProfileData(true)" class="btn btn-gold" style="flex:2;">💾 Salva Profilo</button>
+      <!-- TAB: STATISTICHE -->
+      <div id="profileTabContent-stats" style="display:none;">
+        <div id="profileStatsDetail" style="display:flex;flex-direction:column;gap:10px;"></div>
+      </div>
+
+      <!-- TAB: SFONDO -->
+      <div id="profileTabContent-sfondo" style="display:none;">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Personalizza lo sfondo del tuo profilo</div>
+        <!-- Gradienti predefiniti -->
+        <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">🌈 Gradienti</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="profileBgPresets">
+          <div onclick="setProfileBg('linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Notte"></div>
+          <div onclick="setProfileBg('linear-gradient(135deg,#0f2027,#203a43,#2c5364)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Oceano"></div>
+          <div onclick="setProfileBg('linear-gradient(135deg,#360033,#0b8793)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#360033,#0b8793);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Aurora"></div>
+          <div onclick="setProfileBg('linear-gradient(135deg,#c9a84c,#8b5e3c,#2d1b69)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#c9a84c,#8b5e3c,#2d1b69);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Gold"></div>
+          <div onclick="setProfileBg('linear-gradient(135deg,#134e5e,#71b280)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#134e5e,#71b280);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Foresta"></div>
+          <div onclick="setProfileBg('linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Instagram"></div>
+          <div onclick="setProfileBg('linear-gradient(135deg,#000428,#004e92)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#000428,#004e92);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Deep Blue"></div>
+          <div onclick="setProfileBg('linear-gradient(135deg,#1f1c2c,#928dab)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#1f1c2c,#928dab);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Lavanda"></div>
+        </div>
+        <!-- Colore solido -->
+        <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">🎨 Colore solido</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+          <input type="color" id="profileBgColorPicker" value="#1a1a2e" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;" oninput="setProfileBg(this.value)">
+          <span style="font-size:12px;color:var(--text-muted);">Scegli un colore personalizzato</span>
+        </div>
+        <!-- Immagine -->
+        <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">🖼️ Immagine</div>
+        <input type="file" id="profileBgImageInput" accept="image/*" style="display:none;" onchange="setProfileBgImage(event)">
+        <button onclick="document.getElementById('profileBgImageInput').click()" style="padding:10px 16px;border-radius:12px;background:rgba(201,168,76,0.1);border:1.5px solid rgba(201,168,76,0.3);color:var(--gold);font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-bottom:8px;">📁 Carica immagine</button>
+        <button onclick="setProfileBg('linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)')" style="padding:8px 16px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-size:12px;cursor:pointer;width:100%;">↩️ Ripristina predefinito</button>
+      </div>
+
+      <!-- BOTTONI -->
+      <div style="display:flex;gap:10px;margin-top:20px;">
+        <button onclick="closeProfileModal()" class="btn btn-outline" style="flex:1;">Chiudi</button>
+        <button onclick="saveProfileData(true)" class="btn btn-gold" style="flex:2;">💾 Salva Profilo</button>
+      </div>
     </div>
   </div>
 </div>
