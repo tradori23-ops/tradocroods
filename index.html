@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v217';
+  var BUILD = '20260602-v219';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -7730,28 +7730,27 @@ function openWallet() {
   const logo = document.getElementById('walletLogoReveal');
   if(!flap || !logo) return;
   // Reset stato
-  flap.classList.remove('closing');
-  logo.classList.remove('hiding');
-  // Apri patta
-  setTimeout(() => { flap.classList.add('open'); }, 80);
-  // Mostra logo
-  setTimeout(() => { logo.classList.add('visible'); }, 500);
+  flap.classList.remove('open','closing');
+  logo.classList.remove('visible','hiding');
+  // Pausa iniziale poi apri patta lentamente
+  setTimeout(() => { flap.classList.add('open'); }, 300);
+  // Logo emerge dopo che la patta è quasi sparita
+  setTimeout(() => { logo.classList.add('visible'); }, 1400);
 }
 
 function closeWallet(onComplete) {
   const flap = document.getElementById('walletFlap');
   const logo = document.getElementById('walletLogoReveal');
   if(!flap || !logo) { if(onComplete) onComplete(); return; }
-  // Nascondi logo
+  // Nascondi logo subito
   logo.classList.add('hiding');
   logo.classList.remove('visible');
-  // Chiudi patta
+  // Chiudi patta dopo che il logo è sparito
   setTimeout(() => {
-    flap.classList.add('closing');
     flap.classList.remove('open');
-  }, 200);
-  // Callback dopo animazione
-  setTimeout(() => { if(onComplete) onComplete(); }, 900);
+  }, 400);
+  // Callback dopo animazione completa
+  setTimeout(() => { if(onComplete) onComplete(); }, 1200);
 }
 
 // ── Citazioni rotanti pannello sinistro ──
@@ -8464,7 +8463,7 @@ function enterApp(user) {
     closeWallet();
     setTimeout(() => {
       document.getElementById('loginPage').style.display = 'none';
-    }, 600);
+    }, 1100);
     const appEl = document.getElementById('app');
     setTimeout(() => {
       appEl.style.display = 'block';
@@ -25510,16 +25509,15 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
   flex-direction: column;
   align-items: center;
   margin-bottom: 4px;
-  min-height: 90px;
+  min-height: 100px;
 }
 
 /* Corpo portafoglio */
 .wallet-outer {
   position: relative;
-  width: 88px;
-  height: 56px;
-  margin: 0 auto 14px;
-  perspective: 400px;
+  width: 96px;
+  height: 64px;
+  margin: 0 auto 16px;
   cursor: default;
 }
 
@@ -25527,7 +25525,7 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
   position: absolute;
   inset: 0;
   background: linear-gradient(145deg, #2a1a08, #3d2510, #2a1a08);
-  border-radius: 6px 6px 8px 8px;
+  border-radius: 6px;
   border: 1px solid rgba(201,168,76,0.5);
   box-shadow:
     0 4px 20px rgba(0,0,0,0.6),
@@ -25536,7 +25534,6 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
   overflow: hidden;
 }
 
-/* Cucitura decorativa */
 .wallet-stitching {
   position: absolute;
   inset: 4px;
@@ -25548,35 +25545,36 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
 .wallet-pocket {
   position: absolute;
   bottom: 0; left: 0; right: 0;
-  height: 22px;
+  height: 24px;
   background: linear-gradient(180deg, rgba(201,168,76,0.08), rgba(201,168,76,0.04));
   border-top: 1px solid rgba(201,168,76,0.25);
 }
 
 .wallet-clasp {
   position: absolute;
-  right: 10px; top: 50%;
+  right: 12px; top: 50%;
   transform: translateY(-50%);
-  width: 8px; height: 8px;
+  width: 9px; height: 9px;
   background: radial-gradient(circle, #f5cb72, #a07830);
   border-radius: 50%;
   box-shadow: 0 0 6px rgba(201,168,76,0.6);
 }
 
-/* Patta del portafoglio — si apre/chiude */
+/* Patta — usa scaleY + translateY invece di rotateX per massima compatibilità */
 .wallet-flap {
   position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 32px;
+  top: 0; left: -1px; right: -1px;
+  height: 34px;
   background: linear-gradient(160deg, #3d2510, #2a1a08, #3d2510);
   border-radius: 6px 6px 0 0;
   border: 1px solid rgba(201,168,76,0.5);
-  border-bottom: none;
   transform-origin: top center;
-  transform: rotateX(0deg);
-  transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: scaleY(1) translateY(0px);
+  transition: transform 1.4s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 1s ease;
   box-shadow: 0 4px 12px rgba(0,0,0,0.4);
   overflow: hidden;
+  z-index: 2;
 }
 
 .wallet-flap .wallet-stitching {
@@ -25595,17 +25593,19 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
   box-shadow: 0 0 8px rgba(201,168,76,0.7), 0 2px 4px rgba(0,0,0,0.4);
 }
 
-/* Stato aperto */
+/* Stato APERTO — patta scivola su e svanisce */
 .wallet-flap.open {
-  transform: rotateX(-140deg);
-  box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
+  transform: scaleY(0.05) translateY(-40px);
+  opacity: 0;
+  transition: transform 1.6s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 1.2s ease;
 }
 
 /* Logo che emerge */
 .wallet-logo-reveal {
   opacity: 0;
-  transform: translateY(12px) scale(0.9);
-  transition: opacity 0.6s ease 0.5s, transform 0.6s cubic-bezier(0.2,0.8,0.2,1) 0.5s;
+  transform: translateY(16px) scale(0.88);
+  transition: opacity 1.2s ease, transform 1.2s cubic-bezier(0.2,0.8,0.2,1);
   text-align: center;
 }
 
@@ -25614,32 +25614,26 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
   transform: translateY(0) scale(1);
 }
 
-/* Stato chiuso (logout) */
-.wallet-flap.closing {
-  transform: rotateX(0deg);
-  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
 .wallet-logo-reveal.hiding {
   opacity: 0;
-  transform: translateY(8px) scale(0.95);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translateY(10px) scale(0.92);
+  transition: opacity 0.5s ease, transform 0.5s ease;
 }
 
-/* Shimmer dorato sul portafoglio all'apertura */
+/* Shimmer sul portafoglio */
 @keyframes walletShine {
-  0%   { left: -100%; }
-  60%  { left: 120%; }
-  100% { left: 120%; }
+  0%   { left: -100%; opacity: 0; }
+  10%  { opacity: 1; }
+  70%  { left: 120%; opacity: 1; }
+  100% { left: 120%; opacity: 0; }
 }
 .wallet-body::after {
   content: '';
   position: absolute;
   top: 0; left: -100%;
-  width: 60%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.15), transparent);
-  animation: walletShine 2s ease 0.3s both;
+  width: 60%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.2), transparent);
+  animation: walletShine 3s ease 0.4s both;
 }
 
 /* ════ RESPONSIVE LOGIN PAGE — NETFLIX STYLE ════ */
