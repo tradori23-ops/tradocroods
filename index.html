@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v201';
+  var BUILD = '20260602-v202';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -3355,17 +3355,21 @@ setTimeout(_updateOfflineBanner, 500);
         <span class="tradclab-sub" id="brandGreeting">by Family</span>
       </div>
     </div>
-    <div class="sidebar-user">
-      <div class="user-avatar" id="userAvatar" onclick="triggerPhotoUpload()" title="Cambia foto profilo">
-        <div class="avatar-edit-overlay">📷</div>
+    <div id="sidebarUserHero" style="position:relative;overflow:hidden;border-radius:0;transition:all 0.3s ease;">
+      <!-- Overlay scuro per leggibilità testo sopra sfondo -->
+      <div id="sidebarUserHeroOverlay" style="display:none;position:absolute;inset:0;background:rgba(0,0,0,0.45);z-index:0;border-radius:inherit;"></div>
+      <div class="sidebar-user" style="position:relative;z-index:1;">
+        <div class="user-avatar" id="userAvatar" onclick="triggerPhotoUpload()" title="Cambia foto profilo">
+          <div class="avatar-edit-overlay">📷</div>
+        </div>
+        <div class="user-info" style="cursor:pointer;" onclick="openProfileModal()">
+          <h4 id="userName">Utente</h4>
+          <p id="userEmail">email</p>
+          <p id="userProfession" style="font-size:10px;color:var(--gold);margin-top:2px;"></p>
+          <p style="font-size:10px;color:var(--text-muted);margin-top:1px;">✏️ Modifica profilo</p>
+        </div>
+        <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
       </div>
-      <div class="user-info" style="cursor:pointer;" onclick="openProfileModal()">
-        <h4 id="userName">Utente</h4>
-        <p id="userEmail">email</p>
-        <p id="userProfession" style="font-size:10px;color:var(--gold);margin-top:2px;"></p>
-        <p style="font-size:10px;color:var(--text-muted);margin-top:1px;">✏️ Modifica profilo</p>
-      </div>
-      <input type="file" id="photoInput" accept="image/*" style="display:none;" onchange="handlePhotoUpload(event)">
     </div>
     <!-- CLOUD BADGE in sidebar -->
     <div style="padding:0 16px 16px;">
@@ -8435,6 +8439,7 @@ function refreshAll() {
   setTimeout(preloadPDFLibs, 5000);
   setTimeout(updateStorageBar, 1000);
   setTimeout(renderProfileBadge, 500);
+  setTimeout(applyProfileHeroBg, 600);
   setTimeout(autoInsertStipendioFromProfile, 800); // auto-stipendio dal profilo // pre-carica librerie PDF per uso offline
   setTimeout(() => { migrateGiriKey(); migrateLibrettoToGiri(); }, 600); // migra dati
   updateDocBadges();
@@ -14521,14 +14526,49 @@ function renderProfileStatsDetail() {
 
 // ── Sfondo profilo ──
 function applyProfileHeroBg() {
-  const hero = document.getElementById('profileHero');
-  if(!hero || !currentUser) return;
+  if(!currentUser) return;
   const bg = localStorage.getItem('tc_' + currentUser.email + '_profile_bg');
-  if(bg) {
-    if(bg.startsWith('data:image') || bg.startsWith('http')) {
-      hero.style.background = 'url(' + bg + ') center/cover no-repeat';
+
+  // Applica al modal hero
+  const hero = document.getElementById('profileHero');
+  if(hero) {
+    if(bg) {
+      hero.style.background = bg.startsWith('data:image') || bg.startsWith('http')
+        ? 'url(' + bg + ') center/cover no-repeat' : bg;
     } else {
-      hero.style.background = bg;
+      hero.style.background = 'linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)';
+    }
+  }
+
+  // Applica anche alla sidebar user card
+  const sidebarHero = document.getElementById('sidebarUserHero');
+  const overlay = document.getElementById('sidebarUserHeroOverlay');
+  if(sidebarHero) {
+    if(bg) {
+      sidebarHero.style.background = bg.startsWith('data:image') || bg.startsWith('http')
+        ? 'url(' + bg + ') center/cover no-repeat' : bg;
+      sidebarHero.style.paddingTop = '6px';
+      sidebarHero.style.paddingBottom = '6px';
+      if(overlay) overlay.style.display = 'block';
+      // Testo bianco sopra sfondo
+      const userName = document.getElementById('userName');
+      const userEmail = document.getElementById('userEmail');
+      const userProfession = document.getElementById('userProfession');
+      if(userName) userName.style.color = '#fff';
+      if(userEmail) userEmail.style.color = 'rgba(255,255,255,0.75)';
+      if(userProfession) userProfession.style.color = '#f5cb72';
+    } else {
+      sidebarHero.style.background = '';
+      sidebarHero.style.paddingTop = '';
+      sidebarHero.style.paddingBottom = '';
+      if(overlay) overlay.style.display = 'none';
+      // Ripristina colori normali
+      const userName = document.getElementById('userName');
+      const userEmail = document.getElementById('userEmail');
+      const userProfession = document.getElementById('userProfession');
+      if(userName) userName.style.color = '';
+      if(userEmail) userEmail.style.color = '';
+      if(userProfession) userProfession.style.color = '';
     }
   }
 }
