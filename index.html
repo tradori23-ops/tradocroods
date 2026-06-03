@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260604-v223';
+  var BUILD = '20260604-v226';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -1101,11 +1101,91 @@ body.light .stat-mini .s-label { color:#44446a; }
 /* Registrazione — spaziatura compatta */
 #registerStep > div:first-child { margin-bottom: 20px !important; }
 
-/* Nascondo pannello sinistro su schermi piccoli */
+.mobile-quote-block {
+  display: none;
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  font-style: italic;
+  font-weight: 300;
+  color: rgba(255,255,255,0.8);
+  text-align: center;
+  padding: 0 28px;
+  line-height: 1.65;
+  max-width: 360px;
+  margin: 0 auto;
+  text-shadow: 0 1px 12px rgba(0,0,0,0.5);
+  transition: opacity 0.8s ease;
+}
+.mobile-quote-author {
+  display: block;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9px;
+  letter-spacing: 2.5px;
+  color: rgba(245,203,114,0.6);
+  text-transform: uppercase;
+  margin-top: 8px;
+}
+
+/* Logo TC mark */
+.tc-logo-mark {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 20px;
+  opacity: 0;
+  transform: scale(0.85);
+  animation: tcLogoIn 1s cubic-bezier(0.2,0.8,0.2,1) 0.2s forwards;
+}
+@keyframes tcLogoIn {
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* ── iPhone: layout verticale con citazione sopra ── */
+@media (max-width: 1099px) {
+  #loginPage {
+    flex-direction: column !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 20px !important;
+    padding: env(safe-area-inset-top, 20px) 16px env(safe-area-inset-bottom, 20px) !important;
+    overflow-y: auto !important;
+  }
+  .mobile-quote-block {
+    display: block !important;
+    font-size: 14px !important;
+    padding: 0 20px !important;
+    max-width: 340px !important;
+  }
+  .login-card { margin: 0 auto !important; }
+}
+
+@media (max-width: 430px) {
+  .mobile-quote-block {
+    font-size: 13px !important;
+    padding: 0 16px !important;
+  }
+  .tc-logo-mark svg { width: 58px !important; height: 58px !important; }
+}
+
+/* Pannello sinistro nascosto su mobile — mostriamo citazione sopra la card */
 @media (max-width: 1099px) {
   #loginLeftPanel { display: none !important; }
-  #loginPage { justify-content: center !important; }
+  #loginPage { justify-content: center !important; flex-direction: column !important; gap: 16px !important; padding: 20px !important; }
   .login-card { margin-right: 0 !important; }
+  /* Citazione visibile su iPhone sopra la card */
+  #loginPage::before {
+    content: attr(data-quote);
+    display: block;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 15px;
+    font-style: italic;
+    font-weight: 300;
+    color: rgba(255,255,255,0.75);
+    text-align: center;
+    padding: 0 24px;
+    line-height: 1.6;
+    max-width: 360px;
+    margin: 0 auto;
+  }
 }
 
 /* Adatta margine card per diverse dimensioni desktop */
@@ -3749,34 +3829,48 @@ setTimeout(_updateOfflineBanner, 500);
     </div>
   </div>
 
+  <!-- CITAZIONE MOBILE — visibile solo su iPhone/small screen -->
+  <div id="mobileQuote" class="mobile-quote-block"></div>
+
   <div class="login-card">
-    <!-- PORTAFOGLIO VERO CHE SI APRE -->
-    <div id="walletScene" class="wallet-scene">
-      <!-- Ala sinistra -->
-      <div class="wallet-wing wallet-left" id="walletLeft">
-        <div class="wallet-wing-inner">
-          <div class="wallet-stitch"></div>
-          <div class="wallet-brand">TC</div>
-          <div class="wallet-card-slot"></div>
-          <div class="wallet-card-slot"></div>
-        </div>
-        <div class="wallet-spine"></div>
-      </div>
-      <!-- Ala destra -->
-      <div class="wallet-wing wallet-right" id="walletRight">
-        <div class="wallet-wing-inner">
-          <div class="wallet-stitch"></div>
-          <div class="wallet-pocket-slot"></div>
-        </div>
-        <div class="wallet-spine-r"></div>
-      </div>
-      <!-- CONTENUTO INTERNO — la schermata di accesso -->
-      <div class="wallet-interior" id="walletInterior">
-        <div class="wallet-logo-reveal" id="walletLogoReveal">
-          <h1>TRAD.CLAB</h1>
-          <p>by Family</p>
-        </div>
-      </div>
+    <!-- LOGO TC LUXURY -->
+    <div class="tc-logo-mark">
+      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" width="88" height="88">
+        <defs>
+          <linearGradient id="tcGold" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#c9a84c"/>
+            <stop offset="40%" stop-color="#f5cb72"/>
+            <stop offset="100%" stop-color="#c9a84c"/>
+          </linearGradient>
+        </defs>
+        <!-- Cerchio lunare esterno -->
+        <circle cx="60" cy="60" r="55" fill="none" stroke="url(#tcGold)" stroke-width="0.7" opacity="0.45"/>
+        <!-- Cerchio medio -->
+        <circle cx="60" cy="60" r="48" fill="none" stroke="url(#tcGold)" stroke-width="0.3" opacity="0.2"/>
+        <!-- Decorazione: linee orizzontali sopra e sotto le lettere -->
+        <line x1="28" y1="30" x2="92" y2="30" stroke="url(#tcGold)" stroke-width="0.6" opacity="0.4"/>
+        <line x1="28" y1="90" x2="92" y2="90" stroke="url(#tcGold)" stroke-width="0.6" opacity="0.4"/>
+        <!-- Rombi decorativi sulle linee -->
+        <polygon points="60,27 63,30 60,33 57,30" fill="url(#tcGold)" opacity="0.5"/>
+        <polygon points="60,87 63,90 60,93 57,90" fill="url(#tcGold)" opacity="0.5"/>
+        <!-- T: asta orizzontale con serif -->
+        <line x1="18" y1="42" x2="54" y2="42" stroke="url(#tcGold)" stroke-width="2.2" stroke-linecap="square"/>
+        <line x1="18" y1="40" x2="18" y2="44" stroke="url(#tcGold)" stroke-width="1.2"/>
+        <line x1="54" y1="40" x2="54" y2="44" stroke="url(#tcGold)" stroke-width="1.2"/>
+        <!-- T: asta verticale con serif -->
+        <line x1="36" y1="42" x2="36" y2="78" stroke="url(#tcGold)" stroke-width="2.2" stroke-linecap="square"/>
+        <line x1="32" y1="78" x2="40" y2="78" stroke="url(#tcGold)" stroke-width="1.8" stroke-linecap="square"/>
+        <!-- C: curva principale -->
+        <path d="M 100 50 A 22 28 0 1 0 100 70" fill="none" stroke="url(#tcGold)" stroke-width="2.2" stroke-linecap="square"/>
+        <!-- C: serif superiore e inferiore -->
+        <line x1="96" y1="42" x2="104" y2="42" stroke="url(#tcGold)" stroke-width="1.8" stroke-linecap="square"/>
+        <line x1="96" y1="78" x2="104" y2="78" stroke="url(#tcGold)" stroke-width="1.8" stroke-linecap="square"/>
+        <!-- Punti cardinali decorativi -->
+        <circle cx="60" cy="5" r="1.5" fill="url(#tcGold)" opacity="0.5"/>
+        <circle cx="60" cy="115" r="1.5" fill="url(#tcGold)" opacity="0.5"/>
+        <circle cx="5" cy="60" r="1.5" fill="url(#tcGold)" opacity="0.5"/>
+        <circle cx="115" cy="60" r="1.5" fill="url(#tcGold)" opacity="0.5"/>
+      </svg>
     </div>
 
     <!-- NETFLIX PROFILES -->
@@ -7831,6 +7925,21 @@ function initLuxQuotes() {
     _quoteIdx = (_quoteIdx + 1) % _luxQuotes.length;
     showQuote(_quoteIdx);
   }, 7000);
+
+  // Aggiorna anche il blocco mobile
+  function showMobileQuote(idx) {
+    const mob = document.getElementById('mobileQuote');
+    if(!mob) return;
+    const q = _luxQuotes[idx % _luxQuotes.length];
+    mob.style.opacity = '0';
+    setTimeout(() => {
+      mob.innerHTML = '“' + q.text + '”<span class="mobile-quote-author">— ' + q.author + '</span>';
+      mob.style.transition = 'opacity 0.8s ease';
+      mob.style.opacity = '1';
+    }, 400);
+  }
+  showMobileQuote(0);
+  setInterval(() => { showMobileQuote(_quoteIdx); }, 7000);
 }
 
 // ── Luxury Login Particles ──
