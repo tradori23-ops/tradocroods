@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260603-v222';
+  var BUILD = '20260604-v223';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -7738,7 +7738,7 @@ function openWallet() {
   const logo = document.getElementById('walletLogoReveal');
   if(!wLeft || !wRight) return;
 
-  // Reset stato chiuso
+  // Reset: ali chiuse, contenuto nascosto
   wLeft.classList.remove('open');
   wRight.classList.remove('open');
   if(interior) interior.classList.remove('visible');
@@ -7747,15 +7747,16 @@ function openWallet() {
     logo.style.opacity = '0';
     logo.style.transform = 'scale(0.9)';
   }
-  void wLeft.offsetHeight;
+  // Forza reflow per resettare la transizione
+  void wLeft.offsetWidth;
 
-  // Pausa drammatica poi apri le ali
+  // Apri le ali (scivolano fuori dai lati)
   setTimeout(() => {
     wLeft.classList.add('open');
     wRight.classList.add('open');
-  }, 400);
+  }, 300);
 
-  // Mostra interno
+  // Mostra contenuto interno
   setTimeout(() => {
     if(interior) interior.classList.add('visible');
   }, 900);
@@ -7773,22 +7774,20 @@ function closeWallet(onComplete) {
   const logo = document.getElementById('walletLogoReveal');
   if(!wLeft) { if(onComplete) onComplete(); return; }
 
-  // Nascondi logo
+  // Nascondi logo e interno
   if(logo) logo.classList.add('hiding');
-
-  // Nascondi interno
   setTimeout(() => {
     if(interior) interior.classList.remove('visible');
-  }, 200);
+  }, 150);
 
-  // Chiudi le ali
+  // Richiudi le ali
   setTimeout(() => {
     wLeft.classList.remove('open');
     wRight.classList.remove('open');
-  }, 300);
+  }, 250);
 
-  // Callback
-  setTimeout(() => { if(onComplete) onComplete(); }, 1400);
+  // Callback dopo animazione
+  setTimeout(() => { if(onComplete) onComplete(); }, 1200);
 }
 
 // ── Citazioni rotanti pannello sinistro ──
@@ -25544,10 +25543,7 @@ body.light #app { background: var(--dark) !important; }
 body.light .footer-copy .copy-line.version { color: #0066cc !important; }
 
 /* ══════════════════════════════════════════════════════
-   PORTAFOGLIO ANIMATO — LOGIN LOGO
-   ══════════════════════════════════════════════════════ */
-/* ══════════════════════════════════════════════════════
-   PORTAFOGLIO VERO — SI APRE COME UN LIBRO
+   PORTAFOGLIO ANIMATO — SLIDE 2D
    ══════════════════════════════════════════════════════ */
 
 /* Scena portafoglio — contiene tutto */
@@ -25556,52 +25552,47 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
   width: 240px;
   height: 80px;
   margin: 0 auto 28px;
-  perspective: 800px;
-  transform-style: preserve-3d;
+  overflow: hidden;
 }
 
 /* Ali del portafoglio */
 .wallet-wing {
   position: absolute;
   top: 0;
-  width: 116px;
+  width: 120px;
   height: 80px;
   background: linear-gradient(145deg, #2a1a08 0%, #4a2e12 40%, #2a1a08 100%);
   border: 1px solid rgba(201,168,76,0.55);
   box-shadow: 0 8px 32px rgba(0,0,0,0.7), inset 0 1px 0 rgba(201,168,76,0.25);
-  transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 1.2s ease;
+  transition: transform 1.0s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 1.0s ease;
   overflow: hidden;
   border-radius: 4px;
   z-index: 2;
-  transform-style: preserve-3d;
 }
 
+/* Stato chiuso: le ali coprono il centro */
 .wallet-left {
   left: 0;
   border-radius: 4px 0 0 4px;
-  transform-origin: right center;
-  transform: rotateY(0deg);
-  backface-visibility: hidden;
+  transform: translateX(0px);
 }
 
 .wallet-right {
   right: 0;
   border-radius: 0 4px 4px 0;
-  transform-origin: left center;
-  transform: rotateY(0deg);
-  backface-visibility: hidden;
+  transform: translateX(0px);
 }
 
-/* Stato aperto */
+/* Stato aperto: le ali scivolano fuori */
 .wallet-left.open {
-  transform: rotateY(-165deg);
-  box-shadow: -8px 12px 40px rgba(0,0,0,0.5);
+  transform: translateX(-130px);
+  opacity: 0;
 }
 
 .wallet-right.open {
-  transform: rotateY(165deg);
-  box-shadow: 8px 12px 40px rgba(0,0,0,0.5);
+  transform: translateX(130px);
+  opacity: 0;
 }
 
 /* Interno delle ali */
