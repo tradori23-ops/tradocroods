@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260604-v226';
+  var BUILD = '20260604-v227';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -3835,7 +3835,7 @@ setTimeout(_updateOfflineBanner, 500);
   <div class="login-card">
     <!-- LOGO TC LUXURY -->
     <div class="tc-logo-mark">
-      <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg" width="88" height="88">
+      <svg viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg" width="140" height="88">
         <defs>
           <linearGradient id="tcGold" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stop-color="#c9a84c"/>
@@ -3843,33 +3843,23 @@ setTimeout(_updateOfflineBanner, 500);
             <stop offset="100%" stop-color="#c9a84c"/>
           </linearGradient>
         </defs>
-        <!-- Cerchio lunare esterno -->
-        <circle cx="60" cy="60" r="55" fill="none" stroke="url(#tcGold)" stroke-width="0.7" opacity="0.45"/>
-        <!-- Cerchio medio -->
-        <circle cx="60" cy="60" r="48" fill="none" stroke="url(#tcGold)" stroke-width="0.3" opacity="0.2"/>
-        <!-- Decorazione: linee orizzontali sopra e sotto le lettere -->
-        <line x1="28" y1="30" x2="92" y2="30" stroke="url(#tcGold)" stroke-width="0.6" opacity="0.4"/>
-        <line x1="28" y1="90" x2="92" y2="90" stroke="url(#tcGold)" stroke-width="0.6" opacity="0.4"/>
-        <!-- Rombi decorativi sulle linee -->
-        <polygon points="60,27 63,30 60,33 57,30" fill="url(#tcGold)" opacity="0.5"/>
-        <polygon points="60,87 63,90 60,93 57,90" fill="url(#tcGold)" opacity="0.5"/>
-        <!-- T: asta orizzontale con serif -->
-        <line x1="18" y1="42" x2="54" y2="42" stroke="url(#tcGold)" stroke-width="2.2" stroke-linecap="square"/>
-        <line x1="18" y1="40" x2="18" y2="44" stroke="url(#tcGold)" stroke-width="1.2"/>
-        <line x1="54" y1="40" x2="54" y2="44" stroke="url(#tcGold)" stroke-width="1.2"/>
-        <!-- T: asta verticale con serif -->
-        <line x1="36" y1="42" x2="36" y2="78" stroke="url(#tcGold)" stroke-width="2.2" stroke-linecap="square"/>
-        <line x1="32" y1="78" x2="40" y2="78" stroke="url(#tcGold)" stroke-width="1.8" stroke-linecap="square"/>
-        <!-- C: curva principale -->
-        <path d="M 100 50 A 22 28 0 1 0 100 70" fill="none" stroke="url(#tcGold)" stroke-width="2.2" stroke-linecap="square"/>
-        <!-- C: serif superiore e inferiore -->
-        <line x1="96" y1="42" x2="104" y2="42" stroke="url(#tcGold)" stroke-width="1.8" stroke-linecap="square"/>
-        <line x1="96" y1="78" x2="104" y2="78" stroke="url(#tcGold)" stroke-width="1.8" stroke-linecap="square"/>
-        <!-- Punti cardinali decorativi -->
-        <circle cx="60" cy="5" r="1.5" fill="url(#tcGold)" opacity="0.5"/>
-        <circle cx="60" cy="115" r="1.5" fill="url(#tcGold)" opacity="0.5"/>
-        <circle cx="5" cy="60" r="1.5" fill="url(#tcGold)" opacity="0.5"/>
-        <circle cx="115" cy="60" r="1.5" fill="url(#tcGold)" opacity="0.5"/>
+        <!-- Linea decorativa sopra -->
+        <line x1="10" y1="12" x2="150" y2="12" stroke="url(#tcGold)" stroke-width="0.6" opacity="0.4"/>
+        <polygon points="80,8 83,12 80,16 77,12" fill="url(#tcGold)" opacity="0.55"/>
+        <!-- Linea decorativa sotto -->
+        <line x1="10" y1="88" x2="150" y2="88" stroke="url(#tcGold)" stroke-width="0.6" opacity="0.4"/>
+        <polygon points="80,84 83,88 80,92 77,88" fill="url(#tcGold)" opacity="0.55"/>
+        <!-- Lettere TC con font lussuoso -->
+        <text x="80" y="72"
+          font-family="Cormorant Garamond, Didot, Georgia, serif"
+          font-size="58"
+          font-weight="300"
+          letter-spacing="8"
+          text-anchor="middle"
+          fill="url(#tcGold)">TC</text>
+        <!-- Punti laterali decorativi -->
+        <circle cx="8" cy="50" r="1.5" fill="url(#tcGold)" opacity="0.45"/>
+        <circle cx="152" cy="50" r="1.5" fill="url(#tcGold)" opacity="0.45"/>
       </svg>
     </div>
 
