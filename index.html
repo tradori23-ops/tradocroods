@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v209';
+  var BUILD = '20260602-v210';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -3364,11 +3364,11 @@ body.ios-device .btn-gold:hover {
 //  EMAILJS CONFIG — compila questi 4 valori dopo aver creato
 //  il tuo account su https://www.emailjs.com
 // ─────────────────────────────────────────────────────────────
-const EMAILJS_PUBLIC_KEY   = 'INSERISCI_QUI_LA_TUA_PUBLIC_KEY';   // Account → API Keys
-const EMAILJS_SERVICE_ID   = 'INSERISCI_QUI_IL_SERVICE_ID';        // Email Services → Service ID
-const EMAILJS_TMPL_ADMIN   = 'INSERISCI_QUI_IL_TEMPLATE_ADMIN';    // template notifica a te
-const EMAILJS_ADMIN_EMAIL  = 'sergio.tradori@outlook.it';           // tua mail (destinatario notifica)
-const EMAILJS_TMPL_USER    = 'INSERISCI_QUI_IL_TEMPLATE_UTENTE';   // template benvenuto al nuovo utente
+const EMAILJS_PUBLIC_KEY   = 'g0vdnwtYbVTAsTxH0';
+const EMAILJS_SERVICE_ID   = 'service_jb4kkkv';
+const EMAILJS_TMPL_ADMIN   = 'template_1wko8vj';
+const EMAILJS_ADMIN_EMAIL  = 'sergio.tradori@outlook.it';
+const EMAILJS_TMPL_USER    = 'template_1wko8vj';
 // ─────────────────────────────────────────────────────────────
 
 (function(){
@@ -3394,8 +3394,8 @@ function sendRegistrationEmails(userName, userEmail) {
 
   // Mail di benvenuto al nuovo utente
   emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TMPL_USER, {
-    to_email    : userEmail,
-    to_name     : userName,
+    email       : userEmail,
+    nome        : userName,
     reg_date    : dateStr,
   }).catch(e => console.warn('[EmailJS user]', e));
 }
@@ -3529,27 +3529,42 @@ setTimeout(_updateOfflineBanner, 500);
       </form>
     </div>
 
-    <!-- STEP REGISTRAZIONE -->
+    <!-- STEP REGISTRAZIONE LUXURY -->
     <div id="registerStep" style="display:none;">
-      <div style="font-size:16px;font-weight:700;margin-bottom:16px;text-align:center;">➕ Nuovo Profilo</div>
+      <!-- Titolo luxury -->
+      <div style="text-align:center;margin-bottom:32px;">
+        <div style="font-family:'Cormorant Garamond',serif;font-size:11px;font-weight:300;letter-spacing:5px;text-transform:uppercase;color:rgba(201,168,76,0.45);margin-bottom:8px;">Nuovo Accesso</div>
+        <div style="width:30px;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.5),transparent);margin:0 auto;"></div>
+      </div>
+
       <form onsubmit="doRegister();return false;" autocomplete="on">
       <div class="form-group">
         <label>Nome</label>
-        <input type="text" id="regName" placeholder="Il tuo nome">
+        <input type="text" id="regName" placeholder="Il tuo nome" autocomplete="name">
       </div>
       <div class="form-group">
         <label>Email</label>
-        <input type="email" id="regEmail" placeholder="tuaemail@esempio.it">
+        <input type="email" id="regEmail" placeholder="tuaemail@esempio.it" autocomplete="email">
       </div>
       <div class="form-group">
         <label>Password</label>
         <div style="position:relative;">
-          <input type="password" id="regPassword" placeholder="Minimo 6 caratteri" style="padding-right:48px;">
-          <button type="button" onclick="togglePwd('regPassword','eyeReg')" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;line-height:1;color:var(--text-muted);" id="eyeReg">👁️</button>
+          <input type="password" id="regPassword" placeholder="Minimo 6 caratteri" style="padding-right:40px;" autocomplete="new-password">
+          <button type="button" onclick="togglePwd('regPassword','eyeReg')" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;line-height:1;color:rgba(201,168,76,0.4);padding:4px;" id="eyeReg">👁</button>
         </div>
       </div>
-      <button class="btn-primary" onclick="doRegister()">Crea Profilo</button>
-      <button type="button" class="btn btn-outline" onclick="backToProfiles()" style="font-size:13px;margin-top:-6px;">← Annulla</button>
+
+      <!-- Info email conferma -->
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 0;margin-bottom:8px;border-top:1px solid rgba(201,168,76,0.08);border-bottom:1px solid rgba(201,168,76,0.08);">
+        <span style="font-size:14px;">✉️</span>
+        <div style="font-size:10px;color:rgba(201,168,76,0.45);letter-spacing:0.5px;line-height:1.5;">Riceverai una email di benvenuto all'indirizzo indicato</div>
+      </div>
+
+      <!-- Stato invio email -->
+      <div id="regEmailStatus" style="display:none;font-size:11px;text-align:center;padding:8px;border-radius:4px;margin-bottom:12px;letter-spacing:0.5px;"></div>
+
+      <button class="btn-primary" onclick="doRegister()" style="margin-top:8px;">CREA PROFILO</button>
+      <button type="button" onclick="backToProfiles()" style="background:none;border:none;color:rgba(201,168,76,0.35);font-size:10px;cursor:pointer;margin-top:10px;padding:4px 8px;font-family:'DM Sans',sans-serif;letter-spacing:2px;text-transform:uppercase;width:100%;text-align:center;transition:color 0.3s;" onmouseover="this.style.color='rgba(201,168,76,0.7)'" onmouseout="this.style.color='rgba(201,168,76,0.35)'">← Torna ai profili</button>
       </form>
     </div>
 
@@ -7951,12 +7966,48 @@ function _completeRegistration(name, email, pass) {
   const users = getUsers();
   if(users.find(u=>u.email===email)) { showMsg('Email già registrata.','error'); return; }
   const _hp = hashPasswordSync(pass);
-  users.push({ name, email, pass: _hp, _passHash: true });
+  users.push({ name, email, pass: _hp, _passHash: true, createdAt: new Date().toISOString() });
   saveUsers(users);
-  sendRegistrationEmails(name, email);
-  showMsg('Profilo creato! Scegli il profilo e accedi.','success');
-  renderProfilesGrid();
-  backToProfiles();
+
+  // Mostra status invio email
+  const statusEl = document.getElementById('regEmailStatus');
+  if(statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.style.background = 'rgba(201,168,76,0.08)';
+    statusEl.style.color = 'rgba(201,168,76,0.7)';
+    statusEl.style.border = '1px solid rgba(201,168,76,0.15)';
+    statusEl.textContent = '✉️ Invio email di benvenuto…';
+  }
+
+  // Invia email e poi vai ai profili
+  sendRegistrationEmailsWithCallback(name, email, () => {
+    if(statusEl) {
+      statusEl.style.background = 'rgba(74,232,122,0.08)';
+      statusEl.style.color = 'rgba(74,232,122,0.8)';
+      statusEl.style.border = '1px solid rgba(74,232,122,0.15)';
+      statusEl.textContent = '✅ Email di benvenuto inviata a ' + email;
+    }
+    setTimeout(() => {
+      showToast('✅ Benvenuto, ' + name + '! Profilo creato.');
+      renderProfilesGrid();
+      backToProfiles();
+    }, 1200);
+  });
+}
+
+function sendRegistrationEmailsWithCallback(name, email, onDone) {
+  if(typeof emailjs === 'undefined' || !EMAILJS_PUBLIC_KEY || EMAILJS_PUBLIC_KEY.startsWith('INSERISCI')) {
+    if(onDone) onDone();
+    return;
+  }
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('it-IT', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+  emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TMPL_USER, {
+    email    : email,
+    nome     : name,
+    reg_date : dateStr,
+  }).then(() => { if(onDone) onDone(); })
+    .catch(e => { console.warn('[EmailJS]', e); if(onDone) onDone(); });
 }
 
 function doLogin() {
