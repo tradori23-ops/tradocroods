@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v211';
+  var BUILD = '20260602-v212';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -944,6 +944,169 @@ body.light .stat-mini .s-label { color:#44446a; }
   color: var(--gold);
   font-family: var(--font);
   box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+}
+
+/* ═══════════════════════════════════════════════════════
+   LOGIN TWO-COLUMN LAYOUT
+   ═══════════════════════════════════════════════════════ */
+
+/* Layout wrapper: su desktop due colonne, su mobile solo card */
+#loginPage {
+  justify-content: flex-end !important;
+}
+
+/* Pannello sinistro luxury */
+#loginLeftPanel {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: calc(50vw - 220px);
+  min-width: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 60px 60px 60px 40px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.llp-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 320px;
+  text-align: right;
+}
+
+.llp-logo {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 48px;
+  font-weight: 300;
+  letter-spacing: 10px;
+  background: linear-gradient(135deg, #a07830, #c9a84c, #f5cb72, #c9a84c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+
+.llp-sub {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  letter-spacing: 6px;
+  color: rgba(201,168,76,0.35);
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+.llp-divider {
+  width: 40px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.5));
+  margin: 0 0 28px auto;
+}
+
+.llp-quote {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 20px;
+  font-weight: 300;
+  font-style: italic;
+  color: rgba(255,255,255,0.7);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.llp-quote-author {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: rgba(201,168,76,0.45);
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+.llp-features {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 28px;
+}
+
+.llp-feat {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  color: rgba(201,168,76,0.5);
+  text-transform: uppercase;
+}
+
+.llp-year {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: rgba(201,168,76,0.2);
+  text-transform: uppercase;
+}
+
+/* Card posizionata a destra del centro */
+.login-card {
+  position: relative;
+  z-index: 2;
+  margin-right: calc(50vw - 210px - 220px);
+}
+
+/* Fix spaziatura interna card */
+.login-logo { margin-bottom: 28px !important; }
+.login-logo h1 { font-size: 30px !important; letter-spacing: 7px !important; }
+.login-logo p { font-size: 9px !important; letter-spacing: 5px !important; }
+.form-group { margin-bottom: 20px !important; }
+.form-group label { font-size: 9px !important; letter-spacing: 2px !important; margin-bottom: 8px !important; }
+.form-group input { padding: 10px 4px !important; font-size: 14px !important; }
+.btn-primary { padding: 14px !important; font-size: 10px !important; letter-spacing: 3px !important; margin-top: 4px !important; }
+
+/* Password step — riduci spazi vuoti */
+#profilePasswordStep { gap: 14px !important; }
+.sel-avatar { width: 80px !important; height: 80px !important; }
+#profilePasswordStep #selName { font-size: 17px !important; letter-spacing: 2.5px !important; margin-bottom: 0 !important; }
+
+/* Profili grid — più compatta */
+#loginTitle { margin-bottom: 20px !important; font-size: 11px !important; }
+.profiles-grid { gap: 20px !important; padding: 4px 0 12px !important; }
+.profile-avatar { width: 80px !important; height: 80px !important; }
+.profile-name { font-size: 10px !important; letter-spacing: 1.5px !important; }
+
+/* Registrazione — spaziatura compatta */
+#registerStep > div:first-child { margin-bottom: 20px !important; }
+
+/* Nascondo pannello sinistro su schermi piccoli */
+@media (max-width: 1099px) {
+  #loginLeftPanel { display: none !important; }
+  #loginPage { justify-content: center !important; }
+  .login-card { margin-right: 0 !important; }
+}
+
+/* Adatta margine card per diverse dimensioni desktop */
+@media (min-width: 1100px) and (max-width: 1399px) {
+  #loginLeftPanel { padding-right: 40px; }
+  .llp-logo { font-size: 38px !important; letter-spacing: 8px !important; }
+  .llp-quote { font-size: 17px !important; }
+  .login-card { margin-right: calc(50vw - 210px - 200px) !important; }
+}
+
+@media (min-width: 1400px) and (max-width: 1799px) {
+  .llp-logo { font-size: 44px !important; }
+  .login-card { margin-right: calc(50vw - 210px - 240px) !important; }
+}
+
+@media (min-width: 1800px) {
+  #loginLeftPanel { padding-right: 80px; }
+  .llp-logo { font-size: 54px !important; letter-spacing: 12px !important; }
+  .llp-quote { font-size: 22px !important; }
+  .login-card {
+    width: 460px !important;
+    padding: 56px 50px 48px !important;
+    margin-right: calc(50vw - 230px - 280px) !important;
+  }
 }
 
 /* ===== SCROLLBAR ===== */
@@ -3468,6 +3631,29 @@ setTimeout(_updateOfflineBanner, 500);
   <div class="login-bg-art"></div>
   <canvas id="luxParticles"></canvas>
   <div class="login-hexagons" id="hexContainer"></div>
+
+  <!-- PANNELLO SINISTRO — visibile solo su desktop -->
+  <div id="loginLeftPanel">
+    <div class="llp-inner">
+      <!-- Logo grande -->
+      <div class="llp-logo">TRAD.CLAB</div>
+      <div class="llp-sub">BY FAMILY</div>
+      <div class="llp-divider"></div>
+      <!-- Citazione -->
+      <div class="llp-quote">"Il controllo delle finanze<br>è il primo passo<br>verso la libertà."</div>
+      <div class="llp-quote-author">— Sergio Tradori</div>
+      <div class="llp-divider"></div>
+      <!-- Features -->
+      <div class="llp-features">
+        <div class="llp-feat">✦ Gestione spese familiare</div>
+        <div class="llp-feat">✦ Sync cloud sicuro</div>
+        <div class="llp-feat">✦ Dashboard intelligente</div>
+        <div class="llp-feat">✦ Budget settimanale</div>
+      </div>
+      <!-- Anno -->
+      <div class="llp-year">TORINO · ITALIA · 2026</div>
+    </div>
+  </div>
 
   <div class="login-card">
     <div class="login-logo">
