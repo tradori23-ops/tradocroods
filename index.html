@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v221';
+  var BUILD = '20260603-v222';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -7891,13 +7891,18 @@ try {
   createHexagons();
   initLuxParticles();
   initLuxQuotes();
-  openWallet();
   renderVersion();
   loadTheme(true);
   loadSavedBg();
   loadLastUser();
   renderUsersGrid();
   initFirebase();
+  // Portafoglio: aspetta DOM prima di animare
+  if(document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { openWallet(); });
+  } else {
+    setTimeout(openWallet, 50);
+  }
 } catch(e) {
   console.error('TRAD.CLAB init error:', e);
   // Se il JS crasha all'avvio mostra il login comunque
@@ -25552,6 +25557,7 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
   height: 80px;
   margin: 0 auto 28px;
   perspective: 800px;
+  transform-style: preserve-3d;
 }
 
 /* Ali del portafoglio */
@@ -25563,12 +25569,12 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
   background: linear-gradient(145deg, #2a1a08 0%, #4a2e12 40%, #2a1a08 100%);
   border: 1px solid rgba(201,168,76,0.55);
   box-shadow: 0 8px 32px rgba(0,0,0,0.7), inset 0 1px 0 rgba(201,168,76,0.25);
-  transform-origin: center;
   transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1),
               box-shadow 1.2s ease;
   overflow: hidden;
   border-radius: 4px;
   z-index: 2;
+  transform-style: preserve-3d;
 }
 
 .wallet-left {
@@ -25576,6 +25582,7 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
   border-radius: 4px 0 0 4px;
   transform-origin: right center;
   transform: rotateY(0deg);
+  backface-visibility: hidden;
 }
 
 .wallet-right {
@@ -25583,6 +25590,7 @@ body.light .footer-copy .copy-line.version { color: #0066cc !important; }
   border-radius: 0 4px 4px 0;
   transform-origin: left center;
   transform: rotateY(0deg);
+  backface-visibility: hidden;
 }
 
 /* Stato aperto */
