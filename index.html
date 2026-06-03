@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260602-v212';
+  var BUILD = '20260602-v213';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -982,69 +982,74 @@ body.light .stat-mini .s-label { color:#44446a; }
   font-size: 48px;
   font-weight: 300;
   letter-spacing: 10px;
-  background: linear-gradient(135deg, #a07830, #c9a84c, #f5cb72, #c9a84c);
+  background: linear-gradient(135deg, #c9a84c, #f5cb72, #e8b44a);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
   line-height: 1;
   margin-bottom: 8px;
+  text-shadow: none;
 }
 
 .llp-sub {
   font-family: 'DM Sans', sans-serif;
   font-size: 10px;
   letter-spacing: 6px;
-  color: rgba(201,168,76,0.35);
+  color: rgba(245,203,114,0.55);
   text-transform: uppercase;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
 }
 
 .llp-divider {
   width: 40px;
   height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(201,168,76,0.5));
-  margin: 0 0 28px auto;
+  background: linear-gradient(90deg, transparent, rgba(245,203,114,0.6));
+  margin: 0 0 32px auto;
 }
 
 .llp-quote {
   font-family: 'Cormorant Garamond', serif;
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 300;
   font-style: italic;
-  color: rgba(255,255,255,0.7);
-  line-height: 1.6;
-  margin-bottom: 12px;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.7;
+  margin-bottom: 14px;
+  text-shadow: 0 1px 20px rgba(0,0,0,0.5);
+  min-height: 100px;
 }
 
 .llp-quote-author {
   font-family: 'DM Sans', sans-serif;
   font-size: 10px;
-  letter-spacing: 2px;
-  color: rgba(201,168,76,0.45);
+  letter-spacing: 2.5px;
+  color: rgba(245,203,114,0.65);
   text-transform: uppercase;
-  margin-bottom: 28px;
+  margin-bottom: 32px;
+  min-height: 16px;
 }
 
 .llp-features {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  margin-bottom: 28px;
+  gap: 12px;
+  margin-bottom: 32px;
 }
 
 .llp-feat {
   font-family: 'DM Sans', sans-serif;
   font-size: 11px;
-  letter-spacing: 1.5px;
-  color: rgba(201,168,76,0.5);
+  letter-spacing: 2px;
+  color: rgba(245,203,114,0.65);
   text-transform: uppercase;
+  text-shadow: 0 1px 10px rgba(0,0,0,0.4);
 }
 
 .llp-year {
   font-family: 'DM Sans', sans-serif;
   font-size: 9px;
-  letter-spacing: 3px;
-  color: rgba(201,168,76,0.2);
+  letter-spacing: 4px;
+  color: rgba(245,203,114,0.35);
   text-transform: uppercase;
 }
 
@@ -3640,8 +3645,8 @@ setTimeout(_updateOfflineBanner, 500);
       <div class="llp-sub">BY FAMILY</div>
       <div class="llp-divider"></div>
       <!-- Citazione -->
-      <div class="llp-quote">"Il controllo delle finanze<br>è il primo passo<br>verso la libertà."</div>
-      <div class="llp-quote-author">— Sergio Tradori</div>
+      <div class="llp-quote" id="llpQuoteText"></div>
+      <div class="llp-quote-author" id="llpQuoteAuthor"></div>
       <div class="llp-divider"></div>
       <!-- Features -->
       <div class="llp-features">
@@ -7612,6 +7617,49 @@ function createHexagons() {
     c.appendChild(h);
   }
 }
+// ── Citazioni rotanti pannello sinistro ──
+const _luxQuotes = [
+  { text: "Il denaro che si possiede è strumento di libertà; quello che si insegue è strumento di schiavitù.", author: "Jean-Jacques Rousseau" },
+  { text: "Non è l'uomo che ha poco, ma quello che desidera di più, che è povero.", author: "Seneca" },
+  { text: "Il budget non riguarda il denaro. Riguarda i valori.", author: "Barack Obama" },
+  { text: "Fai in modo che i tuoi soldi lavorino per te, non tu per i tuoi soldi.", author: "Robert Kiyosaki" },
+  { text: "Risparmia una parte di ogni guadagno. Questo è il fondamento della ricchezza.", author: "Aristotele Onassis" },
+  { text: "Chi non sa gestire cento euro, non saprà gestire nemmeno centomila.", author: "Proverbio italiano" },
+  { text: "La ricchezza consiste molto più nel godimento che nel possesso.", author: "Aristotele" },
+  { text: "Un investimento nella conoscenza paga sempre i migliori interessi.", author: "Benjamin Franklin" },
+];
+
+let _quoteIdx = 0;
+function initLuxQuotes() {
+  const el = document.getElementById('llpQuoteText');
+  const auth = document.getElementById('llpQuoteAuthor');
+  if(!el || !auth) return;
+
+  function showQuote(idx) {
+    const q = _luxQuotes[idx % _luxQuotes.length];
+    el.style.opacity = '0';
+    auth.style.opacity = '0';
+    el.style.transform = 'translateY(8px)';
+    auth.style.transform = 'translateY(8px)';
+    setTimeout(() => {
+      el.innerHTML = '&ldquo;' + q.text + '&rdquo;';
+      auth.textContent = '— ' + q.author;
+      el.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+      auth.style.transition = 'opacity 0.8s ease, transform 0.8s ease';
+      el.style.opacity = '1';
+      auth.style.opacity = '1';
+      el.style.transform = 'translateY(0)';
+      auth.style.transform = 'translateY(0)';
+    }, 400);
+  }
+
+  showQuote(0);
+  setInterval(() => {
+    _quoteIdx = (_quoteIdx + 1) % _luxQuotes.length;
+    showQuote(_quoteIdx);
+  }, 7000);
+}
+
 // ── Luxury Login Particles ──
 function initLuxParticles() {
   const canvas = document.getElementById('luxParticles');
@@ -7668,6 +7716,7 @@ function initLuxParticles() {
 try {
   createHexagons();
   initLuxParticles();
+  initLuxQuotes();
   renderVersion();
   loadTheme(true);
   loadSavedBg();
