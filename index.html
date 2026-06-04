@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260604-v227';
+  var BUILD = '20260604-v229';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -2555,6 +2555,11 @@ tbody tr:hover { background: rgba(255,255,255,0.02); }
    • <393px         → iPhone SE / mini
    ═══════════════════════════════════════════════════════════════════ */
 
+/* ── Desktop (≥1280px) — hamburger nascosto, sidebar sempre visibile ── */
+@media (min-width: 1280px) {
+  .hamburger-btn { display: none !important; }
+}
+
 /* ── iPad Pro 12.9" landscape + grandi (1024–1279px) ── */
 @media (min-width:1024px) and (max-width:1279px) {
   .sidebar { transform: translateX(0) !important; position: fixed !important; width: 240px !important; z-index: 100 !important; }
@@ -4207,7 +4212,7 @@ setTimeout(_updateOfflineBanner, 500);
       <button class="hamburger-btn" onclick="toggleSidebar()">☰</button>
       <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
         <h1 class="page-title" id="pageTitle" style="margin:0;">Dashboard</h1>
-        <button id="privacyEyeBtn" onclick="togglePrivacyBlur()" title="Nascondi/mostra sezione">👁️</button>
+        <button id="privacyEyeBtn" class="mobile-only-btn" onclick="togglePrivacyBlur()" title="Nascondi/mostra sezione">👁️</button>
       </div>
       <div class="topbar-actions" style="margin-left:auto;">
         <!-- Bottoni sempre visibili -->
@@ -25049,6 +25054,16 @@ body.light #budgetWeekTable > div {
 body.light #budgetWeekTable input {
   background: #ffffff !important;
   color: #111122 !important;
+}
+
+/* Bottone occhio privacy — solo mobile */
+.mobile-only-btn {
+  display: none !important;
+}
+@media (max-width: 900px) {
+  .mobile-only-btn {
+    display: inline-flex !important;
+  }
 }
 
 /* Promemoria */
