@@ -1,26 +1,53 @@
 {
-  "name": "TradoCroods by Family",
+  "name": "TradoCroods by Family – TRAD.CLAB",
   "short_name": "TradoCroods",
-  "description": "Gestione budget familiare",
-  "start_url": "/tradocroods/",
-  "scope": "/tradocroods/",
-  "display": "standalone",
-  "orientation": "portrait",
-  "background_color": "#12122A",
-  "theme_color": "#c9a84c",
+  "description": "Gestione budget familiare con sync cloud, dashboard settimanale e pianificazione spese.",
   "lang": "it",
+  "start_url": "./index.html?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#1a1a2e",
+  "background_color": "#080810",
+  "categories": ["finance", "productivity"],
   "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
     {
-      "src": "icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "name": "Aggiungi Spesa",
+      "short_name": "Spesa",
+      "description": "Aggiungi rapidamente una spesa",
+      "url": "./index.html?action=add_spesa&source=shortcut",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
     },
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Vai alla dashboard mensile",
+      "url": "./index.html?section=dashboard&source=shortcut",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Questa Settimana",
+      "short_name": "Settimana",
+      "description": "Visualizza le spese settimanali",
+      "url": "./index.html?section=week&source=shortcut",
+      "icons": [{ "src": "icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
     {
       "src": "icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any maskable"
+      "form_factor": "narrow",
+      "label": "TradoCroods – Dashboard"
     }
-  ]
+  ],
+  "prefer_related_applications": false,
+  "display_override": ["standalone", "minimal-ui", "browser"]
 }
