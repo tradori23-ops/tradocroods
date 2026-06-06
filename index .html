@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260604-v230';
+  var BUILD = '20260604-v231';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -24146,7 +24146,7 @@ async function registerSW() {
   if (host.includes('claudeusercontent.com') || host === 'localhost' || host === '127.0.0.1') return;
   try {
     const scope = window.location.pathname.replace(/\/[^/]*$/, '/') || '/';
-    const swPath = scope + 'sw.js';
+    const swPath = scope + 'sw.js?v=' + BUILD;
     const reg = await navigator.serviceWorker.register(swPath, { scope, updateViaCache: 'none' });
     console.log('✅ SW registrato, scope:', reg.scope);
     reg.addEventListener('updatefound', () => {
