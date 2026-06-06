@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260604-v229';
+  var BUILD = '20260604-v232';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -14,6 +14,24 @@
   }
   var stored = '';
   try { stored = localStorage.getItem('tc_build') || ''; } catch(e){}
+  // ── Handler force_update da QR ──
+  try {
+    const _qp = new URLSearchParams(window.location.search);
+    if(_qp.has('force_update')) {
+      history.replaceState({}, '', window.location.pathname);
+      localStorage.removeItem('tc_build');
+      if('caches' in window) caches.keys().then(k=>k.forEach(c=>caches.delete(c)));
+      if('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(regs){
+          var kills = regs.map(function(r){ return r.unregister(); });
+          Promise.all(kills).then(function(){ window.location.reload(true); });
+        }).catch(function(){ window.location.reload(true); });
+      } else {
+        window.location.reload(true);
+      }
+    }
+  } catch(_e){}
+
   if(stored !== BUILD) {
     try { localStorage.setItem('tc_build', BUILD); } catch(e){}
     if('serviceWorker' in navigator) {
@@ -7499,7 +7517,14 @@ async function tcEncrypt(obj, password) {
     const ivHex   = Array.from(iv).map(b=>b.toString(16).padStart(2,'0')).join('');
     const key    = await _deriveKey(password, saltHex);
     const cipher = await crypto.subtle.encrypt({name:'AES-GCM',iv}, key, enc.encode(plain));
-    const cipherB64 = btoa(String.fromCharCode(...new Uint8Array(cipher)));
+    // Converti in base64 a chunk per evitare stack overflow su dati grandi
+    const cipherArr = new Uint8Array(cipher);
+    let cipherStr = '';
+    const chunkSize = 8192;
+    for(let i = 0; i < cipherArr.length; i += chunkSize) {
+      cipherStr += String.fromCharCode(...cipherArr.subarray(i, i + chunkSize));
+    }
+    const cipherB64 = btoa(cipherStr);
     return _ENC_MARKER + saltHex + ':' + ivHex + ':' + cipherB64;
   } catch(e) {
     console.error('[Crypto] Errore cifratura:', e);
@@ -15397,8 +15422,50 @@ function saveProfileData(showConfirm) {
 }
 
 // ── Funzioni tab profilo ──
+// ══ QR AGGIORNAMENTO ══
+function generateUpdateQR() {
+  const build = typeof BUILD !== 'undefined' ? BUILD : 'unknown';
+  const base = window.location.origin + window.location.pathname;
+  const expiry = Date.now() + 10 * 60 * 1000; // 10 minuti
+  const url = base + '?force_update=1&build=' + encodeURIComponent(build) + '&exp=' + expiry;
+  const qrApi = 'https://api.qrserver.com/v1/create-qr-code/?size=180x180&ecc=M&data=' + encodeURIComponent(url);
+
+  const img = document.getElementById('qrCodeImg');
+  const container = document.getElementById('qrCodeContainer');
+  const expiryEl = document.getElementById('qrExpiry');
+  const buildEl = document.getElementById('qrCurrentBuild');
+
+  if(img) img.src = qrApi;
+  if(container) container.style.display = 'block';
+  if(buildEl) buildEl.textContent = build;
+
+  // Countdown scadenza
+  let remaining = 600;
+  if(window._qrTimer) clearInterval(window._qrTimer);
+  window._qrTimer = setInterval(function() {
+    remaining--;
+    if(expiryEl) {
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      expiryEl.textContent = '⏱ Scade tra ' + m + ':' + (s<10?'0':'') + s;
+    }
+    if(remaining <= 0) {
+      clearInterval(window._qrTimer);
+      if(container) container.style.display = 'none';
+      if(expiryEl) expiryEl.textContent = '';
+      showToast('⏰ QR scaduto — rigeneralo');
+    }
+  }, 1000);
+
+  showToast('📱 QR generato — valido 10 minuti');
+}
+
 function switchProfileTab(tab) {
-  ['info','dati','stats','sfondo'].forEach(t => {
+  if(tab === 'aggiorna') {
+    const buildEl = document.getElementById('qrCurrentBuild');
+    if(buildEl && typeof BUILD !== 'undefined') buildEl.textContent = BUILD;
+  }
+  ['info','dati','stats','sfondo','aggiorna'].forEach(t => {
     const btn = document.getElementById('profileTab-' + t);
     const cnt = document.getElementById('profileTabContent-' + t);
     if(btn) { btn.style.borderBottomColor = t===tab ? 'var(--gold)' : 'transparent'; btn.style.color = t===tab ? 'var(--gold)' : 'var(--text-muted)'; }
@@ -24139,7 +24206,7 @@ async function registerSW() {
   if (host.includes('claudeusercontent.com') || host === 'localhost' || host === '127.0.0.1') return;
   try {
     const scope = window.location.pathname.replace(/\/[^/]*$/, '/') || '/';
-    const swPath = scope + 'sw.js';
+    const swPath = scope + 'sw.js?v=' + BUILD;
     const reg = await navigator.serviceWorker.register(swPath, { scope, updateViaCache: 'none' });
     console.log('✅ SW registrato, scope:', reg.scope);
     reg.addEventListener('updatefound', () => {
@@ -26431,6 +26498,7 @@ window.addEventListener('beforeprint', function() {
       <button onclick="switchProfileTab('dati')" id="profileTab-dati" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">📋 Dati</button>
       <button onclick="switchProfileTab('stats')" id="profileTab-stats" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">📊 Statistiche</button>
       <button onclick="switchProfileTab('sfondo')" id="profileTab-sfondo" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">🎨 Sfondo</button>
+      <button onclick="switchProfileTab('aggiorna')" id="profileTab-aggiorna" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">🔄 Aggiorna</button>
     </div>
 
     <div style="padding:20px 24px 24px;">
@@ -26555,6 +26623,39 @@ window.addEventListener('beforeprint', function() {
         <input type="file" id="profileBgImageInput" accept="image/*" style="display:none;" onchange="setProfileBgImage(event)">
         <button onclick="document.getElementById('profileBgImageInput').click()" style="padding:10px 16px;border-radius:12px;background:rgba(201,168,76,0.1);border:1.5px solid rgba(201,168,76,0.3);color:var(--gold);font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-bottom:8px;">📁 Carica immagine</button>
         <button onclick="setProfileBg('linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)')" style="padding:8px 16px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-size:12px;cursor:pointer;width:100%;">↩️ Ripristina predefinito</button>
+      </div>
+
+      <!-- TAB: AGGIORNA DISPOSITIVO -->
+      <div id="profileTabContent-aggiorna" style="display:none;">
+        <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.5;">
+          Genera un QR da <strong>questo dispositivo</strong> e scansionalo con il dispositivo da aggiornare.<br>
+          L'app sull'altro dispositivo si aggiornerà automaticamente alla versione più recente.
+        </div>
+
+        <!-- Versione attuale -->
+        <div style="background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:12px 16px;margin-bottom:20px;text-align:center;">
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px;">Versione attuale</div>
+          <div id="qrCurrentBuild" style="font-size:14px;font-weight:700;color:var(--gold);font-family:monospace;"></div>
+        </div>
+
+        <!-- QR Code -->
+        <div id="qrCodeContainer" style="display:none;text-align:center;margin-bottom:20px;">
+          <div style="background:white;border-radius:12px;padding:12px;display:inline-block;margin-bottom:12px;">
+            <img id="qrCodeImg" src="" width="180" height="180" alt="QR Aggiornamento">
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);">Scansiona con la fotocamera del dispositivo da aggiornare</div>
+          <div id="qrExpiry" style="font-size:11px;color:rgba(201,168,76,0.6);margin-top:6px;"></div>
+        </div>
+
+        <!-- Bottone genera -->
+        <button onclick="generateUpdateQR()" style="width:100%;padding:14px;border-radius:12px;background:linear-gradient(135deg,rgba(201,168,76,0.15),rgba(201,168,76,0.08));border:1.5px solid rgba(201,168,76,0.4);color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;font-family:var(--font);letter-spacing:0.5px;">
+          📱 Genera QR Aggiornamento
+        </button>
+
+        <!-- Avviso -->
+        <div style="margin-top:16px;padding:10px 14px;background:rgba(255,200,0,0.05);border:1px solid rgba(255,200,0,0.15);border-radius:10px;font-size:11px;color:var(--text-muted);line-height:1.5;">
+          ⚠️ Il QR è valido per <strong>10 minuti</strong>. Dopo la scansione l'altro dispositivo si ricarica automaticamente.
+        </div>
       </div>
 
       <!-- BOTTONI -->
