@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260606-v236';
+  var BUILD = '20260606-v237';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -25143,15 +25143,15 @@ body.light #budgetWeekTable input {
   color: #111122 !important;
 }
 
-/* ── Bottone occhio password — dentro il campo ── */
+/* ── Bottone occhio password — dentro il campo, scomparsa ── */
 .pwd-wrap {
-  position: relative;
-  display: block;
-  width: 100%;
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
 }
 .pwd-wrap input {
   width: 100% !important;
-  padding-right: 42px !important;
+  padding-right: 40px !important;
   box-sizing: border-box !important;
   display: block !important;
 }
@@ -25162,25 +25162,39 @@ body.light #budgetWeekTable input {
   transform: translateY(-50%) !important;
   background: none !important;
   border: none !important;
-  cursor: pointer;
+  cursor: pointer !important;
   font-size: 16px;
   line-height: 1;
-  color: rgba(201,168,76,0.5);
-  padding: 0;
-  margin: 0;
-  width: 28px;
-  height: 28px;
+  color: rgba(201,168,76,0.8) !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  width: 28px !important;
+  height: 28px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  z-index: 3 !important;
-  transition: color 0.2s;
+  z-index: 10 !important;
   border-radius: 4px;
+  /* Nascosto di default */
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, color 0.2s ease;
 }
-.pwd-eye-btn:hover { color: rgba(201,168,76,1); }
-.pwd-eye-btn:active { color: var(--gold); transform: translateY(-50%) scale(0.88) !important; }
+/* Appare al hover sul campo o al focus */
+.pwd-wrap:hover .pwd-eye-btn,
+.pwd-wrap:focus-within .pwd-eye-btn {
+  opacity: 1;
+  pointer-events: auto;
+}
+.pwd-eye-btn:hover { color: var(--gold) !important; }
+.pwd-eye-btn:active { transform: translateY(-50%) scale(0.88) !important; }
+/* Su touch: sempre visibile al 60%, pieno al focus */
+@media (hover: none) and (pointer: coarse) {
+  .pwd-eye-btn { opacity: 0.55; pointer-events: auto; }
+  .pwd-wrap:focus-within .pwd-eye-btn { opacity: 1; }
+}
 
 /* Bottone occhio privacy — solo mobile */
 .mobile-only-btn {
