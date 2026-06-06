@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260604-v233';
+  var BUILD = '20260606-v236';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -3924,9 +3924,9 @@ setTimeout(_updateOfflineBanner, 500);
         </div>
         <div class="form-group">
           <label>Password</label>
-          <div style="position:relative;">
-            <input type="password" id="manualPass" placeholder="Password" style="padding-right:48px;" autocomplete="current-password" onkeydown="if(event.key==='Enter')doManualLogin()">
-            <button type="button" onclick="togglePwd('manualPass','eyeManual')" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;line-height:1;color:var(--text-muted);" id="eyeManual">👁️</button>
+          <div class="pwd-wrap">
+            <input type="password" id="manualPass" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doManualLogin()">
+            <button type="button" onclick="togglePwd('manualPass','eyeManual')" class="pwd-eye-btn" id="eyeManual">👁️</button>
           </div>
         </div>
         <div id="manualLoginErr" style="color:#e05c5c;font-size:12px;text-align:center;min-height:16px;margin-bottom:4px;"></div>
@@ -3971,9 +3971,9 @@ setTimeout(_updateOfflineBanner, 500);
       <div style="font-size:16px;font-weight:700;" id="selName">—</div>
       <form onsubmit="doLoginProfile();return false;" autocomplete="on">
       <div class="form-group" style="width:100%;">
-        <div style="position:relative;">
-          <input type="password" id="loginPassword" placeholder="Password" style="padding-right:48px;" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLoginProfile()">
-          <button type="button" onclick="togglePwd('loginPassword','eyeLogin')" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;line-height:1;color:var(--text-muted);" id="eyeLogin">👁️</button>
+        <div class="pwd-wrap">
+          <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLoginProfile()">
+          <button type="button" onclick="togglePwd('loginPassword','eyeLogin')" class="pwd-eye-btn" id="eyeLogin">👁️</button>
         </div>
       </div>
       <button class="btn-primary" onclick="doLoginProfile()">Accedi</button>
@@ -4000,9 +4000,9 @@ setTimeout(_updateOfflineBanner, 500);
       </div>
       <div class="form-group">
         <label>Password</label>
-        <div style="position:relative;">
-          <input type="password" id="regPassword" placeholder="Minimo 6 caratteri" style="padding-right:40px;" autocomplete="new-password">
-          <button type="button" onclick="togglePwd('regPassword','eyeReg')" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;line-height:1;color:rgba(201,168,76,0.4);padding:4px;" id="eyeReg">👁</button>
+        <div class="pwd-wrap">
+          <input type="password" id="regPassword" placeholder="Minimo 6 caratteri" autocomplete="new-password">
+          <button type="button" onclick="togglePwd('regPassword','eyeReg')" class="pwd-eye-btn" id="eyeReg">👁️</button>
         </div>
       </div>
 
@@ -25143,6 +25143,45 @@ body.light #budgetWeekTable input {
   color: #111122 !important;
 }
 
+/* ── Bottone occhio password — dentro il campo ── */
+.pwd-wrap {
+  position: relative;
+  display: block;
+  width: 100%;
+}
+.pwd-wrap input {
+  width: 100% !important;
+  padding-right: 42px !important;
+  box-sizing: border-box !important;
+  display: block !important;
+}
+.pwd-eye-btn {
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: none !important;
+  border: none !important;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  color: rgba(201,168,76,0.5);
+  padding: 0;
+  margin: 0;
+  width: 28px;
+  height: 28px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  z-index: 3 !important;
+  transition: color 0.2s;
+  border-radius: 4px;
+}
+.pwd-eye-btn:hover { color: rgba(201,168,76,1); }
+.pwd-eye-btn:active { color: var(--gold); transform: translateY(-50%) scale(0.88) !important; }
+
 /* Bottone occhio privacy — solo mobile */
 .mobile-only-btn {
   display: none !important;
@@ -26377,7 +26416,7 @@ window.addEventListener('beforeprint', function() {
       <input type="password" id="privacyPwdInput" placeholder="Password"
         style="width:100%;padding:12px 44px 12px 14px;border-radius:10px;border:1px solid var(--border);background:var(--dark3);color:var(--text);font-size:14px;font-family:var(--font);box-sizing:border-box;"
         onkeydown="if(event.key==='Enter')confirmPrivacyPwd()">
-      <button onclick="togglePwd('privacyPwdInput','privacyEye')" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--text-muted);" id="privacyEye">👁️</button>
+      <button onclick="togglePwd('privacyPwdInput','privacyEye')" class="pwd-eye-btn" id="privacyEye">👁️</button>
     </div>
     <div id="privacyPwdErr" style="color:#e05c5c;font-size:12px;min-height:16px;margin-bottom:12px;"></div>
     <div style="display:flex;gap:10px;">
