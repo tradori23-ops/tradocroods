@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260607-v256';
+  var BUILD = '20260607-v257-liquidglass';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -4145,6 +4145,42 @@ function sendRegistrationEmails(userName, userEmail) {
   }).catch(e => console.warn('[EmailJS user]', e));
 }
 </script>
+<style id="liquid-glass-layer">
+/* ════════ LIQUID GLASS (iOS 26 / macOS 26) — solo superfici, bordi colorati intatti ════════ */
+:root{
+  --lg-glass: rgba(24,24,28,0.50);
+  --lg-glass-2: rgba(46,46,52,0.42);
+  --lg-blur: 20px;
+}
+body.light{
+  --lg-glass: rgba(255,255,255,0.55);
+  --lg-glass-2: rgba(255,255,255,0.46);
+}
+.card, .summary-card, .modal{
+  background: linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,0) 40%), var(--lg-glass) !important;
+  -webkit-backdrop-filter: blur(var(--lg-blur)) saturate(1.8) !important;
+  backdrop-filter: blur(var(--lg-blur)) saturate(1.8) !important;
+}
+.sidebar{
+  background: var(--lg-glass) !important;
+  -webkit-backdrop-filter: blur(28px) saturate(1.8) !important;
+  backdrop-filter: blur(28px) saturate(1.8) !important;
+}
+.modal-overlay{
+  -webkit-backdrop-filter: blur(12px) !important;
+  backdrop-filter: blur(12px) !important;
+}
+.btn-outline{
+  background: var(--lg-glass-2) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.6) !important;
+  backdrop-filter: blur(14px) saturate(1.6) !important;
+}
+.fixed-item{
+  background: var(--lg-glass-2) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+  backdrop-filter: blur(10px) !important;
+}
+</style>
 </head>
 <body>
 
