@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260607-v248';
+  var BUILD = '20260607-v249';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -2041,21 +2041,20 @@ body.light .stat-mini .s-label { color:#44446a; }
   gap: 3px;
 }
 .tradclab-lux {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 22px;
-  font-weight: 300;
-  letter-spacing: 5px;
-  background: linear-gradient(135deg, #a07830, #c9a84c, #f5cb72, #c9a84c);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
+  font-family: 'Bricolage Grotesque', 'Arial Black', 'Helvetica Neue', sans-serif;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
   line-height: 1;
-  animation: luxLogoShimmer 4s ease-in-out infinite alternate;
+  -webkit-text-fill-color: unset;
+  background: none;
 }
-@keyframes luxLogoShimmer {
-  0%   { background-position: 0% 50%; }
-  100% { background-position: 100% 50%; }
-}
+.tradclab-lux .logo-trad { color: #ff7f2a; -webkit-text-fill-color: #ff7f2a; }
+.tradclab-lux .logo-dot  { color: rgba(255,255,255,0.3); -webkit-text-fill-color: rgba(255,255,255,0.3); }
+.tradclab-lux .logo-clab { color: #4ade80; -webkit-text-fill-color: #4ade80; }
+body.light .tradclab-lux .logo-trad { color: #d4600a; -webkit-text-fill-color: #d4600a; }
+body.light .tradclab-lux .logo-dot  { color: rgba(0,0,0,0.2); -webkit-text-fill-color: rgba(0,0,0,0.2); }
+body.light .tradclab-lux .logo-clab { color: #16a34a; -webkit-text-fill-color: #16a34a; }
 .tradclab-lux-sub {
   font-family: 'DM Sans', sans-serif;
   font-size: 8px;
@@ -2078,12 +2077,7 @@ body.light .stat-mini .s-label { color:#44446a; }
 #brandGreeting {
   animation: greetingFade 0.6s ease both;
 }
-body.light .tradclab-lux {
-  background: linear-gradient(135deg, #8a6500, #c9a84c, #e8b44a);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
+/* body.light .tradclab-lux — gestito da .logo-trad/.logo-clab */
 body.light .tradclab-lux-sub { color: rgba(138,101,0,0.5); }
 
 .sidebar-user {
@@ -4434,7 +4428,7 @@ setTimeout(_updateOfflineBanner, 500);
   <nav class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div class="tradclab-lux-wrap">
-        <span class="tradclab-lux">TRAD.CLAB</span>
+        <span class="tradclab-lux"><span class="logo-trad">TRAD</span><span class="logo-dot">.</span><span class="logo-clab">CLAB</span></span>
         <span class="tradclab-lux-sub" id="brandGreeting">by Family</span>
       </div>
     </div>
