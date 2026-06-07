@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260607-v254';
+  var BUILD = '20260607-v255';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -4343,6 +4343,22 @@ setTimeout(_updateOfflineBanner, 500);
   <div id="loginForm" style="display:none;"></div>
   <div id="registerForm" style="display:none;"></div>
   <button onclick="openBgPicker()" class="lbg-btn" title="Personalizza sfondo">🎨</button>
+  <!-- Barra copyright/versione/storage — dentro loginPage, nascosta automaticamente al login -->
+  <div id="loginFooter" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:10px;white-space:nowrap;">
+    <div id="loginCopyright" style="font-size:11px;color:rgba(201,168,76,0.65);letter-spacing:1.5px;font-family:'DM Sans',sans-serif;font-weight:400;cursor:default;transition:all 0.4s ease;white-space:nowrap;overflow:hidden;max-width:120px;"
+      onmouseenter="this.style.maxWidth='400px';this.style.color='rgba(201,168,76,0.95)';this.style.letterSpacing='1.8px';this.innerHTML='© 2026/2027 TRAD.CLAB · ITALIA — TORINO';"
+      onmouseleave="this.style.maxWidth='120px';this.style.color='rgba(201,168,76,0.65)';this.style.letterSpacing='1.5px';this.innerHTML='© 2026 TRAD.CLAB';">© 2026 TRAD.CLAB</div>
+    <div style="width:1px;height:10px;background:rgba(201,168,76,0.35);"></div>
+    <div id="loginVersion" style="font-size:11px;color:rgba(0,245,255,0.65);letter-spacing:0.5px;font-family:'DM Sans',sans-serif;">v.2.41</div>
+    <div style="width:1px;height:10px;background:rgba(201,168,76,0.35);"></div>
+    <div id="storageBar" style="display:flex;align-items:center;gap:5px;">
+      <div style="width:44px;height:3px;background:rgba(255,255,255,0.12);border-radius:3px;overflow:hidden;">
+        <div id="storageBarFill" style="height:100%;width:0%;border-radius:3px;transition:width 0.6s;background:rgba(201,168,76,0.7);"></div>
+      </div>
+      <span id="storagePct" style="font-size:11px;color:rgba(201,168,76,0.65);">—</span>
+      <div id="storageDetail" style="display:none;"></div>
+    </div>
+  </div>
 </div>
   <!-- CONFIRM DELETE MODAL -->
   <div id="confirmDeleteModal" style="display:none;position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:rgba(0,0,0,0.75);align-items:center;justify-content:center;">
@@ -4402,21 +4418,7 @@ setTimeout(_updateOfflineBanner, 500);
     </div>
   </div>
 
-  <div id="loginFooter" style="position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:5;display:flex;align-items:center;gap:10px;white-space:nowrap;">
-    <div id="loginCopyright" style="font-size:11px;color:rgba(201,168,76,0.65);letter-spacing:1.5px;font-family:'DM Sans',sans-serif;font-weight:400;cursor:default;transition:all 0.4s ease;white-space:nowrap;overflow:hidden;max-width:120px;"
-      onmouseenter="this.style.maxWidth='400px';this.style.color='rgba(201,168,76,0.95)';this.style.letterSpacing='1.8px';this.innerHTML='© 2026/2027 TRAD.CLAB · ITALIA — TORINO';"
-      onmouseleave="this.style.maxWidth='120px';this.style.color='rgba(201,168,76,0.65)';this.style.letterSpacing='1.5px';this.innerHTML='© 2026 TRAD.CLAB';">© 2026 TRAD.CLAB</div>
-    <div style="width:1px;height:10px;background:rgba(201,168,76,0.35);"></div>
-    <div id="loginVersion" style="font-size:11px;color:rgba(0,245,255,0.65);letter-spacing:0.5px;font-family:'DM Sans',sans-serif;">v.2.41</div>
-    <div style="width:1px;height:10px;background:rgba(201,168,76,0.35);"></div>
-    <div id="storageBar" style="display:flex;align-items:center;gap:5px;">
-      <div style="width:44px;height:3px;background:rgba(255,255,255,0.12);border-radius:3px;overflow:hidden;">
-        <div id="storageBarFill" style="height:100%;width:0%;border-radius:3px;transition:width 0.6s;background:rgba(201,168,76,0.7);"></div>
-      </div>
-      <span id="storagePct" style="font-size:11px;color:rgba(201,168,76,0.65);">—</span>
-      <div id="storageDetail" style="display:none;"></div>
-    </div>
-  </div>
+
 
   <!-- UPDATE TOAST BANNER (appare solo se disponibile aggiornamento) -->
   <div id="tc-update-banner" style="display:none;position:fixed;top:24px;right:24px;left:auto;transform:none;z-index:99999;backdrop-filter:blur(32px) saturate(220%) brightness(1.08);-webkit-backdrop-filter:blur(32px) saturate(220%) brightness(1.08);background:rgba(16,16,36,0.82);border:1px solid rgba(255,255,255,0.14);border-top:1px solid rgba(255,255,255,0.26);border-radius:20px;padding:16px 18px;align-items:center;gap:14px;box-shadow:0 2px 0 rgba(255,255,255,0.08) inset,0 24px 64px rgba(0,0,0,0.60),0 0 0 1px rgba(212,168,67,0.15);min-width:280px;max-width:360px;animation:bannerSlideIn 0.5s cubic-bezier(.2,.8,.2,1) both;">
