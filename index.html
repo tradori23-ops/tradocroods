@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260607-v243';
+  var BUILD = '20260607-v244';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -1449,18 +1449,51 @@ body.light .stat-mini .s-label { color:#44446a; }
 .llink-sm { font-size: 12px; font-weight: 400; opacity: 0.7; }
 .llink-sm:hover { opacity: 1; }
 
-/* Form inputs dentro la card chiara */
-.lwrap .form-group label { color: #6b5a30 !important; }
-.lwrap .form-group input {
-  color: #1a1410 !important;
-  border-bottom-color: rgba(180,150,80,0.3) !important;
-  background: rgba(255,255,255,0.6) !important;
+/* Form inputs dentro la card chiara — testo ben visibile */
+.lwrap .form-group label {
+  color: #5a4a20 !important;
+  font-weight: 600 !important;
 }
-.lwrap .form-group input::placeholder { color: rgba(80,60,20,0.4) !important; }
-.lwrap .form-group input:focus { border-bottom-color: #b8860b !important; }
-.lwrap .btn-primary { background: #b8860b !important; color: #fff !important; }
-.lwrap .btn-primary:hover { background: #8a6408 !important; }
+.lwrap .form-group input,
+.lwrap .pwd-wrap input {
+  color: #1a1208 !important;
+  border: none !important;
+  border-bottom: 1.5px solid rgba(140,110,40,0.35) !important;
+  background: rgba(255,250,235,0.7) !important;
+  border-radius: 6px 6px 0 0 !important;
+  padding: 10px 40px 10px 8px !important;
+  font-size: 15px !important;
+  font-weight: 500 !important;
+  -webkit-text-fill-color: #1a1208 !important;
+}
+.lwrap .form-group input::placeholder,
+.lwrap .pwd-wrap input::placeholder {
+  color: rgba(80,60,20,0.35) !important;
+  -webkit-text-fill-color: rgba(80,60,20,0.35) !important;
+}
+.lwrap .form-group input:focus,
+.lwrap .pwd-wrap input:focus {
+  border-bottom-color: #b8860b !important;
+  background: rgba(255,248,220,0.85) !important;
+  outline: none !important;
+}
+.lwrap .btn-primary {
+  background: linear-gradient(135deg, #b8860b, #8a6408) !important;
+  color: #fff !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.5px !important;
+  box-shadow: 0 4px 16px rgba(140,100,8,0.3) !important;
+}
+.lwrap .btn-primary:hover { background: linear-gradient(135deg, #9a7008, #6a4a06) !important; }
 .lwrap #manualLoginErr { color: #c0392b !important; }
+/* Nome profilo selezionato — scuro e leggibile */
+.lselname { color: #2a1a08 !important; font-size: 17px !important; }
+/* Cambia profilo link — scuro */
+#profilePasswordStep .llink { color: #6b5a30 !important; }
+#profilePasswordStep .llink:hover { color: #2a1a08 !important; }
+/* Eye button dentro la card chiara */
+.lwrap .pwd-eye-btn { color: rgba(140,110,40,0.6) !important; }
+.lwrap .pwd-eye-btn:hover { color: rgba(140,110,40,1) !important; }
 
 /* Footer info */
 .lfooter {
