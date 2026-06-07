@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260607-v244';
+  var BUILD = '20260607-v248';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -112,7 +112,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta http-equiv="Expires" content="0">
 <title>TRAD.CLAB</title>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,800&family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:wght@600;700;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
@@ -1283,15 +1283,17 @@ body.light .stat-mini .s-label { color:#44446a; }
   position: relative; z-index: 2;
 }
 .laside-logo {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: clamp(42px, 6vw, 72px);
-  font-weight: 300;
-  line-height: 1;
-  letter-spacing: 2px;
-  color: #fff;
-  text-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  font-family: 'Bricolage Grotesque', 'Arial Black', 'Helvetica Neue', sans-serif;
+  font-size: clamp(54px, 6.5vw, 92px);
+  font-weight: 800;
+  line-height: 0.92;
+  letter-spacing: -0.02em;
+  text-shadow: 0 6px 30px rgba(0,0,0,0.4);
+  font-optical-sizing: auto;
 }
-.laside-logo span { color: var(--gold); }
+.logo-trad { color: #ff7f2a !important; }
+.logo-dot  { color: rgba(255,255,255,0.35) !important; }
+.logo-clab { color: #4ade80 !important; }
 .laside-sub {
   font-family: 'DM Sans', sans-serif;
   font-size: 15px;
@@ -1334,8 +1336,8 @@ body.light .stat-mini .s-label { color:#44446a; }
 .lwrap {
   width: 100%; max-width: 400px;
   position: relative; z-index: 2;
-  background: rgba(255,253,248,0.82);
-  border: 1px solid rgba(180,150,80,0.18);
+  background: rgba(255,250,245,0.75);
+  border: 1px solid rgba(200,170,120,0.2);
   border-radius: 26px;
   padding: 28px 24px 20px;
   box-shadow: 0 26px 80px -24px rgba(40,25,10,0.6);
@@ -1491,9 +1493,29 @@ body.light .stat-mini .s-label { color:#44446a; }
 /* Cambia profilo link — scuro */
 #profilePasswordStep .llink { color: #6b5a30 !important; }
 #profilePasswordStep .llink:hover { color: #2a1a08 !important; }
-/* Eye button dentro la card chiara */
-.lwrap .pwd-eye-btn { color: rgba(140,110,40,0.6) !important; }
+/* Eye button dentro la card chiara — posizione fissa */
+.lwrap .pwd-wrap { position: relative !important; display: block !important; width: 100% !important; }
+.lwrap .pwd-wrap input { display: block !important; width: 100% !important; padding-right: 38px !important; box-sizing: border-box !important; }
+.lwrap .pwd-eye-btn {
+  position: absolute !important;
+  right: 6px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: rgba(140,110,40,0.6) !important;
+  background: none !important;
+  border: none !important;
+  width: 26px !important; height: 26px !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  cursor: pointer !important; z-index: 5 !important;
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.2s;
+}
+.lwrap .pwd-wrap:hover .pwd-eye-btn,
+.lwrap .pwd-wrap:focus-within .pwd-eye-btn { opacity: 1 !important; pointer-events: auto !important; }
 .lwrap .pwd-eye-btn:hover { color: rgba(140,110,40,1) !important; }
+@media (hover: none) and (pointer: coarse) {
+  .lwrap .pwd-eye-btn { opacity: 0.6 !important; pointer-events: auto !important; }
+}
 
 /* Footer info */
 .lfooter {
@@ -1523,7 +1545,7 @@ body.light .stat-mini .s-label { color:#44446a; }
 
 /* Aside — testo scuro su sfondo caldo */
 .laside-logo { color: #fff; text-shadow: 0 4px 20px rgba(0,0,0,0.4); }
-.laside-logo span { color: #f5c842; }
+/* .laside-logo span — colori gestiti da .logo-trad/.logo-clab/.logo-dot */
 .laside-sub { color: rgba(255,255,255,0.7); }
 .lchip { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.18); color: rgba(255,255,255,0.8); }
 .llp-quote { color: rgba(255,255,255,0.8); }
@@ -1543,13 +1565,21 @@ body.light .stat-mini .s-label { color:#44446a; }
 }
 .lbg-btn:hover { background: rgba(255,255,255,0.15); }
 
-/* Desktop: layout affiancato */
+/* Desktop: layout affiancato — stesso di GoWork */
 @media (min-width: 1000px) {
-  #loginPage { flex-direction: row; gap: clamp(40px,6vw,100px); padding: 0 6vw; }
-  .laside { display: flex; flex: 0 0 320px; }
-  .lwrap { flex: 0 0 420px; max-width: 420px; }
-  .lquote-box { display: none; }
+  #loginPage {
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: clamp(32px, 5vw, 80px);
+    padding: 0 5vw;
+    overflow: hidden;
+  }
+  .laside { display: flex; flex: 1 1 0; max-width: 520px; min-width: 260px; }
+  .lwrap { flex: 0 0 400px; max-width: 400px; }
+  /* .lquote-box — sempre visibile nella card su tutti i device */
   .lscene { height: 60vh; max-height: 640px; }
+  .laside-logo { font-size: clamp(48px, 5.5vw, 86px); }
 }
 @media (max-width: 999px) {
   .laside { display: none; }
@@ -4186,7 +4216,7 @@ setTimeout(_updateOfflineBanner, 500);
 
   <!-- Aside desktop -->
   <div class="laside">
-    <div class="laside-logo">TRAD.<span>CLAB</span></div>
+    <div class="laside-logo"><span class="logo-trad">TRAD</span><span class="logo-dot">.</span><span class="logo-clab">CLAB</span></div>
     <div class="laside-sub">Il tuo budget familiare. Sempre con te.</div>
     <div class="laside-chips">
       <span class="lchip">💰 Budget settimanale</span>
