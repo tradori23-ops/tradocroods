@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260607-v242';
+  var BUILD = '20260607-v243';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -1330,130 +1330,175 @@ body.light .stat-mini .s-label { color:#44446a; }
   margin-top: 16px;
 }
 
-/* Card login */
+/* Card login — stile GoWork: chiara, frosted */
 .lwrap {
   width: 100%; max-width: 400px;
   position: relative; z-index: 2;
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(201,168,76,0.18);
-  border-radius: 24px;
-  padding: 28px 24px 22px;
-  box-shadow: 0 24px 80px -20px rgba(0,0,0,0.7);
-  backdrop-filter: blur(20px) saturate(1.3);
-  -webkit-backdrop-filter: blur(20px) saturate(1.3);
+  background: rgba(255,253,248,0.82);
+  border: 1px solid rgba(180,150,80,0.18);
+  border-radius: 26px;
+  padding: 28px 24px 20px;
+  box-shadow: 0 26px 80px -24px rgba(40,25,10,0.6);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
   display: flex; flex-direction: column; align-items: center; gap: 0;
 }
 
 /* Brand / logo */
-.lbrand { text-align: center; margin-bottom: 12px; }
-.llogo { width: 90px; height: 90px; object-fit: contain; display: block; margin: 0 auto;
-         filter: drop-shadow(0 6px 18px rgba(0,0,0,0.5));
-         animation: tcLogoIn 0.8s cubic-bezier(0.2,0.8,0.2,1) 0.2s both; }
+.lbrand { text-align: center; margin-bottom: 14px; }
+.llogo {
+  width: 110px; height: 110px; object-fit: contain;
+  display: block; margin: 0 auto;
+  filter: drop-shadow(0 4px 14px rgba(80,50,20,0.3));
+  animation: tcLogoIn 0.8s cubic-bezier(0.2,0.8,0.2,1) 0.2s both;
+}
 
-/* Citazione mobile */
+/* Quote box — stile GoWork: bianca con testo scuro */
 .lquote-box {
   width: 100%;
-  background: rgba(201,168,76,0.06);
-  border: 1px solid rgba(201,168,76,0.14);
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 16px;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(200,180,140,0.3);
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-bottom: 18px;
   text-align: center;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
 .lquote-text {
-  font-family: 'Cormorant Garamond', serif;
-  font-size: 13px; font-style: italic; font-weight: 300;
-  color: rgba(255,255,255,0.78); line-height: 1.6;
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 14px; font-style: italic; font-weight: 400;
+  color: #2a1f10; line-height: 1.65;
 }
 .lquote-author {
   font-family: 'DM Sans', sans-serif;
-  font-size: 9px; letter-spacing: 2px; text-transform: uppercase;
-  color: rgba(201,168,76,0.5); margin-top: 6px;
+  font-size: 11px; font-weight: 600;
+  color: #8a6a2a; margin-top: 6px;
 }
 
-/* Subtitle */
+/* Subtitle — stile GoWork: testo scuro */
 .lsub {
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px; font-weight: 600;
-  letter-spacing: 2px; text-transform: uppercase;
-  color: rgba(201,168,76,0.55);
-  text-align: center; margin-bottom: 16px; width: 100%;
+  font-size: 14px; font-weight: 700;
+  letter-spacing: 0;
+  color: #1a1410;
+  text-align: center; margin-bottom: 18px; width: 100%;
 }
 
-/* Profili GoWork-style */
+/* Profili — stile GoWork: card bianca */
 .lprofgrid {
-  display: flex; flex-wrap: wrap; gap: 12px;
+  display: flex; flex-wrap: wrap; gap: 14px;
   justify-content: center; margin-bottom: 16px; width: 100%;
 }
 .lprofgrid .profile-card {
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(201,168,76,0.18);
+  background: #fff;
+  border: 1px solid rgba(180,150,80,0.25);
   border-radius: 16px;
-  padding: 14px 10px; width: 90px;
+  padding: 14px 10px; width: 96px;
   text-align: center; cursor: pointer;
-  transition: all 0.18s ease;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 12px rgba(80,50,10,0.1);
   gap: 8px;
 }
 .lprofgrid .profile-card:hover {
-  border-color: rgba(201,168,76,0.6);
-  background: rgba(201,168,76,0.08);
-  transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.4), 0 0 0 2px rgba(201,168,76,0.15);
+  border-color: rgba(180,150,80,0.7);
+  box-shadow: 0 0 0 3px rgba(180,150,80,0.12), 0 6px 20px rgba(80,50,10,0.15);
+  transform: translateY(-2px);
 }
+.lprofgrid .profile-card:active { transform: scale(0.95); }
 .lprofgrid .profile-avatar {
   width: 52px; height: 52px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #2a1f4e, #3d2a6b);
-  border: 2px solid rgba(201,168,76,0.3);
-  font-size: 22px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+  background: linear-gradient(135deg, #b8860b, #8b6914);
+  border: none;
+  font-size: 22px; font-weight: 800;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
 }
 .lprofgrid .profile-name {
-  font-size: 12px; font-weight: 600;
-  letter-spacing: 0.3px; text-transform: none;
-  color: rgba(255,255,255,0.8);
+  font-family: 'DM Sans', sans-serif;
+  font-size: 13px; font-weight: 600;
+  letter-spacing: 0; text-transform: none;
+  color: #1a1410;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
-/* Selezione nome profilo (step 2) */
+/* Step 2: nome profilo selezionato */
 .lselname {
   font-family: 'DM Sans', sans-serif;
-  font-size: 15px; font-weight: 700;
-  letter-spacing: 1.5px; text-transform: uppercase;
-  color: var(--gold); text-align: center;
+  font-size: 16px; font-weight: 700;
+  letter-spacing: 0.5px;
+  color: #1a1410; text-align: center;
 }
 
 /* Actions / link */
 .lactions {
   display: flex; flex-direction: column;
-  align-items: center; gap: 6px;
-  width: 100%; margin-top: 4px;
+  align-items: center; gap: 4px;
+  width: 100%; margin-top: 6px;
 }
 .llink {
   background: none; border: none;
-  color: rgba(201,168,76,0.75);
+  color: #8a6a2a;
   font-family: 'DM Sans', sans-serif;
-  font-size: 13px; cursor: pointer;
-  padding: 4px 8px; transition: color 0.2s;
+  font-size: 13px; font-weight: 600;
+  cursor: pointer; padding: 4px 8px;
+  transition: color 0.2s;
   text-decoration: none; display: inline-block;
 }
-.llink:hover { color: rgba(201,168,76,1); }
-.llink-sm { font-size: 11px; opacity: 0.6; }
+.llink:hover { color: #5a4010; }
+.llink-sm { font-size: 12px; font-weight: 400; opacity: 0.7; }
 .llink-sm:hover { opacity: 1; }
+
+/* Form inputs dentro la card chiara */
+.lwrap .form-group label { color: #6b5a30 !important; }
+.lwrap .form-group input {
+  color: #1a1410 !important;
+  border-bottom-color: rgba(180,150,80,0.3) !important;
+  background: rgba(255,255,255,0.6) !important;
+}
+.lwrap .form-group input::placeholder { color: rgba(80,60,20,0.4) !important; }
+.lwrap .form-group input:focus { border-bottom-color: #b8860b !important; }
+.lwrap .btn-primary { background: #b8860b !important; color: #fff !important; }
+.lwrap .btn-primary:hover { background: #8a6408 !important; }
+.lwrap #manualLoginErr { color: #c0392b !important; }
 
 /* Footer info */
 .lfooter {
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px; color: rgba(255,255,255,0.28);
+  font-size: 11.5px; color: rgba(80,60,20,0.5);
   text-align: center; line-height: 1.5;
-  margin-top: 12px; width: 100%;
+  margin-top: 14px; width: 100%;
 }
-.lfooter strong { color: rgba(255,255,255,0.4); }
+.lfooter strong { color: rgba(80,60,20,0.75); }
 .lfoot-copy {
   font-family: 'DM Sans', sans-serif;
-  font-size: 10px; color: rgba(255,255,255,0.18);
-  text-align: center; margin-top: 10px; letter-spacing: 0.5px;
+  font-size: 10px; color: rgba(80,60,20,0.35);
+  text-align: center; margin-top: 10px; letter-spacing: 0.3px;
 }
+.lfoot-copy a { color: #8a6a2a; text-decoration: none; }
+
+/* Sfondo — toni caldi come GoWork */
+#loginPage { background: #2a1a08; }
+.lbg {
+  position: fixed; inset: 0;
+  background:
+    radial-gradient(circle at 15% 5%, rgba(220,120,30,0.55) 0%, transparent 45%),
+    radial-gradient(circle at 88% 85%, rgba(120,60,140,0.35) 0%, transparent 45%),
+    radial-gradient(circle at 50% 50%, rgba(160,80,20,0.15) 0%, transparent 60%);
+  z-index: 0; pointer-events: none;
+}
+
+/* Aside — testo scuro su sfondo caldo */
+.laside-logo { color: #fff; text-shadow: 0 4px 20px rgba(0,0,0,0.4); }
+.laside-logo span { color: #f5c842; }
+.laside-sub { color: rgba(255,255,255,0.7); }
+.lchip { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.18); color: rgba(255,255,255,0.8); }
+.llp-quote { color: rgba(255,255,255,0.8); }
+.llp-author { color: rgba(245,200,80,0.7); }
+.llp-year { color: rgba(255,255,255,0.25); }
+
+/* Login msg dentro card chiara */
+.lwrap .login-msg { color: #c0392b !important; font-size: 12px !important; text-align: center !important; }
 
 /* Bottone sfondo */
 .lbg-btn {
@@ -4086,12 +4131,12 @@ setTimeout(_updateOfflineBanner, 500);
           <stop offset="100%" stop-color="#c9a84c" stop-opacity="0"/>
         </radialGradient>
       </defs>
-      <path d="M0,340 L160,180 L300,280 L460,150 L600,270 L740,160 L900,280 L1060,170 L1200,280 L1360,190 L1440,270 L1440,520 L0,520 Z" fill="#1a2a1e" opacity="0.5"/>
-      <path d="M460,150 L485,195 L435,195 Z" fill="#e8d9b0" opacity="0.4"/>
-      <path d="M1060,170 L1082,208 L1038,208 Z" fill="#e8d9b0" opacity="0.35"/>
-      <path d="M0,390 L180,270 L340,355 L500,255 L660,365 L820,265 L980,372 L1150,260 L1320,370 L1440,290 L1440,520 L0,520 Z" fill="#0d1f13" opacity="0.85"/>
-      <path d="M0,460 C240,440 400,452 600,450 C800,448 980,440 1180,452 C1340,460 1420,455 1440,458 L1440,520 L0,520 Z" fill="#080f0a" opacity="0.95"/>
-      <path d="M80,424 L108,472 L52,472 Z M152,408 L190,472 L114,472 Z M230,428 L258,472 L202,472 Z M880,420 L910,472 L850,472 Z M960,406 L1000,472 L920,472 Z M1050,425 L1080,472 L1020,472 Z M1140,410 L1178,472 L1102,472 Z M1230,428 L1258,472 L1202,472 Z M1340,415 L1370,472 L1310,472 Z" fill="#060d08" opacity="0.98"/>
+      <path d="M0,340 L160,180 L300,280 L460,150 L600,270 L740,160 L900,280 L1060,170 L1200,280 L1360,190 L1440,270 L1440,520 L0,520 Z" fill="#4a2800" opacity="0.45"/>
+      <path d="M460,150 L485,195 L435,195 Z" fill="#ffe8a0" opacity="0.5"/>
+      <path d="M1060,170 L1082,208 L1038,208 Z" fill="#ffe8a0" opacity="0.45"/>
+      <path d="M0,390 L180,270 L340,355 L500,255 L660,365 L820,265 L980,372 L1150,260 L1320,370 L1440,290 L1440,520 L0,520 Z" fill="#2a1400" opacity="0.88"/>
+      <path d="M0,460 C240,440 400,452 600,450 C800,448 980,440 1180,452 C1340,460 1420,455 1440,458 L1440,520 L0,520 Z" fill="#160a00" opacity="0.96"/>
+      <path d="M80,424 L108,472 L52,472 Z M152,408 L190,472 L114,472 Z M230,428 L258,472 L202,472 Z M880,420 L910,472 L850,472 Z M960,406 L1000,472 L920,472 Z M1050,425 L1080,472 L1020,472 Z M1140,410 L1178,472 L1102,472 Z M1230,428 L1258,472 L1202,472 Z M1340,415 L1370,472 L1310,472 Z" fill="#0c0500" opacity="0.98"/>
       <path d="M340,418 L278,492 L402,492 Z" fill="#8a3a1a"/>
       <path d="M402,492 L340,418 L370,422 L432,492 Z" fill="#6b2c12"/>
       <path d="M340,444 L320,492 L360,492 Z" fill="#3a1608"/>
