@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260607-v255';
+  var BUILD = '20260607-v256';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -4428,7 +4428,7 @@ setTimeout(_updateOfflineBanner, 500);
       <div style="font-size:13px;font-weight:700;color:var(--gold);letter-spacing:-0.2px;">Aggiornamento disponibile</div>
       <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Nuova versione di TRAD.CLAB pronta <span class="update-version" style="color:rgba(212,168,67,0.7);"></span></div>
     </div>
-    <button onclick="aggiornaApp()" style="background:linear-gradient(135deg,var(--gold),#e8a84c);border:none;border-radius:11px;padding:9px 18px;font-size:12px;font-weight:700;color:#1a1000;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 4px 14px rgba(212,168,67,0.30);">Installa ↻</button>
+    <button onclick="applyUpdate()" style="background:linear-gradient(135deg,var(--gold),#e8a84c);border:none;border-radius:11px;padding:9px 18px;font-size:12px;font-weight:700;color:#1a1000;cursor:pointer;font-family:inherit;white-space:nowrap;box-shadow:0 4px 14px rgba(212,168,67,0.30);">Installa ↻</button>
     <button onclick="document.getElementById('tc-update-banner').style.display='none'" style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.10);border-radius:8px;color:var(--text-muted);font-size:14px;cursor:pointer;padding:4px 8px;line-height:1;">✕</button>
   </div>
 </div>
@@ -8377,6 +8377,67 @@ try {
 }
 
 
+
+// ===== AUTO-UPDATE (stile GoWork) =====
+let _tcLastUpdCheck = 0, _tcUpdFound = false;
+
+async function checkForUpdate(manual) {
+  const now = Date.now();
+  if(!manual && (_tcUpdFound || now - _tcLastUpdCheck < 120000)) return; // max ogni 2 min
+  _tcLastUpdCheck = now;
+  try {
+    const base = location.href.split('?')[0].split('#')[0];
+    const r = await fetch(base + '?_uv=' + now, { cache: 'no-store' });
+    if(!r || !r.ok) { if(manual) showToast('Controllo non riuscito'); return; }
+    const txt = await r.text();
+    const m = txt.match(/var BUILD=['"']([^'"]+)['"']/);
+    if(!m) { if(manual) showToast('Controllo non riuscito'); return; }
+    const remote = m[1], local = (typeof BUILD !== 'undefined' ? BUILD : '');
+    if(remote && local && remote !== local) {
+      _tcUpdFound = true;
+      const b = document.getElementById('tc-update-banner');
+      if(b) {
+        b.style.display = 'flex';
+        const vEl = b.querySelector('.update-version');
+        if(vEl) vEl.textContent = remote.split('-').pop();
+      }
+      if(manual) showToast('Aggiornamento disponibile ⬆️');
+    } else if(manual) {
+      showToast('App già aggiornata ✓');
+    }
+  } catch(e) {
+    if(manual) showToast('Nessuna connessione');
+  }
+}
+
+async function applyUpdate() {
+  showToast('Aggiornamento in corso…');
+  // 1. Salva su cloud prima di ricaricare
+  try { if(typeof gistPushToCloud === 'function') await gistPushToCloud(); } catch(e) {}
+  // 2. Unregister service workers
+  try {
+    if('serviceWorker' in navigator) {
+      const rs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(rs.map(r => r.unregister()));
+    }
+  } catch(e) {}
+  // 3. Svuota cache
+  try {
+    if('caches' in window) {
+      const ks = await caches.keys();
+      await Promise.all(ks.map(k => caches.delete(k)));
+    }
+  } catch(e) {}
+  // 4. Rimuovi build salvata e ricarica
+  try { localStorage.removeItem('tc_build'); } catch(e) {}
+  const u = location.href.split('?')[0].split('#')[0] + '?_u=' + Date.now();
+  location.replace(u);
+}
+
+// Controlla all'avvio (dopo 4s), al ritorno in foreground e quando torna online
+setTimeout(() => { try { checkForUpdate(false); } catch(e) {} }, 4000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden) checkForUpdate(false); });
+window.addEventListener('online', () => checkForUpdate(false));
 
 // ===== PHOTO MANAGEMENT =====
 function getUserPhoto(email) {
