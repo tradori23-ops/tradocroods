@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20260607-v249';
+  var BUILD = '20260607-v250';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -247,7 +247,7 @@ body.light .sidebar {
   background: #e2e2f2;
   border-right-color: rgba(201,168,76,0.45);
 }
-body.light .sidebar-logo h2 { background: linear-gradient(135deg,#8a6500,#c9a84c); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+/* body.light .sidebar-logo h2 — colori gestiti da .logo-trad/.logo-clab */
 body.light .nav-item { color: #2a2a4a; }
 body.light .nav-item:hover { background: #d0d0e8; color: #111122; }
 body.light .nav-item.active { background: rgba(201,168,76,0.22); color: #7a5500; border-left-color: #c9a84c; }
@@ -291,7 +291,7 @@ body.light .fld input::placeholder { color: #8888aa; }
 #loginPage .login-logo h1 { -webkit-text-fill-color: transparent; }
 
 /* Pannello sinistro — sempre visibile, mai testo nero */
-body.light #loginLeftPanel .llp-logo { -webkit-text-fill-color: transparent !important; }
+/* body.light llp-logo override rimosso — gestito da logo-trad/logo-clab */
 body.light #loginLeftPanel .llp-sub { color: rgba(245,203,114,0.55) !important; }
 body.light #loginLeftPanel .llp-quote { color: rgba(255,255,255,0.85) !important; }
 body.light #loginLeftPanel .llp-quote-author { color: rgba(245,203,114,0.65) !important; }
@@ -1291,9 +1291,13 @@ body.light .stat-mini .s-label { color:#44446a; }
   text-shadow: 0 6px 30px rgba(0,0,0,0.4);
   font-optical-sizing: auto;
 }
-.logo-trad { color: #ff7f2a !important; }
-.logo-dot  { color: rgba(255,255,255,0.35) !important; }
-.logo-clab { color: #4ade80 !important; }
+.logo-trad { color: #ff7f2a !important; -webkit-text-fill-color: #ff7f2a !important; }
+.logo-dot  { color: rgba(255,255,255,0.35) !important; -webkit-text-fill-color: rgba(255,255,255,0.35) !important; }
+.logo-clab { color: #4ade80 !important; -webkit-text-fill-color: #4ade80 !important; }
+/* Proteggi i colori anche in tema chiaro */
+body.light .laside .logo-trad { color: #e8641a !important; -webkit-text-fill-color: #e8641a !important; }
+body.light .laside .logo-dot  { color: rgba(0,0,0,0.2) !important; -webkit-text-fill-color: rgba(0,0,0,0.2) !important; }
+body.light .laside .logo-clab { color: #16a34a !important; -webkit-text-fill-color: #16a34a !important; }
 .laside-sub {
   font-family: 'DM Sans', sans-serif;
   font-size: 15px;
